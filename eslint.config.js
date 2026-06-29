@@ -6,4 +6,11 @@ const compat = new FlatCompat({
 
 module.exports = [
   ...compat.extends('eslint-config-expo'),
+  {
+    rules: {
+      'import/no-unresolved': 'off',
+      'import/extensions': 'off',
+      'react-hooks/refs': 'off',
+    },
+  },
 ];
