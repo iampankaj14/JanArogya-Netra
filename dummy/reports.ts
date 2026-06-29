@@ -1,10 +1,5 @@
-export interface ReportItem {
-  id: string;
-  title: string;
-  type: string;
-  date: string;
-  generatedBy: string;
-}
+import { ReportItem } from '@/shared/types/report';
+
 
 export const dummyReports: ReportItem[] = [
   {

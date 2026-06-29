@@ -1,13 +1,5 @@
-import { UserRole } from '../constants/roles';
+import { User } from '@/shared/types/user';
 
-export interface User {
-  id: string;
-  name: string;
-  role: UserRole;
-  email: string;
-  facilityId?: string;
-  avatarUrl?: string;
-}
 
 export const dummyUsers: User[] = [
   {

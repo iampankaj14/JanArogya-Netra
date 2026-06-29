@@ -1,14 +1,5 @@
-import { MedicineType } from '../constants/medicineTypes';
+import { MedicineStock } from '@/shared/types/medicine';
 
-export interface MedicineStock {
-  id: string;
-  name: string;
-  type: MedicineType;
-  currentStock: number;
-  minRequiredStock: number;
-  unit: string;
-  facilityId: string;
-}
 
 export const dummyMedicines: MedicineStock[] = [
   {

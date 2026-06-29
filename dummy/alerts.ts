@@ -1,16 +1,5 @@
-import { AlertType, AlertPriority } from '../constants/alertTypes';
+import { AlertItem } from '@/shared/types/alert';
 
-export interface AlertItem {
-  id: string;
-  title: string;
-  type: AlertType;
-  priority: AlertPriority;
-  facilityId: string;
-  facilityName: string;
-  description: string;
-  timestamp: string;
-  resolved: boolean;
-}
 
 export const dummyAlerts: AlertItem[] = [
   {

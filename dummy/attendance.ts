@@ -1,14 +1,5 @@
-import { UserRole } from '../constants/roles';
+import { AttendanceRecord } from '@/shared/types/attendance';
 
-export interface AttendanceRecord {
-  id: string;
-  date: string;
-  facilityId: string;
-  staffName: string;
-  role: UserRole;
-  present: boolean;
-  timeIn?: string;
-}
 
 export const dummyAttendance: AttendanceRecord[] = [
   {

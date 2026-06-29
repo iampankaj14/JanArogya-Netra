@@ -1,10 +1,5 @@
-export interface NotificationItem {
-  id: string;
-  title: string;
-  message: string;
-  timestamp: string;
-  read: boolean;
-}
+import { NotificationItem } from '@/shared/types/notification';
+
 
 export const dummyNotifications: NotificationItem[] = [
   {

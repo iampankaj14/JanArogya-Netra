@@ -1,11 +1,5 @@
-export interface DistrictSummary {
-  name: string;
-  totalPHCs: number;
-  activeAlerts: number;
-  healthIndex: number;
-  supplyTransferRequestsTotal: number;
-  averagePatientWaitTimeMinutes: number;
-}
+import { DistrictSummary } from '@/shared/types/district';
+
 
 export const dummyDistrict: DistrictSummary = {
   name: 'Devgarh District',
