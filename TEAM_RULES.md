@@ -20,7 +20,12 @@ shared/                           <-- Read-only Shared Contracts
 
 ## 🪵 Git Workflow & Branch Strategy
 
-No developer or AI may commit directly to `main`.
+No developer or AI may commit directly to `main`. All development must be done in feature or bugfix branches, integrated first into `frontend` or `backend`, and finally merged into `main`.
+
+### Branch Ownership
+- **`main`**: Protected integration branch.
+- **`frontend`**: Main branch for Frontend Lead. Only Frontend folders (`app/`, `components/`, `theme/`, `assets/`, `navigation/`) can be modified.
+- **`backend`**: Main branch for Backend Lead. Only Backend folders (`services/`, `firebase/`, `hooks/`, `repositories/`, `store/`, `functions/`) can be modified.
 
 ### Branch Naming Conventions
 - `frontend` and `backend`: Continuous integration branches.
@@ -36,9 +41,11 @@ Follow Semantic Commits:
 
 ### Merging & Reviews
 1. Open a Pull Request from `feature/*` targeting either `frontend` or `backend`.
-2. Ensure `tsc --noEmit` and `npm run lint` pass successfully.
-3. Review conflicts using the **Conflict Resolution Strategy** (see below).
-4. Merge into `main` only after integrations have been fully tested and validated.
+2. **Pull before Push**: Always pull the latest remote changes (`git pull origin <branch-name>`) before pushing to avoid out-of-sync branches.
+3. **Resolve Conflicts Locally**: Conflicts must be resolved locally before merging. Never attempt automated or force merges on GitHub/GitLab.
+4. Ensure `tsc --noEmit` and `npm run lint` pass successfully.
+5. Review conflicts using the **Conflict Resolution Strategy** (see below).
+6. Merge into `main` only after integrations have been fully tested and validated.
 
 ---
 
