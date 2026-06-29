@@ -38,4 +38,8 @@ const auth = initializeAuth(app, {
 // Initialize Firestore
 const db = getFirestore(app);
 
-export { app, auth, db };
+const isFirebaseConfigured =
+  firebaseConfig.apiKey !== 'PLACEHOLDER_API_KEY' &&
+  firebaseConfig.apiKey !== '';
+
+export { app, auth, db, isFirebaseConfigured };
