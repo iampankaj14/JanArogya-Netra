@@ -5,7 +5,6 @@ import { Feather } from '@expo/vector-icons';
 import ScreenContainer from '@/components/ui/layout/ScreenContainer';
 import PageHeader from '@/components/ui/layout/PageHeader';
 import SectionHeader from '@/components/ui/layout/SectionHeader';
-import CardContainer from '@/components/ui/layout/CardContainer';
 import Divider from '@/components/ui/layout/Divider';
 import PrimaryButton from '@/components/ui/buttons/PrimaryButton';
 import { dummyUsers } from '@/dummy/users';
@@ -32,7 +31,7 @@ export default function ProfileScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         {/* User Card */}
-        <CardContainer className="bg-slate-900 border border-slate-800 rounded-3xl p-5 mb-6 items-center">
+        <View className="bg-slate-900 border border-slate-800 rounded-3xl p-5 mb-6 items-center">
           <Image
             source={{ uri: dhoUser.avatarUrl }}
             className="w-20 h-20 rounded-full border-2 border-blue-500 mb-4"
@@ -42,11 +41,11 @@ export default function ProfileScreen() {
             <Text className="text-blue-400 text-xs font-bold tracking-widest uppercase">{dhoUser.role}</Text>
           </View>
           <Text className="text-slate-400 text-xs font-semibold mt-3">{dhoUser.email}</Text>
-        </CardContainer>
+        </View>
 
         {/* Console Settings */}
         <SectionHeader title="Console Preferences" />
-        <CardContainer className="bg-slate-900/40 border border-slate-800/40 rounded-3xl p-4 mb-6">
+        <View className="bg-slate-900/40 border border-slate-800/40 rounded-3xl p-4 mb-6">
           <View className="flex-row items-center justify-between py-2">
             <View className="flex-row items-center">
               <View className="w-8 h-8 rounded-full bg-slate-800 items-center justify-center mr-3">
@@ -95,11 +94,11 @@ export default function ProfileScreen() {
               thumbColor={pushNotifs ? '#FFFFFF' : '#94A3B8'}
             />
           </View>
-        </CardContainer>
+        </View>
 
         {/* Directory links */}
         <SectionHeader title="System Support & Diagnostics" />
-        <CardContainer className="bg-slate-900/40 border border-slate-800/40 rounded-3xl p-4 mb-6">
+        <View className="bg-slate-900/40 border border-slate-800/40 rounded-3xl p-4 mb-6">
           <Pressable 
             onPress={() => router.push('/notifications')}
             className="flex-row items-center justify-between py-2.5 active:opacity-70"
@@ -154,7 +153,7 @@ export default function ProfileScreen() {
             </View>
             <Text className="text-slate-500 text-[11px] font-bold">v1.2.0 (Stable)</Text>
           </View>
-        </CardContainer>
+        </View>
 
         {/* Log Out */}
         <View className="mt-2">

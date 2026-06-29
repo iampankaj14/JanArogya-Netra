@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, Switch } from 'react-native';
+import { View, Text, TextInput, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import ScreenContainer from '@/components/ui/layout/ScreenContainer';
 import Badge from '@/components/ui/badges/Badge';
 import PrimaryButton from '@/components/ui/buttons/PrimaryButton';
 import OutlineButton from '@/components/ui/buttons/OutlineButton';
-import CardContainer from '@/components/ui/layout/CardContainer';
 import BottomSheet from '@/components/ui/layout/BottomSheet';
 import { dummyPHCs } from '@/dummy/phcs';
 import { PHC } from '@/shared/types/phc';
@@ -14,8 +13,8 @@ import { PHC } from '@/shared/types/phc';
 export default function DistrictMapScreen() {
   const router = useRouter();
   const [search, setSearch] = useState('');
-  const [showHotspots, setShowHotspots] = useState(true);
-  const [showVehicles, setShowVehicles] = useState(true);
+  const [showHotspots] = useState(true);
+  const [showVehicles] = useState(true);
   const [showTwinPreview, setShowTwinPreview] = useState(false);
   const [selectedPHC, setSelectedPHC] = useState<PHC | null>(null);
 
@@ -116,7 +115,7 @@ export default function DistrictMapScreen() {
             <Pressable
               key={phc.id}
               onPress={() => setSelectedPHC(phc)}
-              style={{ position: 'absolute', top, left }}
+              style={{ position: 'absolute', top, left } as any}
               className="items-center z-40"
             >
               <View className={`w-8 h-8 rounded-full border-2 ${scoreColor} items-center justify-center shadow-lg active:scale-110`}>
@@ -236,7 +235,7 @@ export default function DistrictMapScreen() {
               </View>
               <View className="flex-row justify-between">
                 <Text className="text-slate-400 text-xs">Stock Level Status</Text>
-                <Badge label={selectedPHC.stockStatus.toUpperCase()} type={selectedPHC.stockStatus === 'adequate' ? 'success' : selectedPHC.stockStatus === 'warning' ? 'warning' : 'danger'} />
+                <Badge label={selectedPHC.stockStatus.toUpperCase()} variant={selectedPHC.stockStatus === 'adequate' ? 'success' : selectedPHC.stockStatus === 'warning' ? 'warning' : 'critical'} />
               </View>
             </View>
 
@@ -276,8 +275,6 @@ export default function DistrictMapScreen() {
           </View>
           <OutlineButton 
             title="Track Route" 
-            style={{ paddingHorizontal: 12, height: 32 }}
-            textStyle={{ fontSize: 10 }}
             onPress={() => router.push('/resource-movement-tracker')}
           />
         </View>

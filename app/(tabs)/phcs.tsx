@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { View, FlatList, Text, Pressable } from 'react-native';
+import { View, FlatList, Text } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
 import ScreenContainer from '@/components/ui/layout/ScreenContainer';
 import PageHeader from '@/components/ui/layout/PageHeader';
 import SearchBar from '@/components/ui/inputs/SearchBar';
@@ -16,19 +15,8 @@ export default function PHCsScreen() {
   const [selectedBlock, setSelectedBlock] = useState('ALL');
   const [selectedStatus, setSelectedStatus] = useState('ALL');
 
-  const blocks = [
-    { label: 'All Blocks', value: 'ALL' },
-    { label: 'Rampur', value: 'Rampur' },
-    { label: 'Dharampur', value: 'Dharampur' },
-    { label: 'Sewapur', value: 'Sewapur' },
-  ];
-
-  const statuses = [
-    { label: 'All Statuses', value: 'ALL' },
-    { label: 'Critical', value: 'critical' },
-    { label: 'Warning', value: 'warning' },
-    { label: 'Adequate', value: 'adequate' },
-  ];
+  const blocks = ['ALL', 'Rampur', 'Dharampur', 'Sewapur'];
+  const statuses = ['ALL', 'critical', 'warning', 'adequate'];
 
   // Filtering Logic
   const filteredPHCs = dummyPHCs.filter((phc) => {
@@ -71,8 +59,8 @@ export default function PHCsScreen() {
             <Text className="text-slate-500 text-[10px] uppercase font-bold tracking-wider mb-1 px-1">Filter by block</Text>
             <FilterChips
               options={blocks}
-              selectedValue={selectedBlock}
-              onSelect={setSelectedBlock}
+              selectedOption={selectedBlock}
+              onSelectOption={setSelectedBlock}
             />
           </View>
 
@@ -81,8 +69,8 @@ export default function PHCsScreen() {
             <Text className="text-slate-500 text-[10px] uppercase font-bold tracking-wider mb-1 px-1">Filter by stock health</Text>
             <FilterChips
               options={statuses}
-              selectedValue={selectedStatus}
-              onSelect={setSelectedStatus}
+              selectedOption={selectedStatus}
+              onSelectOption={setSelectedStatus}
             />
           </View>
         </View>
@@ -113,7 +101,7 @@ export default function PHCsScreen() {
             description="No health centers matched your selected blocks or status metrics."
             icon="hospital"
             actionLabel="Reset Search Filters"
-            onAction={() => {
+            onActionPress={() => {
               setSearchQuery('');
               setSelectedBlock('ALL');
               setSelectedStatus('ALL');

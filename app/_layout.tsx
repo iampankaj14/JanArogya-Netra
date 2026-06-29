@@ -27,6 +27,13 @@ export default function RootLayout() {
             <Stack.Screen name="index" />
             <Stack.Screen name="login" />
             <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="phc-detail" />
+            <Stack.Screen name="explainable-ai" />
+            <Stack.Screen name="resource-redistribution" />
+            <Stack.Screen name="resource-movement-tracker" />
+            <Stack.Screen name="scenario-simulator" />
+            <Stack.Screen name="notifications" />
+            <Stack.Screen name="settings" />
           </Stack>
 
           {/* Global Floating Netra AI Trigger Button */}

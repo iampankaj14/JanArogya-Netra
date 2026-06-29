@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, Pressable, Switch, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, Switch } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import ScreenContainer from '@/components/ui/layout/ScreenContainer';
-import PageHeader from '@/components/ui/layout/PageHeader';
 import SectionHeader from '@/components/ui/layout/SectionHeader';
 import MetricCard from '@/components/ui/cards/MetricCard';
 import AlertCard from '@/components/ui/cards/AlertCard';
@@ -12,7 +11,6 @@ import PrimaryButton from '@/components/ui/buttons/PrimaryButton';
 import OutlineButton from '@/components/ui/buttons/OutlineButton';
 import Badge from '@/components/ui/badges/Badge';
 import Divider from '@/components/ui/layout/Divider';
-import CardContainer from '@/components/ui/layout/CardContainer';
 import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
 import ErrorState from '@/components/ui/feedback/ErrorState';
 
@@ -26,7 +24,7 @@ export default function SituationRoomScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [emergencyMode, setEmergencyMode] = useState(false);
-  const [alerts, setAlerts] = useState(dummyAlerts);
+  const alerts = dummyAlerts;
   
   // Simulation for DHO approval actions
   const [activeMissions, setActiveMissions] = useState<AIRecommendation[]>([
@@ -73,13 +71,12 @@ export default function SituationRoomScreen() {
   };
 
   if (loading) {
-    return <LoadingSpinner message="Loading Situation Room telemetry..." />;
+    return <LoadingSpinner label="Loading Situation Room telemetry..." />;
   }
 
   if (error) {
     return (
       <ErrorState 
-        title="Telemetry Failed" 
         message="Unable to connect to active monitoring networks." 
         onRetry={() => {
           setError(false);
@@ -137,7 +134,6 @@ export default function SituationRoomScreen() {
                 <OutlineButton 
                   title="Crisis Intel Feed" 
                   onPress={() => alert('Opening situational report feed.')}
-                  textStyle={{ color: '#FCA5A5' }}
                   style={{ borderColor: '#B91C1C' }}
                 />
               </View>
@@ -146,7 +142,7 @@ export default function SituationRoomScreen() {
         )}
 
         {/* AI Morning Brief */}
-        <CardContainer className="mb-6 bg-slate-900/60 border border-slate-800/40 p-5 rounded-3xl">
+        <View className="mb-6 bg-slate-900/60 border border-slate-800/40 p-5 rounded-3xl">
           <View className="flex-row items-center mb-3">
             <View className="w-9 h-9 rounded-full bg-blue-500/10 items-center justify-center mr-3 border border-blue-500/20">
               <Feather name="eye" size={18} color="#60A5FA" />
@@ -156,7 +152,7 @@ export default function SituationRoomScreen() {
           <Text className="text-slate-300 text-xs leading-relaxed">
             Good morning, DHO Rajesh. Devgarh Health Network reports an overall score of <Text className="text-blue-400 font-bold">68/100</Text>. Rampur Kalan is currently flagged at <Text className="text-red-400 font-bold">48/100</Text> due to high patient load and NS1 Dengue Kit shortages. 1 redistribution task is recommended.
           </Text>
-        </CardContainer>
+        </View>
 
         {/* Today's KPIs Grid */}
         <SectionHeader title="Today's Performance Telemetry" />
@@ -166,8 +162,9 @@ export default function SituationRoomScreen() {
               title="Active Alerts"
               value={alerts.filter(a => !a.resolved).length.toString()}
               change="+1"
-              type="danger"
-              icon="alert-octagon"
+              isPositiveChange={false}
+              color="#EF4444"
+              icon="critical"
             />
           </View>
           <View className="w-1/2 px-2 mb-4">
@@ -175,8 +172,9 @@ export default function SituationRoomScreen() {
               title="Avg Health Score"
               value={`${dummyDistrict.healthIndex}/100`}
               change="-2%"
-              type="warning"
-              icon="activity"
+              isPositiveChange={false}
+              color="#F59E0B"
+              icon="hospital"
             />
           </View>
           <View className="w-1/2 px-2 mb-4">
@@ -184,7 +182,8 @@ export default function SituationRoomScreen() {
               title="Bed Occupancy"
               value="82%"
               change="+5%"
-              type="info"
+              isPositiveChange={true}
+              color="#3B82F6"
               icon="user"
             />
           </View>
@@ -193,8 +192,9 @@ export default function SituationRoomScreen() {
               title="MO Presence"
               value="75%"
               change="Nominal"
-              type="success"
-              icon="check-circle"
+              isPositiveChange={true}
+              color="#10B981"
+              icon="success"
             />
           </View>
         </View>
@@ -226,7 +226,7 @@ export default function SituationRoomScreen() {
 
         {/* Command Queue */}
         <SectionHeader title="Logistics & Dispatch Queue" />
-        <CardContainer className="mb-6 bg-slate-900/40 p-4 border border-slate-800/40 rounded-3xl">
+        <View className="mb-6 bg-slate-900/40 p-4 border border-slate-800/40 rounded-3xl">
           {commandQueue.map((item, index) => (
             <View key={item.id}>
               <View className="flex-row justify-between items-center py-2.5">
@@ -237,7 +237,7 @@ export default function SituationRoomScreen() {
                 <View className="items-end">
                   <Badge 
                     label={item.status} 
-                    type={item.status === 'In Transit' ? 'info' : item.status === 'Approved' ? 'warning' : 'success'} 
+                    variant={item.status === 'In Transit' ? 'info' : item.status === 'Approved' ? 'warning' : 'success'} 
                   />
                   <Text className="text-slate-400 text-[10px] mt-1">ETA: {item.ETA}</Text>
                 </View>
@@ -245,26 +245,26 @@ export default function SituationRoomScreen() {
               {index < commandQueue.length - 1 && <Divider />}
             </View>
           ))}
-        </CardContainer>
+        </View>
 
         {/* Critical Alerts */}
         <SectionHeader title="Unresolved Outbreaks & Incidents" />
-        {alerts.map((alert) => (
-          <View className="mb-4" key={alert.id}>
+        {alerts.map((alertItem) => (
+          <View className="mb-4" key={alertItem.id}>
             <AlertCard
-              title={alert.title}
-              type={alert.type}
-              priority={alert.priority}
-              date={alert.timestamp}
-              description={alert.description}
-              onPress={() => alert(`Details for alert: ${alert.title}`)}
+              title={alertItem.title}
+              type={alertItem.type}
+              priority={alertItem.priority}
+              date={alertItem.timestamp}
+              description={alertItem.description}
+              onPress={() => alert(`Details for alert: ${alertItem.title}`)}
             />
           </View>
         ))}
 
         {/* Monitor Closely */}
         <SectionHeader title="Facilities Requiring Close Monitoring" />
-        <CardContainer className="mb-6 bg-slate-900/40 border border-slate-800/40 rounded-3xl p-4">
+        <View className="mb-6 bg-slate-900/40 border border-slate-800/40 rounded-3xl p-4">
           {dummyPHCs.filter(p => p.healthScore < 70).map((phc, index, arr) => (
             <View key={phc.id}>
               <View className="flex-row items-center justify-between py-2">
@@ -282,7 +282,7 @@ export default function SituationRoomScreen() {
               {index < arr.length - 1 && <Divider />}
             </View>
           ))}
-        </CardContainer>
+        </View>
 
         {/* District Health Pulse */}
         <SectionHeader title="District Outbreak Telemetry Trend" />
@@ -309,7 +309,7 @@ export default function SituationRoomScreen() {
 
         {/* Recent Activity Feed */}
         <SectionHeader title="Recent Telemetry Audits" />
-        <CardContainer className="bg-slate-900/40 p-4 border border-slate-800/40 rounded-3xl">
+        <View className="bg-slate-900/40 p-4 border border-slate-800/40 rounded-3xl">
           {dummyNotifications.map((notif, index) => (
             <View key={notif.id}>
               <View className="py-2">
@@ -319,7 +319,7 @@ export default function SituationRoomScreen() {
               {index < dummyNotifications.length - 1 && <Divider />}
             </View>
           ))}
-        </CardContainer>
+        </View>
       </ScrollView>
     </ScreenContainer>
   );

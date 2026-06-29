@@ -1,17 +1,15 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, Pressable } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import ScreenContainer from '@/components/ui/layout/ScreenContainer';
 import PageHeader from '@/components/ui/layout/PageHeader';
 import SectionHeader from '@/components/ui/layout/SectionHeader';
 import MetricCard from '@/components/ui/cards/MetricCard';
 import ReportCard from '@/components/ui/cards/ReportCard';
-import BarChart from '@/components/ui/charts/BarChart';
 import LineChart from '@/components/ui/charts/LineChart';
 import AreaChart from '@/components/ui/charts/AreaChart';
 import PrimaryButton from '@/components/ui/buttons/PrimaryButton';
 import OutlineButton from '@/components/ui/buttons/OutlineButton';
-import CardContainer from '@/components/ui/layout/CardContainer';
 import FilterChips from '@/components/ui/inputs/FilterChips';
 import { dummyReports } from '@/dummy/reports';
 
@@ -20,12 +18,7 @@ export default function ReportsScreen() {
   const [reportType, setReportType] = useState('ALL');
   const [exporting, setExporting] = useState(false);
 
-  const reportFilters = [
-    { label: 'All Audits', value: 'ALL' },
-    { label: 'Epidemiological', value: 'Epidemiological' },
-    { label: 'Inventory Audit', value: 'Inventory Audit' },
-    { label: 'Performance', value: 'Performance' },
-  ];
+  const reportFilters = ['ALL', 'Epidemiological', 'Inventory Audit', 'Performance'];
 
   const filteredReports = dummyReports.filter(r => 
     reportType === 'ALL' || r.type === reportType
@@ -76,8 +69,9 @@ export default function ReportsScreen() {
                   title="Stockouts Avoided"
                   value="42 cases"
                   change="+12"
-                  type="success"
-                  icon="shield"
+                  isPositiveChange={true}
+                  color="#10B981"
+                  icon="success"
                 />
               </View>
               <View className="w-1/2 px-2 mb-4">
@@ -85,14 +79,15 @@ export default function ReportsScreen() {
                   title="Avg Redistribution Time"
                   value="4.5 hrs"
                   change="-1.2 hrs"
-                  type="success"
-                  icon="rotate-cw"
+                  isPositiveChange={true}
+                  color="#10B981"
+                  icon="refresh"
                 />
               </View>
             </View>
 
             {/* AI Generated Quality Summary */}
-            <CardContainer className="mb-6 bg-slate-900/60 border border-slate-800/40 p-5 rounded-3xl">
+            <View className="mb-6 bg-slate-900/60 border border-slate-800/40 p-5 rounded-3xl">
               <View className="flex-row items-center mb-3">
                 <View className="w-9 h-9 rounded-full bg-blue-500/10 items-center justify-center mr-3 border border-blue-500/20">
                   <Feather name="eye" size={18} color="#60A5FA" />
@@ -102,7 +97,7 @@ export default function ReportsScreen() {
               <Text className="text-slate-300 text-xs leading-relaxed">
                 Daily registers indicate <Text className="text-green-400 font-bold">98.2% data completeness</Text> across all 14 PHCs. Kheri PHC has resolved its previous sync delay. Recommended action: None.
               </Text>
-            </CardContainer>
+            </View>
 
             {/* Capacity fill rate timeline */}
             <SectionHeader title="PHC Capacity Fill Rates (Timeline)" />
@@ -140,8 +135,8 @@ export default function ReportsScreen() {
               <Text className="text-slate-500 text-[10px] uppercase font-bold tracking-wider mb-2 px-1">Filter audits by category</Text>
               <FilterChips
                 options={reportFilters}
-                selectedValue={reportType}
-                onSelect={setReportType}
+                selectedOption={reportType}
+                onSelectOption={setReportType}
               />
             </View>
 
@@ -153,7 +148,7 @@ export default function ReportsScreen() {
                   type={report.type}
                   date={report.date}
                   generatedBy={report.generatedBy}
-                  onPress={() => alert(`Opening PDF Audit: ${report.title}`)}
+                  onDownload={() => alert(`Opening PDF Audit: ${report.title}`)}
                 />
               </View>
             ))}

@@ -72,19 +72,6 @@ export default function TabLayout() {
           ),
         }}
       />
-      {/* Hide deprecated screens from tab bar navigation */}
-      <Tabs.Screen
-        name="notifications"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="settings"
-        options={{
-          href: null,
-        }}
-      />
     </Tabs>
   );
 }
