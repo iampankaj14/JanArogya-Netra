@@ -4,6 +4,8 @@ import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import * as SecureStore from 'expo-secure-store';
 
+import { getFunctions } from 'firebase/functions';
+
 // Firebase configuration using Expo Public environment variables
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || 'PLACEHOLDER_API_KEY',
@@ -38,8 +40,11 @@ const auth = initializeAuth(app, {
 // Initialize Firestore
 const db = getFirestore(app);
 
+// Initialize Functions
+const functions = getFunctions(app);
+
 const isFirebaseConfigured =
   firebaseConfig.apiKey !== 'PLACEHOLDER_API_KEY' &&
   firebaseConfig.apiKey !== '';
 
-export { app, auth, db, isFirebaseConfigured };
+export { app, auth, db, functions, isFirebaseConfigured };
