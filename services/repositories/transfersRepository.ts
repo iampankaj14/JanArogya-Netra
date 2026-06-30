@@ -1,3 +1,4 @@
+// services/repositories/transfersRepository.ts (Integrated with Firebase Firestore)
 import { collection, doc, getDocs, getDoc, updateDoc, addDoc, query, runTransaction } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from '../firebase/firebaseConfig';
 import {
