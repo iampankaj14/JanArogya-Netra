@@ -1,3 +1,4 @@
+// services/repositories/phcRepository.ts (Integrated with Firebase Firestore)
 import { collection, doc, getDocs, getDoc, updateDoc, query, where, addDoc } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from '../firebase/firebaseConfig';
 import { PHC } from '@/shared/types/phc';

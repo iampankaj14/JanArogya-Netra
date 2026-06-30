@@ -1,3 +1,4 @@
+// services/repositories/notificationsRepository.ts (Integrated with Firebase Firestore)
 import { collection, doc, getDocs, updateDoc, query, where } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from '../firebase/firebaseConfig';
 import { NotificationItem } from '@/shared/types/notification';

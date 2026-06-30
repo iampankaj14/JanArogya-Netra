@@ -1,3 +1,4 @@
+// services/repositories/alertsRepository.ts (Integrated with Firebase Firestore)
 import { collection, doc, getDocs, getDoc, updateDoc, onSnapshot, query, where, addDoc } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from '../firebase/firebaseConfig';
 import { AlertItem } from '@/shared/types/alert';
