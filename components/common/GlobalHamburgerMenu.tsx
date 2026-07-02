@@ -47,8 +47,6 @@ export function GlobalHamburgerMenu({ visible, onClose }: GlobalHamburgerMenuPro
     }
   }, [visible, slideAnim, backdropOpacity]);
 
-  if (!visible) return null;
-
   const handleNavigate = (path: string) => {
     onClose();
     // Small delay to let the drawer close before transition
@@ -58,7 +56,11 @@ export function GlobalHamburgerMenu({ visible, onClose }: GlobalHamburgerMenuPro
   };
 
   return (
-    <View style={StyleSheet.absoluteFill} className="z-[99] flex-row">
+    <View 
+      style={[StyleSheet.absoluteFill, { zIndex: visible ? 99 : -1 }]} 
+      pointerEvents={visible ? 'auto' : 'none'}
+      className="flex-row"
+    >
       {/* Backdrop */}
       <Animated.View
         style={{ opacity: backdropOpacity }}

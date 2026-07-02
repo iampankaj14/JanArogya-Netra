@@ -1,7 +1,11 @@
 import { Tabs, useRouter } from 'expo-router';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet, LayoutAnimation, Platform, UIManager, Animated } from 'react-native';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 import { Feather } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import TopAppBar from '../../components/ui/navigation/TopAppBar';
 import GlobalHamburgerMenu from '../../components/common/GlobalHamburgerMenu';
 import { NetraAIAssistant } from '../../components/common/NetraAIAssistant';
@@ -14,16 +18,49 @@ export default function TabLayout() {
 
   // Custom Tab Bar component
   const CustomTabBar = ({ state, descriptors, navigation }: any) => {
+    // Only 4 visible tabs
+    const slideAnim = useRef(new Animated.Value(state.index)).current;
+
+    useEffect(() => {
+      Animated.spring(slideAnim, {
+        toValue: state.index,
+        useNativeDriver: false,
+        friction: 8,
+        tension: 50,
+      }).start();
+    }, [state.index]);
+
     return (
       <View style={styles.tabBarContainer}>
         {/* Floating Dock */}
-        <View className="flex-row bg-white border border-slate-100/50 py-1.5 px-2 justify-between items-center rounded-[32px] mx-6 mb-6 shadow-xl">
-          {state.routes.map((route: any, index: number) => {
+        <View className="bg-white border border-slate-100/50 py-1.5 px-2 rounded-[32px] mx-6 mb-6 shadow-xl">
+          <View className="flex-row justify-between items-center relative">
+            
+            {/* Smooth Sliding Background Indicator */}
+            <Animated.View 
+              style={{
+                position: 'absolute',
+                top: 0,
+                bottom: 0,
+                width: '25%', // Exactly 1/4th of the inner container width
+                transform: [{
+                  translateX: slideAnim.interpolate({
+                    inputRange: [0, 1, 2, 3],
+                    outputRange: ['0%', '100%', '200%', '300%'] // Moves by its own width
+                  })
+                }],
+                backgroundColor: 'rgba(14, 98, 204, 0.1)',
+                borderRadius: 9999,
+              }}
+            />
+
+            {state.routes.map((route: any, index: number) => {
             if (route.name === 'profile') return null; // Hide profile tab
 
             const isFocused = state.index === index;
 
             const onPress = () => {
+              LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
               const event = navigation.emit({
                 type: 'tabPress',
                 target: route.key,
@@ -46,9 +83,7 @@ export default function TabLayout() {
               <Pressable
                 key={route.name}
                 onPress={onPress}
-                className={`items-center justify-center py-2.5 px-3.5 rounded-full flex-1 mx-1 ${
-                  isFocused ? 'bg-[#0E62CC]/10' : 'bg-transparent'
-                }`}
+                className="items-center justify-center py-2.5 px-3.5 rounded-full flex-1 z-10 bg-transparent"
               >
                 <View className="h-5 items-center justify-center">
                   <Feather
@@ -65,6 +100,7 @@ export default function TabLayout() {
               </Pressable>
             );
           })}
+          </View>
         </View>
       </View>
     );
