@@ -4,7 +4,7 @@ import { Feather, MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { FlatList, Image, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
+import { FlatList, Image, ImageBackground, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 import Svg, { Defs, Path, Pattern, Stop, LinearGradient as SvgLinearGradient } from 'react-native-svg';
 
 import { dummyAlerts } from '@/dummy/alerts';
@@ -98,6 +98,27 @@ export default function SituationRoomScreen() {
 
     return () => clearInterval(intervalId);
   }, [cardWidthWithGap, unresolvedOutbreaks.length]);
+
+  // Dummy Data for AI Decision Requests
+  const aiDecisionRequests = [
+    { id: '1', type: 'Outbreak Reallocation', confidence: '94.00%', source: 'Dharampur PHC', target: 'Rampur Kalan PHC', reason: 'Dengue cases at Rampur Kalan PHC are surging. Dharampur PHC has available resources.' },
+    { id: '2', type: 'Resource Pre-deployment', confidence: '89.50%', source: 'State Warehouse', target: 'Surajpur CHC', reason: 'Predictive model indicates high risk of Malaria outbreak next week due to monsoons.' },
+  ];
+
+  // Auto-scroll logic for the AI carousel
+  const aiScrollViewRef = useRef<ScrollView>(null);
+  const [currentAiIndex, setCurrentAiIndex] = useState(0);
+
+  useEffect(() => {
+    const aiIntervalId = setInterval(() => {
+      setCurrentAiIndex((prevIndex) => {
+        const nextIndex = (prevIndex + 1) % aiDecisionRequests.length;
+        aiScrollViewRef.current?.scrollTo({ x: nextIndex * cardWidthWithGap, animated: true });
+        return nextIndex;
+      });
+    }, 4500);
+    return () => clearInterval(aiIntervalId);
+  }, [cardWidthWithGap, aiDecisionRequests.length]);
 
   const handleMomentumScrollEnd = (event: any) => {
     const scrollX = event.nativeEvent.contentOffset.x;
@@ -529,6 +550,126 @@ export default function SituationRoomScreen() {
                 </View>
               );
             })}
+          </View>
+        </View>
+
+        {/* Active Netra Decision Requests Section */}
+        <View className="mb-8 px-1">
+          <View className="flex-row justify-between items-center mb-3">
+            <Text className="text-brand-navy font-extrabold text-lg">Active Netra Decision Requests</Text>
+          </View>
+
+          <ScrollView
+            ref={aiScrollViewRef}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 0, gap: 12 }}
+            snapToInterval={cardWidthWithGap}
+            decelerationRate="fast"
+            onMomentumScrollEnd={(event) => {
+              const newIndex = Math.round(event.nativeEvent.contentOffset.x / cardWidthWithGap);
+              setCurrentAiIndex(newIndex);
+            }}
+          >
+            {aiDecisionRequests.map((request) => (
+              <View
+                key={request.id}
+                style={{ width: cardWidthWithGap - 12 }}
+                className="rounded-[24px] shadow-sm shadow-blue-200/50 border border-white/60 overflow-hidden bg-white"
+              >
+                <LinearGradient
+                  colors={['#E8F2FC', '#D4E6FA']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={{ width: '100%' }}
+                >
+                  <View className="p-4 relative">
+                    {/* Header Row */}
+                    <View className="flex-row justify-between items-center mb-4 relative z-10">
+                      <View className="flex-row items-center">
+                        {/* Glass Icon */}
+                        <View className="w-10 h-10 rounded-[12px] bg-white/70 border border-white items-center justify-center mr-3">
+                          <Feather name="cpu" size={18} color="#4F46E5" />
+                        </View>
+                        <View>
+                          <Text className="text-slate-600 font-bold text-[11px] mb-0.5">Netra Recommendation</Text>
+                          <Text className="text-brand-navy font-black text-[15px]">{request.type}</Text>
+                        </View>
+                      </View>
+                      {/* Glass Pill */}
+                      <View className="bg-white/70 border border-white px-2.5 py-1 rounded-full">
+                        <Text className="text-blue-700 font-extrabold text-[10px]">{request.confidence} Conf.</Text>
+                      </View>
+                    </View>
+
+                    {/* Facilities Flow */}
+                    <View className="flex-row items-center justify-between mb-4 relative z-10">
+                      {/* Source Facility Glass Card */}
+                      <View className="bg-white/60 rounded-[16px] p-2 flex-1 flex-row items-center border border-white">
+                        <View className="w-8 h-8 rounded-lg bg-blue-50 items-center justify-center mr-2 border border-white">
+                          <Feather name="home" size={14} color="#2563EB" />
+                        </View>
+                        <View className="flex-1">
+                          <Text className="text-slate-500 font-bold text-[9px] mb-0.5">Source Facility</Text>
+                          <Text className="text-brand-navy font-bold text-[11px]" numberOfLines={1}>{request.source}</Text>
+                        </View>
+                      </View>
+
+                      {/* Arrow */}
+                      <View className="w-6 items-center justify-center">
+                        <Feather name="arrow-right" size={16} color="#2563EB" />
+                      </View>
+
+                      {/* Target Facility Glass Card */}
+                      <View className="bg-white/60 rounded-[16px] p-2 flex-1 flex-row items-center border border-white">
+                        <View className="w-8 h-8 rounded-lg bg-green-50 items-center justify-center mr-2 border border-white">
+                          <Feather name="home" size={14} color="#16A34A" />
+                        </View>
+                        <View className="flex-1">
+                          <Text className="text-slate-500 font-bold text-[9px] mb-0.5">Target Facility</Text>
+                          <Text className="text-brand-navy font-bold text-[11px]" numberOfLines={1}>{request.target}</Text>
+                        </View>
+                      </View>
+                    </View>
+
+                    {/* Reasoning */}
+                    <View className="mb-4 relative z-10">
+                      <View className="flex-row items-center mb-1">
+                        <Feather name="zap" size={12} color="#4F46E5" style={{ marginRight: 4 }} />
+                        <Text className="text-indigo-600 font-black text-[10px] tracking-widest uppercase">REASONING</Text>
+                        <Feather name="zap" size={12} color="#4F46E5" style={{ marginLeft: 4 }} />
+                      </View>
+                      <Text className="text-slate-700 font-semibold text-[11px] leading-relaxed pr-10" numberOfLines={2}>
+                        {request.reason}
+                      </Text>
+                    </View>
+
+                    {/* Action Buttons with Liquid Glass feel */}
+                    <View className="flex-row gap-3 relative z-10">
+                      <Pressable className="flex-1 py-3 rounded-xl border border-blue-400 items-center justify-center flex-row bg-white/40">
+                        <Feather name="file-text" size={14} color="#2563EB" style={{ marginRight: 6 }} />
+                        <Text className="text-blue-700 font-extrabold text-[12px]">View Details</Text>
+                      </Pressable>
+
+                      <Pressable className="flex-1 py-3 rounded-xl bg-blue-600/90 border border-blue-400 items-center justify-center flex-row shadow-lg shadow-blue-500/40">
+                        <Feather name="check-circle" size={14} color="white" style={{ marginRight: 6 }} />
+                        <Text className="text-white font-extrabold text-[12px]">Approve Request</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                </LinearGradient>
+              </View>
+            ))}
+          </ScrollView>
+
+          {/* Pagination Dots */}
+          <View className="flex-row justify-center items-center mt-3 space-x-1.5 gap-1.5">
+            {aiDecisionRequests.map((_, index) => (
+              <View
+                key={index}
+                className={`h-1.5 rounded-full transition-all duration-300 ${index === currentAiIndex ? 'w-4 bg-blue-600' : 'w-1.5 bg-blue-200'}`}
+              />
+            ))}
           </View>
         </View>
 
