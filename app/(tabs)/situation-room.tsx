@@ -44,6 +44,7 @@ export default function SituationRoomScreen() {
   const [error, setError] = useState(false);
   const alerts = dummyAlerts;
   const [showAllTrends, setShowAllTrends] = useState(false);
+  const [isLogisticsOpen, setIsLogisticsOpen] = useState(false);
 
   // Detailed Dynamic Dummy Data for Sparklines (To be replaced with Firebase data)
   // Generating a detailed trend that ends precisely at 84 and 12
@@ -146,6 +147,9 @@ export default function SituationRoomScreen() {
   const [commandQueue, setCommandQueue] = useState([
     { id: 'q1', item: 'Paracetamol 500mg', qty: 500, status: 'In Transit', ETA: '2 hrs' },
     { id: 'q2', item: 'Amoxicillin 250mg', qty: 200, status: 'Approved', ETA: 'Tomorrow' },
+    { id: 'q3', item: 'Dengue Rapid Kits', qty: 50, status: 'In Transit', ETA: '1 hr' },
+    { id: 'q4', item: 'IV Fluids (NS)', qty: 100, status: 'Approved', ETA: 'Today' },
+    { id: 'q5', item: 'Azithromycin 500mg', qty: 300, status: 'In Transit', ETA: '4 hrs' },
   ]);
 
   const carouselRef = useRef<FlatList>(null);
@@ -673,7 +677,145 @@ export default function SituationRoomScreen() {
           </View>
         </View>
 
+        {/* Logistics & Dispatch Queue */}
+        <View className="mb-8 px-1">
+          <View className="bg-white rounded-[24px] shadow-sm shadow-slate-200/50 border border-slate-100 overflow-hidden">
+            <View className="px-4 py-2">
+              {/* Header (Clickable for dropdown) */}
+              <Pressable 
+                onPress={() => {
+                  if (commandQueue.length > 3) {
+                    setIsLogisticsOpen(!isLogisticsOpen);
+                  }
+                }}
+                className="py-4 flex-row justify-between items-center relative z-10"
+              >
+                <Text className="text-brand-navy font-extrabold text-[15px]">Logistics & Dispatch Queue</Text>
+                {commandQueue.length > 3 && (
+                  <View className="flex-row items-center">
+                    <Text className="text-blue-600 font-bold text-xs mr-1">{isLogisticsOpen ? 'Show Less' : 'View All'}</Text>
+                    <Feather name={isLogisticsOpen ? "chevron-up" : "chevron-down"} size={16} color="#2563EB" />
+                  </View>
+                )}
+              </Pressable>
+              
+              {/* Border line separating header from list */}
+              <View className="border-t border-slate-100 mb-2 relative z-10" />
+
+              {/* Items List */}
+              <View className="pb-2 relative z-10">
+                {(isLogisticsOpen ? commandQueue : commandQueue.slice(0, 3)).map((item, index) => {
+                  const isTransit = item.status === 'In Transit';
+                  return (
+                    <View key={item.id} className={`flex-row items-center py-4 ${index !== 0 ? 'border-t border-slate-50' : ''}`}>
+                      {/* Icon */}
+                      <View className={`w-12 h-12 rounded-2xl items-center justify-center mr-3 ${isTransit ? 'bg-blue-50' : 'bg-green-50'}`}>
+                        <Feather name={isTransit ? 'truck' : 'shield'} size={20} color={isTransit ? '#2563EB' : '#16A34A'} />
+                      </View>
+                      
+                      {/* Details */}
+                      <View className="flex-1">
+                        <Text className="text-brand-navy font-extrabold text-[14px] mb-0.5">{item.item}</Text>
+                        <Text className="text-slate-500 font-bold text-[11px]">Quantity: {item.qty} units</Text>
+                      </View>
+                      
+                      {/* Status / ETA */}
+                      <View className="items-end">
+                        <View className={`px-3 py-1.5 rounded-full mb-1 ${isTransit ? 'bg-blue-100/50' : 'bg-orange-100/50'}`}>
+                          <Text className={`font-extrabold text-[11px] ${isTransit ? 'text-blue-700' : 'text-orange-600'}`}>{item.status}</Text>
+                        </View>
+                        <Text className="text-slate-500 font-bold text-[10px]">ETA: {item.ETA}</Text>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Recent Telemetry Audits */}
+        <View className="mb-8 px-1">
+          <Text className="text-brand-navy font-extrabold text-[15px] mb-3 ml-2">Recent Telemetry Audits</Text>
+          <View className="bg-white rounded-[24px] shadow-sm shadow-slate-200/50 border border-slate-100 overflow-hidden p-4 relative">
+            
+            {/* Timeline Line */}
+            <View className="absolute left-[27px] top-[40px] bottom-[40px] w-[2px] bg-slate-100" />
+            
+            {/* Audit Item 1 */}
+            <View className="flex-row items-center py-3 border-b border-slate-50 relative">
+              <View className="w-6 items-center justify-center bg-white z-10 mr-3">
+                <View className="w-[18px] h-[18px] rounded-full bg-green-500 items-center justify-center border-2 border-white">
+                  <Feather name="check" size={10} color="white" />
+                </View>
+              </View>
+              
+              <View className="w-11 h-11 rounded-full bg-green-50 items-center justify-center mr-3 border border-green-100/50">
+                <Feather name="shield" size={16} color="#16A34A" />
+              </View>
+              
+              <View className="flex-1">
+                <Text className="text-brand-navy font-bold text-[13px] mb-0.5">Redistribution Approved</Text>
+                <Text className="text-slate-500 font-semibold text-[11px] leading-relaxed pr-2">DHO Rajesh Kumar approved transfer of 50 Dengue Kits to Rampur Kalan PHC.</Text>
+              </View>
+              
+              <View className="items-end pl-2">
+                <Text className="text-slate-400 font-bold text-[10px] mb-2">10m ago</Text>
+                <Feather name="chevron-right" size={14} color="#CBD5E1" />
+              </View>
+            </View>
+
+            {/* Audit Item 2 */}
+            <View className="flex-row items-center py-3 border-b border-slate-50 relative">
+              <View className="w-6 items-center justify-center bg-white z-10 mr-3">
+                <View className="w-[18px] h-[18px] rounded-full bg-red-500 items-center justify-center border-2 border-white">
+                  <Feather name="alert-triangle" size={8} color="white" />
+                </View>
+              </View>
+              
+              <View className="w-11 h-11 rounded-full bg-red-50 items-center justify-center mr-3 border border-red-100/50">
+                <Feather name="alert-triangle" size={16} color="#DC2626" />
+              </View>
+              
+              <View className="flex-1">
+                <Text className="text-brand-navy font-bold text-[13px] mb-0.5">New Epidemic Alert</Text>
+                <Text className="text-slate-500 font-semibold text-[11px] leading-relaxed pr-2">Dengue Surge Warning triggered for Rampur Kalan PHC.</Text>
+              </View>
+              
+              <View className="items-end pl-2">
+                <Text className="text-slate-400 font-bold text-[10px] mb-2">10m ago</Text>
+                <Feather name="chevron-right" size={14} color="#CBD5E1" />
+              </View>
+            </View>
+
+            {/* Audit Item 3 */}
+            <View className="flex-row items-center py-3 relative">
+              <View className="w-6 items-center justify-center bg-white z-10 mr-3">
+                <View className="w-[18px] h-[18px] rounded-full bg-blue-600 items-center justify-center border-2 border-white">
+                  <Feather name="info" size={10} color="white" />
+                </View>
+              </View>
+              
+              <View className="w-11 h-11 rounded-full bg-blue-50 items-center justify-center mr-3 border border-blue-100/50">
+                <Feather name="info" size={16} color="#2563EB" />
+              </View>
+              
+              <View className="flex-1">
+                <Text className="text-brand-navy font-bold text-[13px] mb-0.5">Monthly Summary Ready</Text>
+                <Text className="text-slate-500 font-semibold text-[11px] leading-relaxed pr-2">The AI-generated health briefing for Devgarh District is now available.</Text>
+              </View>
+              
+              <View className="items-end pl-2">
+                <Text className="text-slate-400 font-bold text-[10px] mb-2">10m ago</Text>
+                <Feather name="chevron-right" size={14} color="#CBD5E1" />
+              </View>
+            </View>
+
+          </View>
+        </View>
+
       </ScrollView>
+
     </ScreenContainer>
   );
 }
