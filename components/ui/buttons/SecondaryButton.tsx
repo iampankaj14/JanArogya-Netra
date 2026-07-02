@@ -18,26 +18,26 @@ export function SecondaryButton({
     <Pressable
       disabled={isInteractionDisabled}
       style={({ pressed }) => [
-        pressed && { opacity: 0.8 },
+        pressed && { opacity: 0.85 },
       ]}
-      className={`flex-row items-center justify-center bg-blue-100 border border-blue-100 py-3 px-6 rounded-lg disabled:bg-slate-200 disabled:border-slate-200`}
+      className={`flex-row items-center justify-center bg-brand-blue/10 border border-brand-blue/20 py-3 px-6 rounded-xl disabled:bg-slate-900 disabled:border-slate-800`}
       {...props}
     >
       {loading ? (
-        <ActivityIndicator color="#1E3A8A" className="mr-2" size="small" />
+        <ActivityIndicator color="#0E76FD" className="mr-2" size="small" />
       ) : (
         leftIcon && (
           <Feather
             name={icons[leftIcon] as any}
             size={18}
-            color={disabled ? '#9CA3AF' : '#1E3A8A'}
+            color={disabled ? '#475569' : '#0E76FD'}
             style={{ marginRight: 8 }}
           />
         )
       )}
       <Text
-        className={`font-semibold text-base ${
-          disabled ? 'text-gray-400' : 'text-blue-900'
+        className={`font-bold text-sm ${
+          disabled ? 'text-slate-600' : 'text-blue-400'
         }`}
       >
         {title}
@@ -46,7 +46,7 @@ export function SecondaryButton({
         <Feather
           name={icons[rightIcon] as any}
           size={18}
-          color={disabled ? '#9CA3AF' : '#1E3A8A'}
+          color={disabled ? '#475569' : '#0E76FD'}
           style={{ marginLeft: 8 }}
         />
       )}

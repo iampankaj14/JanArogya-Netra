@@ -27,12 +27,12 @@ export function FloatingActionButton({
         {
           shadowColor: '#000000',
           shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.3,
-          shadowRadius: 4.65,
-          elevation: 8,
+          shadowOpacity: 0.4,
+          shadowRadius: 5,
+          elevation: 10,
         },
       ]}
-      className={`flex-row items-center justify-center bg-blue-900 px-4 py-4 rounded-full disabled:bg-slate-300`}
+      className={`flex-row items-center justify-center bg-brand-blue px-4 py-4 rounded-full disabled:bg-slate-800`}
       {...props}
     >
       {loading ? (

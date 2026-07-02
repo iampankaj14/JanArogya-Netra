@@ -1,57 +1,43 @@
-import React, { useState } from 'react';
-import { View, Pressable } from 'react-native';
-import { Stack, usePathname } from 'expo-router';
+import React, { useEffect } from 'react';
+import { View } from 'react-native';
+import { Slot } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Feather } from '@expo/vector-icons';
-import { NetraAIAssistant } from '../components/common/NetraAIAssistant';
+import { useFonts } from 'expo-font';
+import * as SplashScreen from 'expo-splash-screen';
 import '../global.css';
+
+// Keep the splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync();
 
 // Initialize React Query client for future API/Firestore management
 const queryClient = new QueryClient();
 
 export default function RootLayout() {
-  const [showNetra, setShowNetra] = useState(false);
-  const pathname = usePathname();
+  const [loaded, fontError] = useFonts({
+    'Geist-Regular': require('../assets/fonts/Geist-Regular.ttf'),
+    'Geist-Medium': require('../assets/fonts/Geist-Medium.ttf'),
+    'Geist-SemiBold': require('../assets/fonts/Geist-SemiBold.ttf'),
+    'Geist-Bold': require('../assets/fonts/Geist-Bold.ttf'),
+  });
 
-  // Hide the floating AI button on Splash and Login views
-  const hideFloatingButton = pathname === '/' || pathname === '/login';
+  useEffect(() => {
+    if (loaded || fontError) {
+      SplashScreen.hideAsync();
+    }
+  }, [loaded, fontError]);
+
+  if (!loaded && !fontError) {
+    return null;
+  }
 
   return (
     <QueryClientProvider client={queryClient}>
       <SafeAreaProvider>
         <StatusBar style="auto" />
-        <View className="flex-1 bg-slate-950">
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="index" />
-            <Stack.Screen name="login" />
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="phc-detail" />
-            <Stack.Screen name="explainable-ai" />
-            <Stack.Screen name="resource-redistribution" />
-            <Stack.Screen name="resource-movement-tracker" />
-            <Stack.Screen name="scenario-simulator" />
-            <Stack.Screen name="notifications" />
-            <Stack.Screen name="settings" />
-          </Stack>
-
-          {/* Global Floating Netra AI Trigger Button */}
-          {!hideFloatingButton && (
-            <Pressable
-              onPress={() => setShowNetra(true)}
-              className="absolute bottom-24 right-6 w-14 h-14 rounded-full bg-blue-600 items-center justify-center shadow-2xl active:bg-blue-700 border border-blue-400/20"
-              style={{ elevation: 10 }}
-            >
-              <Feather name="eye" size={24} color="white" />
-            </Pressable>
-          )}
-
-          {/* Netra AI Chat Interface Modal Overlay */}
-          <NetraAIAssistant
-            visible={showNetra}
-            onClose={() => setShowNetra(false)}
-          />
+        <View className="flex-1 bg-brand-navy">
+          <Slot />
         </View>
       </SafeAreaProvider>
     </QueryClientProvider>

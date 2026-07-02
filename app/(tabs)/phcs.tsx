@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { View, FlatList, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import ScreenContainer from '@/components/ui/layout/ScreenContainer';
-import PageHeader from '@/components/ui/layout/PageHeader';
 import SearchBar from '@/components/ui/inputs/SearchBar';
 import FilterChips from '@/components/ui/inputs/FilterChips';
 import PHCCard from '@/components/ui/cards/PHCCard';
@@ -40,10 +39,15 @@ export default function PHCsScreen() {
 
   return (
     <ScreenContainer>
-      <PageHeader 
-        title="Primary Health Centers" 
-        subtitle="Operational directories and real-time score registries"
-      />
+      {/* Larger and bolder uppercase heading */}
+      <View className="mt-4 mb-5">
+        <Text className="text-white text-2xl font-black tracking-tight uppercase">
+          Primary Health Centers
+        </Text>
+        <Text className="text-slate-400 text-xs mt-1">
+          Operational directories and real-time score registries
+        </Text>
+      </View>
 
       {/* Sticky Filters & Search Header */}
       <View className="mb-4 space-y-3 px-1">

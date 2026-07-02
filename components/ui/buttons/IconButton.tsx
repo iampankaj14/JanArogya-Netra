@@ -24,20 +24,20 @@ export function IconButton({
   const isInteractionDisabled = disabled || loading;
   
   let bgClass = '';
-  let defaultColor = '#1F2937';
+  let defaultColor = '#94A3B8';
 
   switch (variant) {
     case 'primary':
-      bgClass = 'bg-blue-900 w-10 h-10 rounded-full justify-center items-center';
+      bgClass = 'bg-brand-blue w-10 h-10 rounded-full justify-center items-center';
       defaultColor = '#FFFFFF';
       break;
     case 'secondary':
-      bgClass = 'bg-blue-100 w-10 h-10 rounded-full justify-center items-center';
-      defaultColor = '#1E3A8A';
+      bgClass = 'bg-brand-blue/10 w-10 h-10 rounded-full justify-center items-center border border-brand-blue/20';
+      defaultColor = '#0E76FD';
       break;
     case 'transparent':
     default:
-      bgClass = 'w-10 h-10 rounded-full justify-center items-center active:bg-slate-100';
+      bgClass = 'w-10 h-10 rounded-full justify-center items-center active:bg-slate-800/50';
       break;
   }
 
@@ -49,13 +49,13 @@ export function IconButton({
       style={({ pressed }) => [
         pressed && { opacity: 0.8 },
       ]}
-      className={`${bgClass} disabled:bg-slate-200`}
+      className={`${bgClass} disabled:bg-slate-800`}
       {...props}
     >
       {loading ? (
         <ActivityIndicator color={iconColor} size="small" />
       ) : (
-        <Feather name={icons[icon] as any} size={size} color={disabled ? '#9CA3AF' : iconColor} />
+        <Feather name={icons[icon] as any} size={size} color={disabled ? '#475569' : iconColor} />
       )}
     </Pressable>
   );

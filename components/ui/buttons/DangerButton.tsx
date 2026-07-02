@@ -18,9 +18,9 @@ export function DangerButton({
     <Pressable
       disabled={isInteractionDisabled}
       style={({ pressed }) => [
-        pressed && { opacity: 0.8 },
+        pressed && { opacity: 0.85 },
       ]}
-      className={`flex-row items-center justify-center bg-red-600 border border-red-600 py-3 px-6 rounded-lg disabled:bg-slate-200 disabled:border-slate-200`}
+      className={`flex-row items-center justify-center bg-red-600 border border-red-600 py-3 px-6 rounded-xl disabled:bg-slate-800 disabled:border-slate-800`}
       {...props}
     >
       {loading ? (
@@ -30,14 +30,14 @@ export function DangerButton({
           <Feather
             name={icons[leftIcon] as any}
             size={18}
-            color={disabled ? '#9CA3AF' : '#FFFFFF'}
+            color={disabled ? '#475569' : '#FFFFFF'}
             style={{ marginRight: 8 }}
           />
         )
       )}
       <Text
-        className={`font-semibold text-base ${
-          disabled ? 'text-gray-400' : 'text-white'
+        className={`font-bold text-sm ${
+          disabled ? 'text-slate-500' : 'text-white'
         }`}
       >
         {title}
@@ -46,7 +46,7 @@ export function DangerButton({
         <Feather
           name={icons[rightIcon] as any}
           size={18}
-          color={disabled ? '#9CA3AF' : '#FFFFFF'}
+          color={disabled ? '#475569' : '#FFFFFF'}
           style={{ marginLeft: 8 }}
         />
       )}

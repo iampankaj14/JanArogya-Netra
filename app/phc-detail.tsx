@@ -1,15 +1,14 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, Pressable, Switch } from 'react-native';
+import React from 'react';
+import { View, Text, ScrollView, Pressable } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import ScreenContainer from '@/components/ui/layout/ScreenContainer';
-import SectionHeader from '@/components/ui/layout/SectionHeader';
-import Divider from '@/components/ui/layout/Divider';
-import Badge from '@/components/ui/badges/Badge';
 import OutlineButton from '@/components/ui/buttons/OutlineButton';
+import PrimaryButton from '@/components/ui/buttons/PrimaryButton';
 import { dummyPHCs } from '@/dummy/phcs';
 import { dummyMedicines } from '@/dummy/medicines';
 import { dummyAttendance } from '@/dummy/attendance';
+import BarChart from '@/components/ui/charts/BarChart';
 
 export default function PHCDetailScreen() {
   const router = useRouter();
@@ -22,13 +21,8 @@ export default function PHCDetailScreen() {
   const stocks = dummyMedicines.filter(m => m.facilityId === phc.id);
   const attendance = dummyAttendance.filter(a => a.facilityId === phc.id);
 
-  const [localAttendance, setLocalAttendance] = useState(attendance);
-
-  const handleToggleAttendance = (recordId: string) => {
-    setLocalAttendance(prev => prev.map(rec => 
-      rec.id === recordId ? { ...rec, present: !rec.present, timeIn: !rec.present ? '09:00 AM' : undefined } : rec
-    ));
-  };
+  const presentCount = attendance.filter(a => a.present).length;
+  const totalMO = attendance.length;
 
   return (
     <ScreenContainer>
@@ -40,56 +34,125 @@ export default function PHCDetailScreen() {
         >
           <Feather name="arrow-left" size={20} color="white" />
         </Pressable>
-        <Text className="text-white font-black text-lg">Facility Command Detail</Text>
+        <Text className="text-white font-black text-lg">Facility Profile</Text>
         <View className="w-10 h-10" />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-        {/* PHC Header Block */}
-        <View className="bg-slate-900 border border-slate-800 rounded-3xl p-5 mb-6">
-          <View className="flex-row justify-between items-start">
-            <View>
-              <Text className="text-white text-2xl font-black">{phc.name}</Text>
-              <Text className="text-slate-400 text-xs mt-1">{phc.block} Block</Text>
-            </View>
-            <View className="items-end">
-              <Badge 
-                label={phc.stockStatus.toUpperCase()} 
-                variant={phc.stockStatus === 'adequate' ? 'success' : phc.stockStatus === 'warning' ? 'warning' : 'critical'} 
-              />
-              <Text className="text-slate-500 text-[9px] font-bold uppercase mt-1">Stock Status</Text>
-            </View>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 60 }}>
+        
+        {/* Nandgaon Profile Header Title */}
+        <View className="mb-4">
+          <Text className="text-white text-3xl font-black tracking-tight">{phc.name}</Text>
+          <Text className="text-slate-400 text-xs mt-1">{phc.block} Block • Gautam Buddh Nagar</Text>
+        </View>
+
+        {/* High-Contrast Health Score Gauge Card */}
+        <View className="bg-slate-900 border border-slate-800 rounded-3xl p-5 mb-6 flex-row items-center justify-between">
+          <View>
+            <Text className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Netra Health Index</Text>
+            <Text className="text-white text-xs mt-1 font-bold">Facility status: Warning</Text>
           </View>
+          
+          <View className="flex-row items-center space-x-4">
+            {/* Circular Gauge Ring */}
+            <View className="w-16 h-16 rounded-full border-4 border-red-500/25 border-t-red-500 items-center justify-center relative">
+              <Text className="text-white font-extrabold text-sm">{phc.healthScore}%</Text>
+            </View>
 
-          <Divider />
-
-          {/* Key telemetry scores */}
-          <View className="flex-row justify-between">
-            <View className="items-center flex-1">
-              <Text className="text-slate-400 text-[10px] uppercase font-bold mb-1">Health Index</Text>
-              <Text className={`text-xl font-black ${
-                phc.healthScore > 80 ? 'text-green-400' : phc.healthScore > 60 ? 'text-yellow-400' : 'text-red-400'
-              }`}>{phc.healthScore}%</Text>
-            </View>
-            <View className="w-[1px] bg-slate-800 h-8 self-center" />
-            <View className="items-center flex-1">
-              <Text className="text-slate-400 text-[10px] uppercase font-bold mb-1">Active Alerts</Text>
-              <Text className={`text-xl font-black ${phc.activeAlertsCount > 0 ? 'text-red-400' : 'text-slate-300'}`}>
-                {phc.activeAlertsCount}
-              </Text>
-            </View>
-            <View className="w-[1px] bg-slate-800 h-8 self-center" />
-            <View className="items-center flex-1">
-              <Text className="text-slate-400 text-[10px] uppercase font-bold mb-1">Beds Fill Rate</Text>
-              <Text className="text-white text-xl font-black">
-                {Math.round((phc.bedsOccupied / phc.bedsTotal) * 100)}%
-              </Text>
-            </View>
+            <Pressable
+              onPress={() => router.push({
+                pathname: '/explainable-ai',
+                params: { id: phc.id }
+              })}
+              className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 items-center justify-center active:bg-slate-700"
+            >
+              <Feather name="arrow-up-right" size={18} color="white" />
+            </Pressable>
           </View>
         </View>
 
-        {/* Explain health score quick action */}
-        <View className="flex-row space-x-3 mb-6">
+        {/* Two-Column Details Matrix Layout */}
+        <View className="flex-row -mx-2 mb-6">
+          
+          {/* Left Column: Inventory Stock Levels */}
+          <View className="w-1/2 px-2">
+            <View className="bg-slate-900 border border-slate-800 rounded-3xl p-4 h-[280px]">
+              <Text className="text-white font-extrabold text-xs mb-3">Stock Reserves</Text>
+              
+              <ScrollView showsVerticalScrollIndicator={false} className="space-y-3">
+                {stocks.map((item) => {
+                  const isShortage = item.currentStock < item.minRequiredStock;
+                  const pct = Math.min(100, Math.round((item.currentStock / item.minRequiredStock) * 100));
+                  return (
+                    <View key={item.id} className="mb-2.5">
+                      <View className="flex-row justify-between mb-1">
+                        <Text className="text-slate-300 text-[10px] font-bold flex-1" numberOfLines={1}>
+                          {item.name}
+                        </Text>
+                        <Text className={`text-[9px] font-bold ${isShortage ? 'text-red-400' : 'text-slate-400'}`}>
+                          {item.currentStock}
+                        </Text>
+                      </View>
+                      <View className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                        <View 
+                          className={`h-full ${isShortage ? 'bg-red-500' : 'bg-blue-500'}`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </View>
+                    </View>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          </View>
+
+          {/* Right Column: Attendance Donut + Patient Traffic Chart */}
+          <View className="w-1/2 px-2 flex-col justify-between">
+            {/* Donut Attendance Box */}
+            <View className="bg-slate-900 border border-slate-800 rounded-3xl p-4 h-[130px] mb-4 items-center justify-center">
+              <Text className="text-slate-400 text-[9px] uppercase font-extrabold tracking-wider mb-2">MO Duty Roster</Text>
+              <View className="flex-row items-center space-x-3">
+                <View className="w-12 h-12 rounded-full border-4 border-slate-800 border-t-emerald-400 items-center justify-center">
+                  <Text className="text-white font-extrabold text-xs">{presentCount}/{totalMO}</Text>
+                </View>
+                <View>
+                  <Text className="text-white font-bold text-[10px]">Medical Officers</Text>
+                  <Text className="text-slate-400 text-[8px] mt-0.5">{totalMO - presentCount} absent today</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Patients Traffic Chart Card */}
+            <View className="bg-slate-900 border border-slate-800 rounded-3xl p-3 h-[135px] items-center justify-center overflow-hidden">
+              <Text className="text-slate-400 text-[9px] uppercase font-bold tracking-wider mb-1 self-start">Traffic (Mon-Fri)</Text>
+              <View className="h-[90px] w-full">
+                <BarChart title="" />
+              </View>
+            </View>
+
+          </View>
+        </View>
+
+        {/* AI Recommendations Card at Bottom */}
+        <View className="bg-blue-950/20 border border-blue-900/30 rounded-3xl p-5 mb-6">
+          <View className="flex-row items-center mb-3">
+            <Feather name="cpu" size={18} color="#60A5FA" className="mr-2" />
+            <Text className="text-blue-400 font-extrabold text-xs uppercase tracking-wider">AI Redistribution recommendation</Text>
+          </View>
+          <Text className="text-slate-300 text-xs leading-relaxed mb-4">
+            Dengue cases at {phc.name} are surging. Dharampur PHC currently holds 200 excess NS1 Kits with low local disease prevalence. Recommend transferring 50 kits.
+          </Text>
+          <PrimaryButton
+            title="Execute Stock Transfer"
+            onPress={() => router.push({
+              pathname: '/resource-redistribution',
+              params: { id: phc.id }
+            })}
+          />
+        </View>
+
+        {/* Floating Quick Action Row */}
+        <View className="flex-row space-x-3">
           <View className="flex-1">
             <OutlineButton
               title="Explain Risk Score"
@@ -102,93 +165,11 @@ export default function PHCDetailScreen() {
           </View>
           <View className="flex-1">
             <OutlineButton
-              title="Redistribute Stocks"
-              leftIcon="refresh"
-              onPress={() => router.push({
-                pathname: '/resource-redistribution',
-                params: { id: phc.id }
-              })}
+              title="Duty Roster Logs"
+              leftIcon="user"
+              onPress={() => alert('Opening full duty log archives.')}
             />
           </View>
-        </View>
-
-        {/* Bed telemetries */}
-        <SectionHeader title="Bed Capacity & Inpatients" />
-        <View className="bg-slate-900/40 border border-slate-800/40 rounded-3xl p-4 mb-6">
-          <View className="flex-row justify-between mb-3">
-            <Text className="text-slate-400 text-xs">Total Beds</Text>
-            <Text className="text-white font-bold text-xs">{phc.bedsTotal} units</Text>
-          </View>
-          <View className="flex-row justify-between mb-3">
-            <Text className="text-slate-400 text-xs">Occupied Beds</Text>
-            <Text className="text-red-400 font-bold text-xs">{phc.bedsOccupied} occupied</Text>
-          </View>
-          <View className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
-            <View 
-              className={`h-full ${phc.bedsOccupied / phc.bedsTotal > 0.8 ? 'bg-red-500' : 'bg-blue-500'}`}
-              style={{ width: `${(phc.bedsOccupied / phc.bedsTotal) * 100}%` }}
-            />
-          </View>
-        </View>
-
-        {/* Staff doctor attendance check list */}
-        <SectionHeader title="Medical Officer Attendance Logs" />
-        <View className="bg-slate-900/40 border border-slate-800/40 rounded-3xl p-4 mb-6">
-          {localAttendance.length > 0 ? (
-            localAttendance.map((staff, index, arr) => (
-              <View key={staff.id}>
-                <View className="flex-row items-center justify-between py-2">
-                  <View>
-                    <Text className="text-white font-bold text-xs">{staff.staffName}</Text>
-                    <Text className="text-slate-400 text-[10px]">{staff.role}</Text>
-                  </View>
-                  <View className="flex-row items-center">
-                    <Text className="text-slate-400 text-[10px] mr-3">
-                      {staff.present ? `Time In: ${staff.timeIn || '09:00 AM'}` : 'Absent'}
-                    </Text>
-                    <Switch
-                      value={staff.present}
-                      onValueChange={() => handleToggleAttendance(staff.id)}
-                      trackColor={{ false: '#334155', true: '#10B981' }}
-                      thumbColor={staff.present ? '#FFFFFF' : '#94A3B8'}
-                    />
-                  </View>
-                </View>
-                {index < arr.length - 1 && <Divider />}
-              </View>
-            ))
-          ) : (
-            <Text className="text-slate-500 text-xs font-semibold">No duty records found for today.</Text>
-          )}
-        </View>
-
-        {/* Inventory Stock levels */}
-        <SectionHeader title="Pharmacy & Diagnostic Stock levels" />
-        <View className="bg-slate-900/40 border border-slate-800/40 rounded-3xl p-4">
-          {stocks.length > 0 ? (
-            stocks.map((item, index, arr) => {
-              const isShortage = item.currentStock < item.minRequiredStock;
-              return (
-                <View key={item.id}>
-                  <View className="flex-row items-center justify-between py-2.5">
-                    <View className="flex-1 mr-4">
-                      <Text className="text-white font-bold text-xs">{item.name}</Text>
-                      <Text className="text-slate-400 text-[10px]">{item.type}</Text>
-                    </View>
-                    <View className="items-end">
-                      <Text className={`font-extrabold text-xs ${isShortage ? 'text-red-400' : 'text-slate-200'}`}>
-                        {item.currentStock} {item.unit}
-                      </Text>
-                      <Text className="text-slate-500 text-[9px] mt-0.5">Min: {item.minRequiredStock}</Text>
-                    </View>
-                  </View>
-                  {index < arr.length - 1 && <Divider />}
-                </View>
-              );
-            })
-          ) : (
-            <Text className="text-slate-500 text-xs font-semibold">No stock catalog registered for this facility.</Text>
-          )}
         </View>
       </ScrollView>
     </ScreenContainer>

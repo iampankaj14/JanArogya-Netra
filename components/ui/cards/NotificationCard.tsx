@@ -21,8 +21,8 @@ export function NotificationCard({
 }: NotificationCardProps) {
   if (loading) {
     return (
-      <View className="bg-white p-4 rounded-xl border border-slate-100 items-center justify-center min-h-[80px]">
-        <ActivityIndicator color="#1E3A8A" />
+      <View className="bg-white p-4 rounded-2xl border border-slate-100 items-center justify-center min-h-[80px]">
+        <ActivityIndicator color="#0B1D3A" />
       </View>
     );
   }
@@ -31,20 +31,20 @@ export function NotificationCard({
     <Pressable
       onPress={onPress}
       disabled={!onPress}
-      style={({ pressed }) => [pressed && { opacity: 0.9 }]}
-      className={`rounded-xl border border-slate-100 p-4 shadow-xs flex-row ${
-        read ? 'bg-white' : 'bg-blue-50/20 border-blue-50'
+      style={({ pressed }) => [pressed && { opacity: 0.85 }]}
+      className={`rounded-2xl border border-slate-100 p-4 shadow-xs flex-row relative ${
+        read ? 'bg-white' : 'bg-slate-50 border-slate-200'
       }`}
     >
       {/* Unread Indicator circle */}
       {!read && (
-        <View className="w-2.5 h-2.5 bg-blue-600 rounded-full absolute top-4 left-4" />
+        <View className="w-2.5 h-2.5 bg-brand-orange rounded-full absolute top-5 left-4" />
       )}
 
       {/* Content wrapper */}
       <View className={`flex-1 ${read ? 'pl-0' : 'pl-4'}`}>
         <View className="flex-row items-center justify-between mb-1.5">
-          <Text className={`text-slate-800 text-sm ${read ? 'font-semibold' : 'font-bold'}`} numberOfLines={1}>
+          <Text className={`text-brand-navy text-sm ${read ? 'font-semibold' : 'font-extrabold'}`} numberOfLines={1}>
             {title}
           </Text>
           <Text className="text-slate-400 text-xxs text-[10px]">{formatDateTime(timestamp)}</Text>

@@ -27,11 +27,11 @@ export function TextInput({
   return (
     <View className={`w-full mb-4 ${className}`}>
       {label && (
-        <Text className="text-slate-700 font-bold text-xs mb-1.5 uppercase tracking-wide">
+        <Text className="text-slate-700 font-bold text-sm mb-2 uppercase tracking-wide">
           {label}
         </Text>
       )}
-      <View className={`flex-row items-center border rounded-lg h-12 px-3 ${borderClass}`}>
+      <View className={`flex-row items-center border rounded-xl h-14 px-4 ${borderClass}`}>
         {leftIcon && (
           <Feather
             name={icons[leftIcon] as any}
@@ -41,7 +41,7 @@ export function TextInput({
           />
         )}
         <RNTextInput
-          className="flex-1 text-slate-800 text-sm h-full"
+          className="flex-1 text-slate-800 text-base h-full"
           placeholderTextColor="#9CA3AF"
           {...props}
         />

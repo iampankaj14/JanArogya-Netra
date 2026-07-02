@@ -1,46 +1,54 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, Pressable, Image } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import ProfileAvatar from './ProfileAvatar';
 import NotificationBell from './NotificationBell';
 
 interface TopAppBarProps {
-  title: string;
-  userName: string;
-  userAvatarUrl?: string;
+  onHamburgerPress: () => void;
   unreadNotificationsCount?: number;
   onNotificationsPress: () => void;
   onProfilePress: () => void;
 }
 
 export function TopAppBar({
-  title,
-  userName,
-  userAvatarUrl,
+  onHamburgerPress,
   unreadNotificationsCount = 0,
   onNotificationsPress,
   onProfilePress,
 }: TopAppBarProps) {
   return (
-    <View className="w-full flex-row items-center justify-between py-3 px-4 bg-slate-900 border-b border-slate-800">
-      {/* Title */}
-      <View className="flex-1 mr-4">
-        <Text className="text-white text-lg font-bold tracking-tight" numberOfLines={1}>
-          {title}
-        </Text>
+    <View className="pt-4 pb-2 z-50">
+      <View className="flex-row bg-white border border-slate-100/50 py-1.5 px-2 justify-between items-center rounded-[32px] mx-6 shadow-xl">
+        {/* Left: Hamburger menu */}
+        <Pressable 
+          onPress={onHamburgerPress}
+          className="w-10 h-10 rounded-full items-center justify-center active:bg-slate-50"
+      >
+        <Feather name="menu" size={19} color="#0B1D3A" />
+      </Pressable>
+
+      {/* Center: Brand logo */}
+      <View className="flex-row items-center justify-center flex-1">
+        <Image 
+          source={require('../../../assets/images/janarogya_logo_text.png')}
+          style={{ width: 170, height: 38 }}
+          resizeMode="contain"
+        />
       </View>
 
-      {/* Actions */}
-      <View className="flex-row items-center gap-3">
+      {/* Right: Actions */}
+      <View className="flex-row items-center gap-2">
         <NotificationBell
           badgeCount={unreadNotificationsCount}
           onPress={onNotificationsPress}
         />
         <ProfileAvatar
-          name={userName}
-          imageUrl={userAvatarUrl}
+          name="DHO Rajesh"
           size="sm"
           onPress={onProfilePress}
         />
+      </View>
       </View>
     </View>
   );

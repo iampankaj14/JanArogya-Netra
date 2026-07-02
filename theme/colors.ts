@@ -1,27 +1,27 @@
 export const colors = {
   primary: {
-    light: '#0A84FF',
-    dark: '#0A84FF',
-    brand: '#1E3A8A', // Deep Blue
+    light: '#0B1D3A',
+    dark: '#0B1D3A',
+    brand: '#0B1D3A',
   },
   secondary: {
-    light: '#30B0C7',
-    dark: '#30B0C7',
+    light: '#144B8C',
+    dark: '#144B8C',
   },
-  success: '#34C759', // Green
-  warning: '#FFCC00', // Yellow
-  error: '#FF3B30', // Red
+  success: '#2BA745',
+  warning: '#FFBC00',
+  error: '#EF4444',
   background: {
-    light: '#F2F2F7',
-    dark: '#1C1C1E',
+    light: '#FFFFFF',
+    dark: '#F8FAFC',
   },
   surface: {
     light: '#FFFFFF',
-    dark: '#2C2C2E',
+    dark: '#FFFFFF',
   },
   text: {
-    light: '#000000',
-    dark: '#FFFFFF',
-    muted: '#8E8E93',
+    light: '#0B1D3A',
+    dark: '#1E293B',
+    muted: '#6C757D',
   },
 };

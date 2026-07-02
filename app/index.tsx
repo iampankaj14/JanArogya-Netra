@@ -1,64 +1,47 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, Animated, ActivityIndicator } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
+import { useVideoPlayer, VideoView } from 'expo-video';
+
+const videoSource = require('../assets/videos/splash.mp4');
 
 export default function SplashScreen() {
   const router = useRouter();
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.9)).current;
+
+  const player = useVideoPlayer(videoSource, (playerInstance) => {
+    playerInstance.loop = false;
+    playerInstance.play();
+  });
 
   useEffect(() => {
-    // Fade in and scale up the content
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-      Animated.timing(scaleAnim, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-    ]).start();
-
-    // Navigate to Login after 2.5 seconds
+    // Navigate to Login after 4 seconds (approx duration of splash video)
     const timer = setTimeout(() => {
       router.replace('/login');
-    }, 2500);
+    }, 4000);
 
     return () => clearTimeout(timer);
-  }, [router, fadeAnim, scaleAnim]);
+  }, [router]);
 
   return (
-    <View className="flex-1 items-center justify-center bg-slate-950 px-6">
-      <Animated.View
-        style={{
-          opacity: fadeAnim,
-          transform: [{ scale: scaleAnim }],
-        }}
-        className="items-center"
-      >
-        {/* Glow effect surrounding icon */}
-        <View className="w-24 h-24 rounded-full bg-blue-900/30 items-center justify-center mb-6 border border-blue-500/20 shadow-2xl">
-          <Feather name="eye" size={48} color="#60A5FA" />
-        </View>
-
-        <Text className="text-white text-4xl font-extrabold tracking-tight text-center">
-          JanArogya <Text className="text-blue-400">Netra</Text>
-        </Text>
-        <Text className="text-slate-400 text-sm font-medium mt-3 tracking-wider text-center max-w-[280px]">
-          AI-POWERED DISTRICT HEALTH INTELLIGENCE COMMAND CENTER
-        </Text>
-      </Animated.View>
-
-      <View className="absolute bottom-16 items-center">
-        <ActivityIndicator size="small" color="#3B82F6" className="mb-4" />
-        <Text className="text-slate-500 text-xs font-bold tracking-widest uppercase">
-          Initializing Systems
-        </Text>
-      </View>
+    <View style={styles.container} className="bg-brand-navy">
+      <VideoView
+        style={styles.video}
+        player={player}
+        nativeControls={false}
+        contentFit="cover"
+      />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  video: {
+    width: '100%',
+    height: '100%',
+  },
+});

@@ -20,24 +20,24 @@ export function OutlineButton({
       style={({ pressed }) => [
         pressed && { opacity: 0.8 },
       ]}
-      className={`flex-row items-center justify-center bg-transparent border border-blue-900 py-3 px-6 rounded-lg disabled:bg-transparent disabled:border-slate-300`}
+      className={`flex-row items-center justify-center bg-transparent border border-brand-border py-3 px-6 rounded-xl disabled:border-slate-850`}
       {...props}
     >
       {loading ? (
-        <ActivityIndicator color="#1E3A8A" className="mr-2" size="small" />
+        <ActivityIndicator color="#0E76FD" className="mr-2" size="small" />
       ) : (
         leftIcon && (
           <Feather
             name={icons[leftIcon] as any}
             size={18}
-            color={disabled ? '#9CA3AF' : '#1E3A8A'}
+            color={disabled ? '#475569' : '#0E76FD'}
             style={{ marginRight: 8 }}
           />
         )
       )}
       <Text
-        className={`font-semibold text-base ${
-          disabled ? 'text-gray-400' : 'text-blue-900'
+        className={`font-bold text-sm ${
+          disabled ? 'text-slate-650' : 'text-blue-400'
         }`}
       >
         {title}
@@ -46,7 +46,7 @@ export function OutlineButton({
         <Feather
           name={icons[rightIcon] as any}
           size={18}
-          color={disabled ? '#9CA3AF' : '#1E3A8A'}
+          color={disabled ? '#475569' : '#0E76FD'}
           style={{ marginLeft: 8 }}
         />
       )}

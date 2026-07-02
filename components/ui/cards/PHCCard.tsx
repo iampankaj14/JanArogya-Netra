@@ -28,8 +28,8 @@ export function PHCCard({
 
   if (loading) {
     return (
-      <View className="bg-white p-4 rounded-xl border border-slate-100 items-center justify-center min-h-[120px]">
-        <ActivityIndicator color="#1E3A8A" />
+      <View className="bg-white p-4 rounded-2xl border border-slate-100 items-center justify-center min-h-[120px]">
+        <ActivityIndicator color="#0B1D3A" />
       </View>
     );
   }
@@ -37,12 +37,12 @@ export function PHCCard({
   const getStockStatusColor = () => {
     switch (stockStatus) {
       case 'critical':
-        return 'text-red-500 bg-red-50 border-red-100';
+        return 'text-red-600 bg-red-50 border-red-100';
       case 'warning':
-        return 'text-amber-500 bg-amber-50 border-amber-100';
+        return 'text-amber-600 bg-amber-50 border-amber-100';
       case 'adequate':
       default:
-        return 'text-emerald-500 bg-emerald-50 border-emerald-100';
+        return 'text-brand-green bg-green-50 border-green-100';
     }
   };
 
@@ -51,21 +51,21 @@ export function PHCCard({
       onPress={onPress}
       disabled={!onPress}
       style={({ pressed }) => [pressed && { opacity: 0.9 }]}
-      className="bg-white rounded-xl border border-slate-100 shadow-sm p-4"
+      className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4"
     >
       {/* Title & Score */}
       <View className="flex-row justify-between items-start mb-3">
         <View className="flex-1 mr-2">
-          <Text className="text-slate-850 font-bold text-base" numberOfLines={1}>
+          <Text className="text-brand-navy font-extrabold text-base" numberOfLines={1}>
             {name}
           </Text>
-          <Text className="text-slate-400 text-xs">{block} Block</Text>
+          <Text className="text-slate-400 text-xs mt-0.5">{block} Block</Text>
         </View>
         <View
           style={{ backgroundColor: healthColor }}
           className="w-9 h-9 rounded-full justify-center items-center"
         >
-          <Text className="text-white font-bold text-sm">{healthScore}</Text>
+          <Text className="text-white font-black text-sm">{healthScore}</Text>
         </View>
       </View>
 
@@ -73,15 +73,15 @@ export function PHCCard({
       <View className="flex-row flex-wrap gap-2 mb-3">
         {/* Doctor presence */}
         <View className={`flex-row items-center border px-2 py-1 rounded-md ${
-          doctorAvailable ? 'text-emerald-500 bg-emerald-50 border-emerald-100' : 'text-red-500 bg-red-50 border-red-100'
+          doctorAvailable ? 'text-brand-green bg-green-50 border-green-100' : 'text-red-600 bg-red-50 border-red-100'
         }`}>
           <Feather
             name={doctorAvailable ? 'user-check' : 'user-x'}
             size={12}
-            color={doctorAvailable ? '#10B981' : '#EF4444'}
+            color={doctorAvailable ? '#2BA745' : '#EF4444'}
           />
           <Text className={`text-[10px] font-bold ml-1 ${
-            doctorAvailable ? 'text-emerald-700' : 'text-red-700'
+            doctorAvailable ? 'text-brand-green' : 'text-red-650'
           }`}>
             {doctorAvailable ? 'MO Present' : 'MO Absent'}
           </Text>
@@ -89,7 +89,7 @@ export function PHCCard({
 
         {/* Stock status */}
         <View className={`flex-row items-center border px-2 py-1 rounded-md ${getStockStatusColor()}`}>
-          <Feather name="package" size={12} color={stockStatus === 'adequate' ? '#10B981' : stockStatus === 'warning' ? '#F59E0B' : '#EF4444'} />
+          <Feather name="package" size={12} color={stockStatus === 'adequate' ? '#2BA745' : stockStatus === 'warning' ? '#FFBC00' : '#EF4444'} />
           <Text className="text-[10px] font-bold ml-1 capitalize">{stockStatus} Stock</Text>
         </View>
 
@@ -97,7 +97,7 @@ export function PHCCard({
         {activeAlertsCount > 0 && (
           <View className="flex-row items-center border border-red-100 bg-red-50 px-2 py-1 rounded-md">
             <Feather name="alert-circle" size={12} color="#EF4444" />
-            <Text className="text-[10px] font-bold ml-1 text-red-700">
+            <Text className="text-[10px] font-bold ml-1 text-red-650">
               {activeAlertsCount} Active {activeAlertsCount === 1 ? 'Alert' : 'Alerts'}
             </Text>
           </View>
@@ -106,9 +106,9 @@ export function PHCCard({
 
       {/* Card Action footer */}
       {onPress && (
-        <View className="flex-row justify-between items-center border-t border-slate-50 pt-3">
+        <View className="flex-row justify-between items-center border-t border-slate-100 pt-3">
           <Text className="text-slate-400 text-xs">View Facility Profile</Text>
-          <Feather name="arrow-right" size={14} color="#1E3A8A" />
+          <Feather name="arrow-right" size={14} color="#0B1D3A" />
         </View>
       )}
     </Pressable>

@@ -45,7 +45,7 @@ export function ProfileAvatar({
   const avatar = imageUrl ? (
     <Image source={{ uri: imageUrl }} className={sizeClass} />
   ) : (
-    <View className={`${sizeClass} bg-blue-900 items-center justify-center border border-blue-900`}>
+    <View className={`${sizeClass} bg-brand-navy items-center justify-center border border-brand-navy`}>
       <Text className={`text-white ${textClass}`}>{getInitials(name)}</Text>
     </View>
   );

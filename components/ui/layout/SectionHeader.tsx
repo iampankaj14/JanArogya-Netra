@@ -13,8 +13,8 @@ export function SectionHeader({
   onActionPress,
 }: SectionHeaderProps) {
   return (
-    <View className="flex-row justify-between items-center my-3">
-      <Text className="text-slate-800 font-bold text-base uppercase tracking-wide">
+    <View className="flex-row justify-between items-center mt-12 mb-5">
+      <Text className="text-brand-navy font-black text-[14px]">
         {title}
       </Text>
       {actionLabel && onActionPress && (
@@ -22,7 +22,7 @@ export function SectionHeader({
           onPress={onActionPress}
           style={({ pressed }) => [pressed && { opacity: 0.7 }]}
         >
-          <Text className="text-blue-900 font-bold text-sm">{actionLabel}</Text>
+          <Text className="text-[#0E62CC] font-bold text-[12px]">{actionLabel}</Text>
         </Pressable>
       )}
     </View>
