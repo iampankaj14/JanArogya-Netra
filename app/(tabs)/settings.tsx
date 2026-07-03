@@ -151,7 +151,7 @@ export default function SettingsScreen() {
           <View className="flex-row items-center justify-between">
             <View className="flex-row items-center flex-1 pr-4">
               <View className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-100 items-center justify-center mr-4">
-                <Feather name="cloud-download" size={18} color="#10B981" />
+                <Feather name="download-cloud" size={18} color="#10B981" />
               </View>
               <View className="flex-1">
                 <Text className="text-brand-navy font-bold text-[13px] mb-0.5">Offline Mode</Text>

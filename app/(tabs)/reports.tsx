@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Dimensions, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Dimensions, Alert, Pressable } from 'react-native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
 import Svg, { Circle, Path, Defs, Stop, LinearGradient as SvgLinearGradient, Rect, Text as SvgText, G } from 'react-native-svg';
@@ -58,7 +58,7 @@ export default function ReportsScreen() {
 
   return (
     <View className="flex-1 bg-[#F8FAFC]">
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }} keyboardShouldPersistTaps="handled" nestedScrollEnabled={true}>
         
         {/* HEADER */}
         <View className="px-4 pt-10 mt-2 flex-row justify-between items-start">
@@ -75,7 +75,7 @@ export default function ReportsScreen() {
 
         {/* PILLS */}
         <View className="mt-5 mb-5 px-4">
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row" keyboardShouldPersistTaps="handled" nestedScrollEnabled={true}>
             {formats.map((fmt) => {
               const isSelected = selectedFormat === fmt;
               return (
@@ -223,7 +223,7 @@ export default function ReportsScreen() {
             </View>
             
             <View className="h-32 w-full mt-4 relative">
-              <Svg height="100%" width="100%" viewBox="0 0 350 140">
+              <Svg height="100%" width="100%" viewBox="0 0 350 140" pointerEvents="none">
                 <Defs>
                   <SvgLinearGradient id="greenGrad" x1="0" y1="0" x2="0" y2="1">
                     <Stop offset="0" stopColor="#10B981" stopOpacity="0.2" />
@@ -259,12 +259,6 @@ export default function ReportsScreen() {
                       stroke={activeBedPoint === i ? "white" : "#10B981"} 
                       strokeWidth="2" 
                     />
-                    {/* Invisible touch target */}
-                    <Circle 
-                      cx={pt.cx} cy={pt.cy} r="30" fill="transparent" 
-                      onPress={() => setActiveBedPoint(i)}
-                    />
-                    {/* Tooltip */}
                     {activeBedPoint === i && (
                       <G>
                         <Rect x={pt.cx - 15} y={pt.cy - 24} width="30" height="16" rx="4" fill="#10B981" />
@@ -275,6 +269,15 @@ export default function ReportsScreen() {
                   </G>
                 ))}
               </Svg>
+              <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10 }}>
+                {bedData.map((pt, i) => (
+                  <Pressable
+                    key={`hit-${i}`}
+                    onPress={() => setActiveBedPoint(i)}
+                    style={{ position: 'absolute', left: `${(pt.cx / 350) * 100}%`, top: 0, bottom: 0, width: 40, marginLeft: -20 }}
+                  />
+                ))}
+              </View>
             </View>
             <View className="flex-row justify-between pl-8 mt-2">
               {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d, i) => (
@@ -299,7 +302,7 @@ export default function ReportsScreen() {
             </View>
             
             <View className="h-32 w-full mt-4 relative">
-              <Svg height="100%" width="100%" viewBox="0 0 350 140">
+              <Svg height="100%" width="100%" viewBox="0 0 350 140" pointerEvents="none">
                 {/* Grid Lines */}
                 <Path d="M0,20 L350,20" stroke="#F1F5F9" strokeWidth="1" strokeDasharray="4 4" />
                 <Path d="M0,45 L350,45" stroke="#F1F5F9" strokeWidth="1" strokeDasharray="4 4" />
@@ -317,9 +320,6 @@ export default function ReportsScreen() {
                 {/* Bars & Interactivity */}
                 {opdData.map((bar, i) => (
                   <G key={`opd-${i}`}>
-                    {/* Background invisible bar for touch */}
-                    <Rect x={bar.cx - 15} y="20" width="30" height="100" fill="transparent" onPress={() => setActiveOpdPoint(i)} />
-                    
                     <Rect 
                       x={bar.cx - 8} 
                       y={bar.yTop} 
@@ -340,6 +340,15 @@ export default function ReportsScreen() {
                   </G>
                 ))}
               </Svg>
+              <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10 }}>
+                {opdData.map((bar, i) => (
+                  <Pressable
+                    key={`hit-opd-${i}`}
+                    onPress={() => setActiveOpdPoint(i)}
+                    style={{ position: 'absolute', left: `${(bar.cx / 350) * 100}%`, top: 0, bottom: 0, width: 40, marginLeft: -20 }}
+                  />
+                ))}
+              </View>
             </View>
             <View className="flex-row justify-between pl-8 pr-3 mt-2">
               {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d, i) => (
@@ -368,7 +377,7 @@ export default function ReportsScreen() {
             </View>
 
             <View className="h-40 w-full relative">
-              <Svg height="100%" width="100%" viewBox="0 0 350 160">
+              <Svg height="100%" width="100%" viewBox="0 0 350 160" pointerEvents="none">
                 <Defs>
                   <SvgLinearGradient id="purpleGrad" x1="0" y1="0" x2="0" y2="1">
                     <Stop offset="0" stopColor="#8B5CF6" stopOpacity="0.25" />
@@ -404,10 +413,6 @@ export default function ReportsScreen() {
                       fill={activeForecastPoint === i ? "#8B5CF6" : "white"} 
                       stroke={activeForecastPoint === i ? "white" : "#8B5CF6"} strokeWidth="2" 
                     />
-                    <Circle 
-                      cx={pt.cx} cy={pt.cy} r="25" fill="transparent" 
-                      onPress={() => setActiveForecastPoint(i)}
-                    />
                     {activeForecastPoint === i && (
                       <G>
                         <Rect x={pt.cx - 15} y={pt.cy - 24} width="30" height="16" rx="4" fill="#8B5CF6" />
@@ -418,6 +423,15 @@ export default function ReportsScreen() {
                   </G>
                 ))}
               </Svg>
+              <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10 }}>
+                {forecastData.map((pt, i) => (
+                  <Pressable
+                    key={`hit-fc-${i}`}
+                    onPress={() => setActiveForecastPoint(i)}
+                    style={{ position: 'absolute', left: `${(pt.cx / 350) * 100}%`, top: 0, bottom: 0, width: 30, marginLeft: -15 }}
+                  />
+                ))}
+              </View>
             </View>
 
             <View className="flex-row justify-between pl-6 pr-1 mt-2">
@@ -430,7 +444,7 @@ export default function ReportsScreen() {
 
         {/* BOTTOM 3 CARDS */}
         <View className="pl-4 pr-0 mb-8">
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row overflow-visible pb-2" contentContainerStyle={{ paddingRight: 16 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row overflow-visible pb-2" contentContainerStyle={{ paddingRight: 16 }} keyboardShouldPersistTaps="handled" nestedScrollEnabled={true}>
             
             <View className="bg-white rounded-[24px] p-4 border border-slate-100 shadow-sm w-44 mr-4">
               <View className="flex-row items-center mb-4">
@@ -510,7 +524,7 @@ export default function ReportsScreen() {
               </View>
               
               <View className="items-center justify-center mt-2 mb-4 relative h-24">
-                <Svg height="100" width="100" viewBox="0 0 64 64" className="absolute">
+                <Svg height="100" width="100" viewBox="0 0 64 64" className="absolute" pointerEvents="none">
                   <Circle cx="32" cy="32" r="28" stroke="#F1F5F9" strokeWidth="8" fill="none" />
                   <Circle cx="32" cy="32" r="28" stroke="#8B5CF6" strokeWidth="8" fill="none" strokeDasharray="175.93" strokeDashoffset="49.26" strokeLinecap="round" transform="rotate(-90 32 32)" />
                 </Svg>
@@ -545,7 +559,7 @@ export default function ReportsScreen() {
               </View>
               
               <View className="items-center justify-center mt-2 relative overflow-hidden h-20 mb-6">
-                <Svg height="100" width="100" viewBox="0 0 100 50">
+                <Svg height="100" width="100" viewBox="0 0 100 50" pointerEvents="none">
                   <Path d="M10,50 A40,40 0 0,1 90,50" stroke="#F1F5F9" strokeWidth="12" fill="none" strokeLinecap="round" />
                   <Path d="M10,50 A40,40 0 0,1 90,50" stroke="#10B981" strokeWidth="12" fill="none" strokeLinecap="round" strokeDasharray="125.6" strokeDashoffset="22.6" />
                 </Svg>

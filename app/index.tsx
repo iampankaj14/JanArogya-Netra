@@ -14,18 +14,12 @@ export default function SplashScreen() {
   });
 
   useEffect(() => {
-    // Navigate to Login when video finishes naturally
-    const subscription = player.addListener('playToEnd', () => {
-      router.replace('/login');
-    });
-
-    // Safety fallback: if video fails to play or gets stuck, dismiss after 6 seconds
+    // Fallback: dismiss after 4 seconds (duration of animation)
     const timer = setTimeout(() => {
       router.replace('/login');
-    }, 6000);
+    }, 4000);
 
     return () => {
-      subscription.remove();
       clearTimeout(timer);
     };
   }, [player, router]);
