@@ -4,9 +4,13 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Image, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useAuth, LoginRole } from '../context/AuthContext';
+import { useTranslation } from '../hooks/useTranslation';
+import { isFirebaseConfigured, auth } from '../services/firebase/firebaseConfig';
+import { sendPasswordResetEmail } from 'firebase/auth';
 
 export default function LoginScreen() {
   const { login } = useAuth();
+  const { t, language, setLanguage } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<LoginRole>('DHO');
@@ -15,7 +19,7 @@ export default function LoginScreen() {
   const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState('');
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!email || !password) {
       setError('Please fill in all credentials.');
       return;
@@ -23,12 +27,41 @@ export default function LoginScreen() {
     setError('');
     setLoading(true);
 
-    // Simulate authentication lag
-    setTimeout(() => {
-      setLoading(false);
-      login(role, email);
+    try {
+      await login(email, password, role, rememberMe);
       router.replace('/(tabs)/situation-room');
-    }, 1200);
+    } catch (e: any) {
+      if (e.message === 'AUTH/INVALID_CREDENTIALS') {
+        setError('Invalid email or password.');
+      } else if (e.message === 'AUTH/ROLE_MISMATCH') {
+        setError('Your account is not registered for this role.');
+      } else {
+        setError('Login failed: Please verify your internet or credentials.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setError('Please enter your email address to reset password.');
+      return;
+    }
+    setError('');
+    setLoading(true);
+    try {
+      if (isFirebaseConfigured) {
+        await sendPasswordResetEmail(auth, email);
+        alert('Password reset link sent to your email.');
+      } else {
+        alert('In offline/mock mode: To reset password, please contact admin@janarogya.gov.in');
+      }
+    } catch (e: any) {
+      setError(e.message || 'Failed to send password reset email.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -37,7 +70,7 @@ export default function LoginScreen() {
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       className="flex-1 bg-white"
     >
-      {/* Header Section (Fixed at top, outside ScrollView) */}
+      {/* Header Section */}
       <View className="flex-row justify-between items-center px-2 pt-4 pb-2 bg-white z-10">
         <Image
           source={require('@/data/login/govt.png')}
@@ -45,10 +78,14 @@ export default function LoginScreen() {
           resizeMode="contain"
         />
         <View className="flex-row bg-slate-50 rounded-full px-3 py-1.5 items-center border border-slate-200">
-          <Feather name="globe" size={12} color="#0E62CC" style={{ marginRight: 4 }} />
-          <Text className="text-[11px] font-bold text-[#0E62CC]">English</Text>
+          <TouchableOpacity onPress={() => setLanguage('en')} className="flex-row items-center">
+            <Feather name="globe" size={12} color={language === 'en' ? '#0E62CC' : '#64748B'} style={{ marginRight: 4 }} />
+            <Text className={`text-[11px] font-bold ${language === 'en' ? 'text-[#0E62CC]' : 'text-slate-500'}`}>English</Text>
+          </TouchableOpacity>
           <Text className="text-[11px] text-slate-300 mx-1">|</Text>
-          <Text className="text-[11px] font-bold text-slate-500">हिंदी</Text>
+          <TouchableOpacity onPress={() => setLanguage('hi')}>
+            <Text className={`text-[11px] font-bold ${language === 'hi' ? 'text-[#0E62CC]' : 'text-slate-500'}`}>हिंदी</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -76,7 +113,7 @@ export default function LoginScreen() {
           {/* Role Selector */}
           <View className="flex-row items-center mb-4">
             <Feather name="users" size={16} color="#334155" />
-            <Text className="text-slate-800 text-[15px] font-extrabold ml-2">Select Your Role</Text>
+            <Text className="text-slate-800 text-[15px] font-extrabold ml-2">{t('selectRole')}</Text>
           </View>
 
           <View className="flex-row justify-between mb-8 space-x-2">
@@ -87,16 +124,16 @@ export default function LoginScreen() {
               let iconSource: any;
 
               if (r === 'DHO') {
-                title = 'DHO';
-                subtitle = 'District Health\nOfficer';
+                title = t('dhoTitle');
+                subtitle = t('dhoSubtitle');
                 iconSource = require('@/data/login/dho.png');
               } else if (r === 'BMO') {
-                title = 'BMO';
-                subtitle = 'Block Medical\nOfficer';
+                title = t('bmoTitle');
+                subtitle = t('bmoSubtitle');
                 iconSource = require('@/data/login/bmo.png');
               } else {
-                title = 'PHC Staff';
-                subtitle = 'Health Centre\nStaff';
+                title = t('phcTitle');
+                subtitle = t('phcSubtitle');
                 iconSource = require('@/data/login/phc.png');
               }
 
@@ -126,11 +163,11 @@ export default function LoginScreen() {
           </View>
 
           {/* Email Input */}
-          <Text className="text-slate-600 font-extrabold text-[11px] tracking-wider mb-2">EMAIL ADDRESS</Text>
+          <Text className="text-slate-600 font-extrabold text-[11px] tracking-wider mb-2">{t('emailAddress')}</Text>
           <View className="flex-row items-center bg-white border border-slate-200 rounded-2xl px-4 py-3.5 mb-5 shadow-sm shadow-slate-100/50">
             <Feather name="mail" size={18} color="#64748B" />
             <TextInput
-              placeholder="official@health.gov.in"
+              placeholder={t('emailPlaceholder')}
               placeholderTextColor="#94A3B8"
               value={email}
               onChangeText={setEmail}
@@ -141,11 +178,11 @@ export default function LoginScreen() {
           </View>
 
           {/* Password Input */}
-          <Text className="text-slate-600 font-extrabold text-[11px] tracking-wider mb-2">PASSWORD</Text>
+          <Text className="text-slate-600 font-extrabold text-[11px] tracking-wider mb-2">{t('password')}</Text>
           <View className="flex-row items-center bg-white border border-slate-200 rounded-2xl px-4 py-3.5 mb-5 shadow-sm shadow-slate-100/50">
             <Feather name="lock" size={18} color="#64748B" />
             <TextInput
-              placeholder="Enter your password"
+              placeholder={t('passwordPlaceholder')}
               placeholderTextColor="#94A3B8"
               value={password}
               onChangeText={setPassword}
@@ -163,10 +200,10 @@ export default function LoginScreen() {
               <View className={`w-[18px] h-[18px] rounded-[5px] border items-center justify-center mr-2 ${rememberMe ? 'bg-[#0E62CC] border-[#0E62CC]' : 'bg-white border-slate-300'}`}>
                 {rememberMe && <Feather name="check" size={12} color="white" />}
               </View>
-              <Text className="text-slate-800 text-[13px] font-extrabold">Remember me</Text>
+              <Text className="text-slate-800 text-[13px] font-extrabold">{t('rememberMe')}</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => { }}>
-              <Text className="text-[#0E62CC] text-[13px] font-extrabold">Forgot password?</Text>
+            <TouchableOpacity onPress={handleForgotPassword}>
+              <Text className="text-[#0E62CC] text-[13px] font-extrabold">{t('forgotPassword')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -186,7 +223,7 @@ export default function LoginScreen() {
             >
               <View className="flex-1 items-center justify-center">
                 <Text className="text-white font-extrabold text-[16px] tracking-wide text-center">
-                  {loading ? 'Authenticating...' : 'Login'}
+                  {loading ? t('authenticating') : t('loginTitle')}
                 </Text>
               </View>
 

@@ -1,0 +1,86 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function to check auth
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to get caller user document
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    // Helper to check user role
+    function hasRole(role) {
+      return isAuthenticated() && getUserData().role == role;
+    }
+
+    function isAdminOrDho() {
+      return hasRole('SUPER_ADMIN') || hasRole('DHO');
+    }
+
+    // 1. Users
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if hasRole('SUPER_ADMIN') || (request.auth.uid == userId);
+    }
+
+    // 2. Facilities (PHCs)
+    match /facilities/{facilityId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdminOrDho();
+    }
+
+    // 3. Inventory
+    match /inventory/{itemDocId} {
+      allow read: if isAuthenticated();
+      // Staff at facility or DHO/BMO can write
+      allow write: if isAuthenticated() && (
+        isAdminOrDho() || 
+        hasRole('BMO') || 
+        (resource != null && getUserData().facilityId == resource.data.facilityId) || 
+        (request.resource != null && getUserData().facilityId == request.resource.data.facilityId)
+      );
+    }
+
+    // 4. Attendance
+    match /attendance/{attendanceId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && (
+        isAdminOrDho() || 
+        hasRole('BMO') || 
+        (request.resource != null && getUserData().facilityId == request.resource.data.facilityId)
+      );
+    }
+
+    // 5. Reports
+    match /reports/{reportId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdminOrDho();
+    }
+
+    // 6. Notifications
+    match /notifications/{notifId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    // 7. Transfers
+    match /transfers/{transferId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && (isAdminOrDho() || hasRole('BMO'));
+    }
+
+    // 8. aiLogs
+    match /aiLogs/{logId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // 9. Forecasts
+    match /forecasts/{forecastId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdminOrDho();
+    }
+  }
+}
