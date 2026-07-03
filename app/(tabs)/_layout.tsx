@@ -1,5 +1,6 @@
-import { Tabs, useRouter } from 'expo-router';
+import { Tabs, useRouter, usePathname } from 'expo-router';
 import { View, Text, Pressable, StyleSheet, LayoutAnimation, Platform, UIManager, Animated, PanResponder, Dimensions } from 'react-native';
+import { useAuth } from '../../context/AuthContext';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -11,6 +12,7 @@ import GlobalHamburgerMenu from '../../components/common/GlobalHamburgerMenu';
 import { NetraAIAssistant } from '../../components/common/NetraAIAssistant';
 
 export default function TabLayout() {
+  const { authState } = useAuth();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [emergencyMode, setEmergencyMode] = useState(false);
   const [showNetra, setShowNetra] = useState(false);
@@ -58,17 +60,28 @@ export default function TabLayout() {
 
   // Custom Tab Bar component
   const CustomTabBar = ({ state, descriptors, navigation }: any) => {
-    // Only 4 visible tabs
-    const slideAnim = useRef(new Animated.Value(state.index)).current;
+    const currentActiveRouteName = state.routes[state.index].name;
+    const highlightRouteName = currentActiveRouteName === 'phc-detail' ? 'phcs' : currentActiveRouteName;
+
+    const visibleRoutes = state.routes.filter((route: any) => {
+      if (route.name === 'profile' || route.name === 'phc-detail') return false;
+      if (authState?.role === 'PHC') {
+        return ['situation-room', 'inventory', 'reports'].includes(route.name);
+      }
+      return ['situation-room', 'district-map', 'phcs', 'reports'].includes(route.name);
+    });
+
+    const activeVisualIndex = Math.max(0, visibleRoutes.findIndex((r: any) => r.name === highlightRouteName));
+    const slideAnim = useRef(new Animated.Value(activeVisualIndex)).current;
 
     useEffect(() => {
       Animated.spring(slideAnim, {
-        toValue: state.index,
+        toValue: activeVisualIndex,
         useNativeDriver: false,
         friction: 8,
         tension: 50,
       }).start();
-    }, [state.index]);
+    }, [activeVisualIndex]);
 
     return (
       <View style={styles.tabBarContainer}>
@@ -94,10 +107,8 @@ export default function TabLayout() {
               }}
             />
 
-            {state.routes.map((route: any, index: number) => {
-            if (route.name === 'profile') return null; // Hide profile tab
-
-            const isFocused = state.index === index;
+          {visibleRoutes.map((route: any, index: number) => {
+            const isFocused = route.name === highlightRouteName;
 
             const onPress = () => {
               LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -107,16 +118,22 @@ export default function TabLayout() {
                 canPreventDefault: true,
               });
 
-              if (!isFocused && !event.defaultPrevented) {
+              const isActuallyFocused = currentActiveRouteName === route.name;
+
+              if (!isActuallyFocused && !event.defaultPrevented) {
                 navigation.navigate(route.name);
               }
             };
 
             let iconName: any = 'activity';
             let label = 'Home';
-            if (route.name === 'situation-room') { iconName = 'activity'; label = 'Home'; }
+            if (route.name === 'situation-room') { 
+              iconName = 'activity'; 
+              label = authState?.role === 'PHC' ? 'Facility' : 'Home'; 
+            }
             else if (route.name === 'district-map') { iconName = 'map'; label = 'Map'; }
             else if (route.name === 'phcs') { iconName = 'heart'; label = 'PHCs'; }
+            else if (route.name === 'inventory') { iconName = 'box'; label = 'Inventory'; }
             else if (route.name === 'reports') { iconName = 'bar-chart-2'; label = 'Reports'; }
 
             return (
@@ -182,12 +199,19 @@ export default function TabLayout() {
       <Tabs
         tabBar={(props) => <CustomTabBar {...props} />}
         screenOptions={{ headerShown: false }}
+        backBehavior="history"
       >
         <Tabs.Screen name="situation-room" />
         <Tabs.Screen name="district-map" />
         <Tabs.Screen name="phcs" />
+        <Tabs.Screen name="inventory" />
         <Tabs.Screen name="reports" />
         <Tabs.Screen name="profile" />
+        <Tabs.Screen name="phc-detail" options={{ href: null }} />
+        <Tabs.Screen name="scenario-simulator" options={{ href: null }} />
+        <Tabs.Screen name="resource-redistribution" options={{ href: null }} />
+        <Tabs.Screen name="resource-movement-tracker" options={{ href: null }} />
+        <Tabs.Screen name="settings" options={{ href: null }} />
       </Tabs>
 
       {/* Global Drawer Menu */}

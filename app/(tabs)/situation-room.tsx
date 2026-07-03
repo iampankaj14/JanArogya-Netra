@@ -2,13 +2,15 @@ import ErrorState from '@/components/ui/feedback/ErrorState';
 import ScreenContainer from '@/components/ui/layout/ScreenContainer';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { FlatList, Image, ImageBackground, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 import Svg, { Defs, Path, Pattern, Stop, LinearGradient as SvgLinearGradient } from 'react-native-svg';
 
 import { dummyAlerts } from '@/dummy/alerts';
 import { AIRecommendation } from '@/shared/types/ai';
+import { useAuth } from '@/context/AuthContext';
+import PHCHomeDashboard from '@/components/features/dashboard/PHCHomeDashboard';
 
 const generateSparkline = (data: number[], width: number, height: number) => {
   if (!data || data.length === 0) return { path: '', areaPath: '', lastPoint: { x: 0, y: 0 } };
@@ -40,11 +42,27 @@ export default function SituationRoomScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const carouselWidth = width - 44;
+  
+  const { authState } = useAuth();
+  const isBMO = authState?.role === 'BMO';
+  const isPHC = authState?.role === 'PHC';
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const alerts = dummyAlerts;
   const [showAllTrends, setShowAllTrends] = useState(false);
   const [isLogisticsOpen, setIsLogisticsOpen] = useState(false);
+
+  const { showAllTrends: showAllTrendsParam } = useLocalSearchParams();
+  useEffect(() => {
+    if (showAllTrendsParam === 'true') {
+      setShowAllTrends(true);
+    }
+  }, [showAllTrendsParam]);
+
+  if (isPHC) {
+    return <PHCHomeDashboard />;
+  }
 
   // Detailed Dynamic Dummy Data for Sparklines (To be replaced with Firebase data)
   // Generating a detailed trend that ends precisely at 84 and 12
@@ -55,11 +73,29 @@ export default function SituationRoomScreen() {
   const aiSparkline = generateSparkline(aiRecData, 100, 35);
 
   // Dummy Data for Unresolved Outbreaks Carousel using Official Disease List
-  const unresolvedOutbreaks = [
+  const allOutbreaks = [
     { id: '1', disease: 'Dengue', location: 'Sector 62, Noida, Gautam Buddh Nagar', priority: 'High Priority (Outbreak)', cases: 28, isEmergency: true },
     { id: '2', disease: 'Acute Diarrheal Disease (ADD)', location: 'Dadri, Gautam Buddh Nagar', priority: 'High Priority (Outbreak)', cases: 12, isEmergency: true },
-    { id: '3', disease: 'Seasonal Influenza (Flu)', location: 'Greater Noida West, Gautam Buddh Nagar', priority: 'Seasonal / Infectious', cases: 19, isEmergency: false }
+    { id: '3', disease: 'Malaria', location: 'Jewar, Gautam Buddh Nagar', priority: 'Medium Priority', cases: 8, isEmergency: false },
+    { id: '4', disease: 'Typhoid', location: 'Greater Noida West', priority: 'High Priority (Outbreak)', cases: 15, isEmergency: true },
   ];
+  const unresolvedOutbreaks = isBMO ? allOutbreaks.slice(0, 2) : allOutbreaks;
+
+  // Real-world AI Recommendations Data
+  const allAiRecommendations: AIRecommendation[] = [
+    { id: '1', title: 'Outbreak Reallocation', confidence: 94.0, sourceFacility: 'Dharampur PHC', targetFacility: 'Rampur Kalan PHC', item: 'Testing Kits', quantity: 150, reasoning: 'Dengue cases at Rampur Kalan PHC are surging. Dharampur PHC has available resources.', timestamp: new Date().toISOString() },
+    { id: '2', title: 'Resource Pre-deployment', confidence: 89.5, sourceFacility: 'State Warehouse', targetFacility: 'Surajpur CHC', item: 'Medicine', quantity: 200, reasoning: 'Predictive model indicates high risk of Malaria outbreak next week due to monsoons.', timestamp: new Date().toISOString() },
+    { id: '3', title: 'Staff Relocation', confidence: 91.2, sourceFacility: 'District Hospital', targetFacility: 'Jewar PHC', item: 'Doctors', quantity: 2, reasoning: 'High patient volume at Jewar PHC due to ADD outbreak. Additional doctors required.', timestamp: new Date().toISOString() },
+  ];
+  const aiRecommendations = isBMO ? allAiRecommendations.slice(0, 1) : allAiRecommendations;
+
+  // Logistics requests (simulated)
+  const allLogisticsRequests = [
+    { id: 'req-1', from: 'Rampur Kalan PHC', to: 'Dharampur PHC', item: 'Paracetamol 500mg', quantity: 500, status: 'pending', urgent: true },
+    { id: 'req-2', from: 'Jewar PHC', to: 'District Hospital', item: 'IV Fluids', quantity: 100, status: 'approved', urgent: false },
+    { id: 'req-3', from: 'Dadri CHC', to: 'State Warehouse', item: 'Dengue Testing Kits', quantity: 50, status: 'pending', urgent: true },
+  ];
+  const logisticsRequests = isBMO ? allLogisticsRequests.slice(0, 1) : allLogisticsRequests;
 
   // Dummy Data for Disease Trends
   const diseaseTrendsData = [
@@ -326,11 +362,10 @@ export default function SituationRoomScreen() {
               </View>
               {/* Right: Text Stack */}
               <View className="flex-1 ml-3 pt-0.5">
-                <Text className="text-slate-800 font-bold text-[10px] mb-0.5 tracking-wide" numberOfLines={1}>Telemetry Score</Text>
-                <Text className="text-brand-navy font-black text-[26px] leading-none mb-1.5">84%</Text>
-                <View className="flex-row items-center">
-                  <Feather name="arrow-up-right" size={11} color="#16A34A" />
-                  <Text className="text-green-600 font-extrabold text-[10.5px] ml-1">Good</Text>
+                <Text className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{isBMO ? 'Block Score' : 'District Score'}</Text>
+                <View className="flex-row items-baseline mt-1">
+                  <Text className="text-4xl font-black text-slate-800 tracking-tighter">{isBMO ? '81' : '76'}</Text>
+                  <Text className="text-sm font-bold text-slate-400 ml-1">/100</Text>
                 </View>
               </View>
             </View>

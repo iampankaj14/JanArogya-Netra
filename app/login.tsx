@@ -3,11 +3,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Image, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
-
-// The three roles on the login screen.
-type LoginRole = 'DHO' | 'BMO' | 'PHC';
+import { useAuth, LoginRole } from '../context/AuthContext';
 
 export default function LoginScreen() {
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<LoginRole>('DHO');
@@ -27,7 +26,8 @@ export default function LoginScreen() {
     // Simulate authentication lag
     setTimeout(() => {
       setLoading(false);
-      router.replace({ pathname: '/(tabs)/situation-room', params: { role, email } });
+      login(role, email);
+      router.replace('/(tabs)/situation-room');
     }, 1200);
   };
 

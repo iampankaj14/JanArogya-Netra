@@ -4,4 +4,7 @@ export interface NotificationItem {
   message: string;
   timestamp: string;
   read: boolean;
+  type?: 'alert' | 'update' | 'report' | 'all';
+  category?: string;
+  isNew?: boolean;
 }

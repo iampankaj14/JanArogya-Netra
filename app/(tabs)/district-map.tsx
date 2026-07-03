@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import { useAuth } from '@/context/AuthContext';
 import ScreenContainer from '@/components/ui/layout/ScreenContainer';
 import Badge from '@/components/ui/badges/Badge';
 import PrimaryButton from '@/components/ui/buttons/PrimaryButton';
@@ -12,6 +13,10 @@ import { PHC } from '@/shared/types/phc';
 
 export default function DistrictMapScreen() {
   const router = useRouter();
+  const { authState } = useAuth();
+  const isBMO = authState?.role === 'BMO';
+  const assignedBlock = 'Rampur';
+
   const [search, setSearch] = useState('');
   const [showHotspots] = useState(true);
   const [showVehicles] = useState(true);
@@ -19,10 +24,11 @@ export default function DistrictMapScreen() {
   const [selectedPHC, setSelectedPHC] = useState<PHC | null>(null);
 
   // Filtered PHC markers
-  const filteredPHCs = dummyPHCs.filter(phc =>
-    phc.name.toLowerCase().includes(search.toLowerCase()) ||
-    phc.block.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredPHCs = dummyPHCs.filter(phc => {
+    if (isBMO && phc.block !== assignedBlock) return false;
+    return phc.name.toLowerCase().includes(search.toLowerCase()) ||
+           phc.block.toLowerCase().includes(search.toLowerCase());
+  });
 
   // Mocked active cargo vehicle
   const cargoVehicle = {
@@ -38,7 +44,7 @@ export default function DistrictMapScreen() {
   const handleNavigateToPHC = (id: string) => {
     setSelectedPHC(null);
     router.push({
-      pathname: '/phc-detail',
+      pathname: '/(tabs)/phc-detail',
       params: { id }
     });
   };

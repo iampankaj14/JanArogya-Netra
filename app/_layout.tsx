@@ -1,11 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { View, LogBox } from 'react-native';
+
+// Ignore all log notifications on the device screen (warnings will still appear in the terminal)
+LogBox.ignoreAllLogs();
 import { Slot } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
+import { AuthProvider } from '@/context/AuthContext';
 import '../global.css';
 
 // Keep the splash screen visible while we fetch resources
@@ -40,13 +44,15 @@ export default function RootLayout() {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <SafeAreaProvider>
-        <StatusBar style="auto" />
-        <View className="flex-1 bg-brand-navy">
-          <Slot />
-        </View>
-      </SafeAreaProvider>
-    </QueryClientProvider>
+    <AuthProvider>
+      <QueryClientProvider client={queryClient}>
+        <SafeAreaProvider>
+          <StatusBar style="auto" />
+          <View className="flex-1 bg-brand-navy">
+            <Slot />
+          </View>
+        </SafeAreaProvider>
+      </QueryClientProvider>
+    </AuthProvider>
   );
 }
