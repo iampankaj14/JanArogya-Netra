@@ -3,7 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useVideoPlayer, VideoView } from 'expo-video';
 
-const videoSource = require('../assets/videos/splash.mp4');
+const videoSource = require('../data/splash/splash_animation.mp4');
 
 export default function SplashScreen() {
   const router = useRouter();
@@ -14,16 +14,24 @@ export default function SplashScreen() {
   });
 
   useEffect(() => {
-    // Navigate to Login after 4 seconds (approx duration of splash video)
+    // Navigate to Login when video finishes naturally
+    const subscription = player.addListener('playToEnd', () => {
+      router.replace('/login');
+    });
+
+    // Safety fallback: if video fails to play or gets stuck, dismiss after 6 seconds
     const timer = setTimeout(() => {
       router.replace('/login');
-    }, 4000);
+    }, 6000);
 
-    return () => clearTimeout(timer);
-  }, [router]);
+    return () => {
+      subscription.remove();
+      clearTimeout(timer);
+    };
+  }, [player, router]);
 
   return (
-    <View style={styles.container} className="bg-brand-navy">
+    <View style={styles.container} className="bg-white">
       <VideoView
         style={styles.video}
         player={player}
@@ -37,11 +45,17 @@ export default function SplashScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#FFFFFF', // Force pure white
     justifyContent: 'center',
     alignItems: 'center',
   },
   video: {
-    width: '100%',
-    height: '100%',
+    position: 'absolute',
+    top: -10,
+    bottom: -10,
+    left: -10,
+    right: -10,
+    width: '105%',
+    height: '105%',
   },
 });

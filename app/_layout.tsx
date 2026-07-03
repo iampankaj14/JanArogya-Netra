@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { Slot } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -13,6 +13,13 @@ SplashScreen.preventAutoHideAsync();
 
 // Initialize React Query client for future API/Firestore management
 const queryClient = new QueryClient();
+
+// Configure Reanimated Logger to suppress strict mode warnings
+import { configureReanimatedLogger, ReanimatedLogLevel } from 'react-native-reanimated';
+configureReanimatedLogger({
+  level: ReanimatedLogLevel.warn,
+  strict: false,
+});
 
 export default function RootLayout() {
   const [loaded, fontError] = useFonts({

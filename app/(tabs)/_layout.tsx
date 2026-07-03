@@ -1,5 +1,5 @@
 import { Tabs, useRouter } from 'expo-router';
-import { View, Text, Pressable, StyleSheet, LayoutAnimation, Platform, UIManager, Animated } from 'react-native';
+import { View, Text, Pressable, StyleSheet, LayoutAnimation, Platform, UIManager, Animated, PanResponder, Dimensions } from 'react-native';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -15,6 +15,46 @@ export default function TabLayout() {
   const [emergencyMode, setEmergencyMode] = useState(false);
   const [showNetra, setShowNetra] = useState(false);
   const router = useRouter();
+
+  // Dragging logic for the AI button
+  const pan = useRef(new Animated.ValueXY()).current;
+  const { width: SCREEN_WIDTH } = Dimensions.get('window');
+  // Initial position is at right: 16, width is 52.
+  const MAX_LEFT = -(SCREEN_WIDTH - 16 - 52 - 16);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (evt, gestureState) => {
+        // Start dragging only after moving a few pixels to allow normal taps
+        return Math.abs(gestureState.dx) > 5 || Math.abs(gestureState.dy) > 5;
+      },
+      onPanResponderGrant: () => {
+        pan.setOffset({
+          x: (pan.x as any)._value,
+          y: (pan.y as any)._value
+        });
+        pan.setValue({ x: 0, y: 0 });
+      },
+      onPanResponderMove: Animated.event(
+        [null, { dx: pan.x, dy: pan.y }],
+        { useNativeDriver: false }
+      ),
+      onPanResponderRelease: () => {
+        pan.flattenOffset();
+        
+        const currentX = (pan.x as any)._value;
+        // Snap to left or right edge based on midpoint
+        const targetX = currentX < (MAX_LEFT / 2) ? MAX_LEFT : 0;
+
+        Animated.spring(pan, {
+          toValue: { x: targetX, y: (pan.y as any)._value },
+          useNativeDriver: false,
+          friction: 6,
+          tension: 40
+        }).start();
+      }
+    })
+  ).current;
 
   // Custom Tab Bar component
   const CustomTabBar = ({ state, descriptors, navigation }: any) => {
@@ -42,7 +82,7 @@ export default function TabLayout() {
                 position: 'absolute',
                 top: 0,
                 bottom: 0,
-                width: '25%', // Exactly 1/4th of the inner container width
+                width: '20%', // 1/5th of the inner container width to account for 5 buttons
                 transform: [{
                   translateX: slideAnim.interpolate({
                     inputRange: [0, 1, 2, 3],
@@ -100,6 +140,29 @@ export default function TabLayout() {
               </Pressable>
             );
           })}
+            
+            {/* Emergency Action Button in Nav Bar */}
+            <Pressable
+              onPress={() => {
+                setEmergencyMode(!emergencyMode);
+                alert(emergencyMode ? 'Emergency mode deactivated.' : 'EMERGENCY MODE DEPLOYED IN DISTRICT!');
+              }}
+              className="items-center justify-center py-2.5 px-3.5 rounded-full flex-1 z-10 bg-transparent"
+            >
+              <View className="h-5 items-center justify-center">
+                <Feather
+                  name="shield"
+                  size={18}
+                  color={emergencyMode ? '#EF4444' : '#94A3B8'}
+                />
+              </View>
+              <Text
+                className={`text-[10px] font-extrabold mt-1 ${emergencyMode ? 'text-red-500' : 'text-slate-400'}`}
+              >
+                Alert
+              </Text>
+            </Pressable>
+
           </View>
         </View>
       </View>
@@ -127,22 +190,6 @@ export default function TabLayout() {
         <Tabs.Screen name="profile" />
       </Tabs>
 
-      {/* Global Emergency Mode Button */}
-      <Pressable
-        onPress={() => {
-          setEmergencyMode(!emergencyMode);
-          alert(emergencyMode ? 'Emergency mode deactivated.' : 'EMERGENCY MODE DEPLOYED IN DISTRICT!');
-        }}
-        className={`absolute bottom-[100px] left-4 w-[52px] h-[52px] rounded-full items-center justify-center border-4 border-white ${
-          emergencyMode 
-            ? 'bg-red-600' 
-            : 'bg-[#0B1D3A]'
-        }`}
-        style={{ elevation: 12, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } }}
-      >
-        <Feather name="shield" size={22} color={emergencyMode ? 'white' : '#EF4444'} />
-      </Pressable>
-
       {/* Global Drawer Menu */}
       <GlobalHamburgerMenu
         visible={drawerOpen}
@@ -150,13 +197,26 @@ export default function TabLayout() {
       />
 
       {/* Global Floating Netra AI Trigger Button */}
-      <Pressable
-        onPress={() => setShowNetra(true)}
-        className="absolute bottom-[100px] right-4 w-[52px] h-[52px] rounded-full bg-[#0E62CC] items-center justify-center shadow-2xl active:bg-blue-700 border-4 border-white"
-        style={{ elevation: 12, shadowColor: '#0E62CC', shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } }}
+      <Animated.View
+        {...panResponder.panHandlers}
+        style={[
+          {
+            position: 'absolute',
+            bottom: 100,
+            right: 16,
+            zIndex: 9999,
+          },
+          { transform: pan.getTranslateTransform() }
+        ]}
       >
-        <Feather name="eye" size={22} color="white" />
-      </Pressable>
+        <Pressable
+          onPress={() => setShowNetra(true)}
+          className="w-[52px] h-[52px] rounded-full bg-[#0E62CC] items-center justify-center shadow-2xl active:bg-blue-700 border-4 border-white"
+          style={{ elevation: 12, shadowColor: '#0E62CC', shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } }}
+        >
+          <Feather name="eye" size={22} color="white" />
+        </Pressable>
+      </Animated.View>
 
       {/* Netra AI Chat Interface Modal Overlay */}
       <NetraAIAssistant
