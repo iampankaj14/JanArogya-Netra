@@ -1,21 +1,44 @@
-import React, { useState } from 'react';
-import { View, Text, Pressable, ScrollView, TextInput } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, Pressable, ScrollView, TextInput, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import ScreenContainer from '@/components/ui/layout/ScreenContainer';
-import { localLogistics } from '@/services/repositories/localDb';
+import { transfersRepository } from '@/services/repositories/transfersRepository';
+import { TransferOrder } from '@/services/repositories/localDb';
 
 export default function ResourceMovementTrackerScreen() {
   const router = useRouter();
   const [trackingId, setTrackingId] = useState('');
+  const [shipments, setShipments] = useState<TransferOrder[]>([]);
+  const [searchedShipment, setSearchedShipment] = useState<TransferOrder | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchShipments = async () => {
+      try {
+        const data = await transfersRepository.getTransfers();
+        setShipments(data);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchShipments();
+  }, []);
 
   // Fetch recent shipments from logistics that are in transit or pending
-  const recentShipments = localLogistics.filter(l => l.status === 'in_transit' || l.status === 'pending').slice(0, 3);
+  const recentShipments = shipments.filter(l => l.status === 'EN_ROUTE' || l.status === 'PENDING').slice(0, 3);
 
   const handleSearch = () => {
-    // In a real app, this would route to a detail screen for the specific tracking ID
     if (trackingId.trim()) {
-      alert(`Tracking ID ${trackingId} not found or feature in development.`);
+      const found = shipments.find(s => s.id === trackingId.trim());
+      if (found) {
+        setSearchedShipment(found);
+      } else {
+        alert(`Tracking ID ${trackingId} not found.`);
+        setSearchedShipment(null);
+      }
     }
   };
 
@@ -40,7 +63,7 @@ export default function ResourceMovementTrackerScreen() {
         </Pressable>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 60 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
         
         {/* Track Your Shipment Banner */}
         <View className="bg-slate-50 border border-slate-100 shadow-sm rounded-3xl p-5 mb-6 overflow-hidden relative">
@@ -112,7 +135,72 @@ export default function ResourceMovementTrackerScreen() {
           </View>
         </View>
 
-        {/* How It Works Section */}
+        
+        {/* Searched Shipment Result */}
+        {searchedShipment && (
+          <View className="mb-6">
+            <Text className="text-brand-navy font-black text-lg mb-4 px-1">Tracked Shipment</Text>
+            <View className="bg-white border border-blue-200 rounded-2xl p-4 shadow-sm flex-row items-center mb-3">
+              <View className={`w-10 h-10 rounded-full items-center justify-center mr-3 ${searchedShipment.status === 'EN_ROUTE' ? 'bg-blue-100' : 'bg-emerald-100'}`}>
+                <Feather name={searchedShipment.status === 'EN_ROUTE' ? 'truck' : 'check'} size={18} color={searchedShipment.status === 'EN_ROUTE' ? '#3B82F6' : '#10B981'} />
+              </View>
+              <View className="flex-1">
+                <Text className="text-brand-navy font-extrabold text-[13px] mb-0.5">{searchedShipment.id}: {searchedShipment.medicineName}</Text>
+                <Text className="text-slate-500 font-semibold text-[10px]" numberOfLines={1}>
+                  {searchedShipment.sourceFacilityId.replace('phc_', '').replace('chc_', '')} <Feather name="arrow-right" size={10} /> {searchedShipment.targetFacilityId.replace('phc_', '').replace('chc_', '')} ({searchedShipment.quantity} units)
+                </Text>
+              </View>
+              <View className={`px-2 py-1 rounded-md ${searchedShipment.status === 'EN_ROUTE' ? 'bg-blue-50 border border-blue-100' : 'bg-emerald-50 border border-emerald-100'}`}>
+                <Text className={`font-bold text-[9px] ${searchedShipment.status === 'EN_ROUTE' ? 'text-blue-600' : 'text-emerald-600'}`}>
+                  {searchedShipment.status === 'EN_ROUTE' ? 'In Transit' : 'Delivered'}
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
+
+{/* Recent Shipments */}
+        <View className="mb-6">
+          <Text className="text-brand-navy font-black text-lg mb-4 px-1">Recent Shipments</Text>
+          
+          {loading ? (
+            <View className="items-center py-6">
+              <ActivityIndicator size="small" color="#3B82F6" />
+              <Text className="text-slate-400 font-semibold text-[10px] mt-2">Loading shipments...</Text>
+            </View>
+          ) : recentShipments.length > 0 ? (
+            <View className="space-y-3">
+              {recentShipments.map((shipment) => (
+                <View key={shipment.id} className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex-row items-center mb-3">
+                  <View className={`w-10 h-10 rounded-full items-center justify-center mr-3 ${shipment.status === 'EN_ROUTE' ? 'bg-blue-100' : 'bg-orange-100'}`}>
+                    <Feather name={shipment.status === 'EN_ROUTE' ? 'truck' : 'clock'} size={18} color={shipment.status === 'EN_ROUTE' ? '#3B82F6' : '#F97316'} />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-brand-navy font-extrabold text-[13px] mb-0.5">{shipment.id}: {shipment.medicineName}</Text>
+                    <Text className="text-slate-500 font-semibold text-[10px]" numberOfLines={1}>
+                      {shipment.sourceFacilityId.replace('phc_', '').replace('chc_', '')} <Feather name="arrow-right" size={10} /> {shipment.targetFacilityId.replace('phc_', '').replace('chc_', '')} ({shipment.quantity} units)
+                    </Text>
+                  </View>
+                  <View className={`px-2 py-1 rounded-md ${shipment.status === 'EN_ROUTE' ? 'bg-blue-50 border border-blue-100' : 'bg-orange-50 border border-orange-100'}`}>
+                    <Text className={`font-bold text-[9px] ${shipment.status === 'EN_ROUTE' ? 'text-blue-600' : 'text-orange-600'}`}>
+                      {shipment.status === 'EN_ROUTE' ? 'In Transit' : 'Pending'}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <View className="bg-slate-50 border border-slate-100 rounded-3xl p-8 items-center justify-center shadow-sm">
+              <View className="w-12 h-12 rounded-full bg-white border border-slate-200 items-center justify-center mb-4 shadow-sm shadow-black/5">
+                <Feather name="package" size={20} color="#CBD5E1" />
+              </View>
+              <Text className="text-slate-500 font-bold text-[12px] mb-1">No recent shipments to display.</Text>
+              <Text className="text-slate-400 font-semibold text-[10px]">Enter a Tracking ID to get started.</Text>
+            </View>
+          )}
+        </View>
+
+      {/* How It Works Section */}
         <View className="mb-8">
           <Text className="text-brand-navy font-black text-lg mb-5 px-1">How It Works</Text>
           <View className="flex-row justify-between items-start">
@@ -271,43 +359,7 @@ export default function ResourceMovementTrackerScreen() {
           </View>
         </View>
 
-        {/* Recent Shipments */}
-        <View className="mb-6">
-          <Text className="text-brand-navy font-black text-lg mb-4 px-1">Recent Shipments</Text>
-          
-          {recentShipments.length > 0 ? (
-            <View className="space-y-3">
-              {recentShipments.map((shipment) => (
-                <View key={shipment.id} className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex-row items-center mb-3">
-                  <View className={`w-10 h-10 rounded-full items-center justify-center mr-3 ${shipment.status === 'in_transit' ? 'bg-blue-100' : 'bg-orange-100'}`}>
-                    <Feather name={shipment.status === 'in_transit' ? 'truck' : 'clock'} size={18} color={shipment.status === 'in_transit' ? '#3B82F6' : '#F97316'} />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-brand-navy font-extrabold text-[13px] mb-0.5">{shipment.type}</Text>
-                    <Text className="text-slate-500 font-semibold text-[10px]">
-                      {shipment.from} <Feather name="arrow-right" size={10} /> {shipment.to}
-                    </Text>
-                  </View>
-                  <View className={`px-2 py-1 rounded-md ${shipment.status === 'in_transit' ? 'bg-blue-50 border border-blue-100' : 'bg-orange-50 border border-orange-100'}`}>
-                    <Text className={`font-bold text-[9px] ${shipment.status === 'in_transit' ? 'text-blue-600' : 'text-orange-600'}`}>
-                      {shipment.status === 'in_transit' ? 'In Transit' : 'Pending'}
-                    </Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          ) : (
-            <View className="bg-slate-50 border border-slate-100 rounded-3xl p-8 items-center justify-center shadow-sm">
-              <View className="w-12 h-12 rounded-full bg-white border border-slate-200 items-center justify-center mb-4 shadow-sm shadow-black/5">
-                <Feather name="package" size={20} color="#CBD5E1" />
-              </View>
-              <Text className="text-slate-500 font-bold text-[12px] mb-1">No recent shipments to display.</Text>
-              <Text className="text-slate-400 font-semibold text-[10px]">Enter a Tracking ID to get started.</Text>
-            </View>
-          )}
-        </View>
-
-      </ScrollView>
+        </ScrollView>
     </ScreenContainer>
   );
 }

@@ -3,33 +3,53 @@ import { View, Text, Pressable, ScrollView, TextInput, ActivityIndicator } from 
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import ScreenContainer from '@/components/ui/layout/ScreenContainer';
-import { dummyPHCs } from '@/dummy/phcs';
-import { localMedicines } from '@/services/repositories/localDb';
+import { Dropdown } from '@/components/ui/inputs/Dropdown';
+import { localPHCs, localMedicines } from '@/services/repositories/localDb';
+import { transfersRepository } from '@/services/repositories/transfersRepository';
 
 export default function ResourceRedistributionScreen() {
   const router = useRouter();
   const { source, target, medicine, amount } = useLocalSearchParams();
   
+  const [sourceId, setSourceId] = useState<string>((source as string) || localPHCs[0]?.id);
+  const [targetId, setTargetId] = useState<string>((target as string) || localPHCs[1]?.id);
+  const [medicineId, setMedicineId] = useState<string>((medicine as string) || localMedicines[0]?.id);
   const [qty, setQty] = useState((amount as string) || '50');
   const [submitting, setSubmitting] = useState(false);
 
   // Dynamic values
-  const sourcePhc = dummyPHCs.find(p => p.id === source) || dummyPHCs[0];
-  const targetPhc = dummyPHCs.find(p => p.id === target) || dummyPHCs[1];
-  const medicineObj = localMedicines.find(m => m.id === medicine) || localMedicines[0];
+  const sourcePhc = localPHCs.find(p => p.id === sourceId);
+  const targetPhc = localPHCs.find(p => p.id === targetId);
+  const medicineObj = localMedicines.find(m => m.id === medicineId);
   
-  const sourceName = sourcePhc?.name || 'PHC Barola';
-  const targetName = targetPhc?.name || 'PHC Badalpur';
-  const medicineName = medicineObj?.name || 'Dengue NS1 Antigen Test Kit';
-  const availableStock = medicineObj?.currentStock || 120;
+  const sourceName = sourcePhc?.name || 'Unknown Source';
+  const targetName = targetPhc?.name || 'Unknown Target';
+  const medicineName = medicineObj?.name || 'Unknown Medicine';
+  const availableStock = medicineObj?.currentStock || 0;
 
-  const handleSubmit = () => {
+  const phcOptions = localPHCs.map(p => ({ label: p.name, value: p.id }));
+  const medicineOptions = localMedicines.map(m => ({ label: m.name, value: m.id }));
+
+  const handleSubmit = async () => {
+    if (!sourcePhc || !targetPhc || !medicineObj) {
+      alert('Missing transfer details.');
+      return;
+    }
     setSubmitting(true);
-    setTimeout(() => {
-      setSubmitting(false);
+    try {
+      await transfersRepository.transferMedicine(
+        sourcePhc.id,
+        targetPhc.id,
+        medicineObj.id,
+        parseInt(qty, 10) || 0
+      );
       alert('Transfer dispatched successfully!');
       router.back();
-    }, 1500);
+    } catch (e: any) {
+      alert(`Error: ${e.message}`);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -53,7 +73,7 @@ export default function ResourceRedistributionScreen() {
         </Pressable>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 60 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
         
         {/* Promo Banner */}
         <View className="bg-blue-50/80 border border-blue-100 rounded-[28px] p-5 mb-6 flex-row items-center justify-between overflow-hidden relative shadow-sm">
@@ -109,51 +129,43 @@ export default function ResourceRedistributionScreen() {
             
             {/* 1. Source Facility */}
             <View className="mb-6">
-              <Text className="text-brand-navy text-[11px] font-extrabold mb-2">1. Source Facility (Surplus)</Text>
-              <View className="bg-emerald-50/30 border border-emerald-400 rounded-2xl px-4 py-3.5 flex-row items-center justify-between mb-1.5">
-                <View className="flex-row items-center">
-                   <View className="w-7 h-7 rounded-md bg-emerald-100 items-center justify-center mr-3">
-                     <Feather name="activity" size={14} color="#10B981" />
-                   </View>
-                   <Text className="text-brand-navy font-bold text-[13px]">{sourceName}</Text>
-                </View>
-                <Feather name="chevron-down" size={16} color="#475569" />
-              </View>
-              <View className="flex-row items-center ml-1">
+              <Dropdown
+                label="1. Source Facility (Surplus)"
+                selectedValue={sourceId}
+                onValueChange={setSourceId}
+                options={phcOptions}
+              />
+              <View className="flex-row items-center ml-1 mt-1">
                 <Feather name="check-circle" size={10} color="#10B981" className="mr-1.5" />
-                <Text className="text-emerald-600 font-bold text-[9px]">Facility has {availableStock} units available</Text>
+                <Text className="text-emerald-600 font-bold text-[9px]">Selected facility active</Text>
               </View>
             </View>
 
             {/* 2. Target Facility */}
-            <View className="mb-6">
-              <Text className="text-brand-navy text-[11px] font-extrabold mb-2">2. Target Facility (Shortage)</Text>
-              <View className="bg-orange-50/30 border border-orange-400 rounded-2xl px-4 py-3.5 flex-row items-center justify-between mb-1.5">
-                <View className="flex-row items-center">
-                   <View className="w-7 h-7 rounded-md bg-orange-100 items-center justify-center mr-3">
-                     <Feather name="home" size={14} color="#F97316" />
-                   </View>
-                   <Text className="text-brand-navy font-bold text-[13px]">{targetName}</Text>
-                </View>
-                <Feather name="chevron-down" size={16} color="#475569" />
-              </View>
-              <View className="flex-row items-center ml-1">
+            <View className="mb-6 mt-1">
+              <Dropdown
+                label="2. Target Facility (Shortage)"
+                selectedValue={targetId}
+                onValueChange={setTargetId}
+                options={phcOptions}
+              />
+              <View className="flex-row items-center ml-1 mt-1">
                 <Feather name="alert-triangle" size={10} color="#F97316" className="mr-1.5" />
-                <Text className="text-orange-500 font-bold text-[9px]">Facility needs immediate stock</Text>
+                <Text className="text-orange-500 font-bold text-[9px]">Destination facility ready</Text>
               </View>
             </View>
 
             {/* 3. Requested Medicine */}
-            <View className="mb-6">
-              <Text className="text-brand-navy text-[11px] font-extrabold mb-2">3. Requested Medicine / Resource</Text>
-              <View className="bg-purple-50/30 border border-purple-300 rounded-2xl px-4 py-3.5 flex-row items-center justify-between">
-                <View className="flex-row items-center">
-                   <View className="w-7 h-7 rounded-md bg-purple-100 items-center justify-center mr-3">
-                     <Feather name="briefcase" size={14} color="#9333EA" />
-                   </View>
-                   <Text className="text-brand-navy font-bold text-[13px]">{medicineName}</Text>
-                </View>
-                <Feather name="chevron-down" size={16} color="#475569" />
+            <View className="mb-6 mt-1">
+              <Dropdown
+                label="3. Requested Medicine / Resource"
+                selectedValue={medicineId}
+                onValueChange={setMedicineId}
+                options={medicineOptions}
+              />
+              <View className="flex-row items-center ml-1 mt-1">
+                <Feather name="info" size={10} color="#3B82F6" className="mr-1.5" />
+                <Text className="text-blue-500 font-bold text-[9px]">Available stock: {availableStock} units</Text>
               </View>
             </View>
 

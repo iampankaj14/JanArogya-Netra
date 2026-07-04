@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, Modal, Pressable, TextInput, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator, Animated } from 'react-native';
+import { View, Text, Modal, Pressable, TextInput, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
-import { localMedicines } from '@/services/repositories/localDb';
+import geminiService from '@/services/ai/geminiService';
 
 interface Message {
   id: string;
@@ -20,7 +20,7 @@ export function NetraAIAssistant({ visible, onClose }: NetraAIAssistantProps) {
     {
       id: '1',
       sender: 'ai',
-      text: "Hello! I am Netra, your District Health Intelligence Assistant. How can I help you manage PHC operations, monitor outbreaks, or coordinate supplies today?",
+      text: "Hello! I am Netra, your District Health Intelligence Assistant powered by Google Gemini. How can I help you manage PHC operations, monitor outbreaks, or coordinate supplies today?",
       timestamp: new Date(),
     },
   ]);
@@ -28,30 +28,7 @@ export function NetraAIAssistant({ visible, onClose }: NetraAIAssistantProps) {
   const [loading, setLoading] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
-  const getSmartResponse = (query: string): string => {
-    const q = query.toLowerCase();
-    
-    const pcmBarola = localMedicines.find(m => m.facilityId === 'phc_barola' && m.name.toLowerCase().includes('paracetamol'));
-    const pcmBadalpur = localMedicines.find(m => m.facilityId === 'phc_badalpur' && m.name.toLowerCase().includes('paracetamol'));
-    const dengueBarola = localMedicines.find(m => m.facilityId === 'phc_barola' && m.name.toLowerCase().includes('dengue'));
-    const dengueBadalpur = localMedicines.find(m => m.facilityId === 'phc_badalpur' && m.name.toLowerCase().includes('dengue'));
-
-    if (q.includes('dengue') || q.includes('outbreak')) {
-      return `I have detected a 150% surge in Dengue cases at PHC Badalpur. I recommend initiating a transfer of 50 NS1 test kits from PHC Barola immediately, which has a surplus of ${dengueBarola?.currentStock || 200} kits.`;
-    }
-    if (q.includes('paracetamol') || q.includes('shortage') || q.includes('medicine')) {
-      return `Current stock levels show Paracetamol 650mg at PHC Badalpur is depleted (${pcmBadalpur?.currentStock || 120} tablets left, daily run rate of 60). We have a surplus of ${pcmBarola?.currentStock || 800} tablets at PHC Barola. Would you like to draft a transfer request?`;
-    }
-    if (q.includes('doctor') || q.includes('attendance') || q.includes('absent')) {
-      return "Daily attendance logs indicate Dr. Sarita Varma (PHC MO at Badalpur) is absent today. Alternate medical coverage has been requested from UPHC Surajpur.";
-    }
-    if (q.includes('beds') || q.includes('capacity')) {
-      return "PHC Badalpur is currently running at 88% capacity (7/8 beds occupied). UPHC Surajpur is at 33% capacity (2/6 occupied) and can receive non-emergency patient transfers if required.";
-    }
-    return "I have analyzed the current district health indicators. Overall health score is stable at 68/100, but PHC Badalpur requires attention due to critical resource stockouts. Let me know if you would like me to compile the weekly epidemiological summary.";
-  };
-
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!input.trim()) return;
     const userMsg: Message = {
       id: Date.now().toString(),
@@ -65,8 +42,20 @@ export function NetraAIAssistant({ visible, onClose }: NetraAIAssistantProps) {
     setInput('');
     setLoading(true);
 
-    setTimeout(() => {
-      const aiResponseText = getSmartResponse(currentInput);
+    try {
+      // Gemini requires the history to start with a 'user' role.
+      // The first message is our hardcoded AI welcome, so we exclude it.
+      const validMessages = messages.length > 0 && messages[0].sender === 'ai' 
+        ? messages.slice(1) 
+        : messages;
+
+      const chatHistory = validMessages.map(msg => ({
+        role: msg.sender === 'user' ? 'user' : 'model' as const,
+        parts: msg.text
+      }));
+
+      const aiResponseText = await geminiService.askNetra(currentInput, chatHistory);
+      
       const aiMsg: Message = {
         id: (Date.now() + 1).toString(),
         sender: 'ai',
@@ -74,8 +63,17 @@ export function NetraAIAssistant({ visible, onClose }: NetraAIAssistantProps) {
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, aiMsg]);
+    } catch (error) {
+      console.error(error);
+      setMessages((prev) => [...prev, {
+        id: (Date.now() + 1).toString(),
+        sender: 'ai',
+        text: "I encountered an error connecting to my intelligence network. Please try again.",
+        timestamp: new Date(),
+      }]);
+    } finally {
       setLoading(false);
-    }, 1500);
+    }
   };
 
   useEffect(() => {

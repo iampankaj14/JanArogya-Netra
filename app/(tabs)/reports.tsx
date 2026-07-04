@@ -23,9 +23,12 @@ export default function ReportsScreen() {
   // Dynamic Data Computation
   const assignedFacilityId = authState?.facilityId || 'phc_barola';
   const isBMO = authState?.role === 'BMO';
-  const phcsToReport = isBMO 
-    ? dummyPHCs.filter(p => p.block === assignedFacilityId)
-    : dummyPHCs.filter(p => p.id === assignedFacilityId);
+  const isDHO = authState?.role === 'DHO';
+  const phcsToReport = isDHO
+    ? dummyPHCs
+    : isBMO 
+      ? dummyPHCs.filter(p => p.block === assignedFacilityId)
+      : dummyPHCs.filter(p => p.id === assignedFacilityId);
 
   const reportPhcs = phcsToReport.length > 0 ? phcsToReport : [dummyPHCs[0]];
 

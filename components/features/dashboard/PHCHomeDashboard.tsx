@@ -1,9 +1,11 @@
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Dimensions, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import React, { useState } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { useInventory } from '../../../hooks/useInventory';
 import dummyAlerts from '../../../dummy/alerts';
+import { localTasks, updateLocalTask } from '../../../services/repositories/localDb';
 
 const { width } = Dimensions.get('window');
 const isTablet = width >= 768;
@@ -17,6 +19,20 @@ export default function PHCHomeDashboard() {
   const lowStockCount = stocks.filter((s) => s.currentStock < s.minRequiredStock).length;
   
   const activeOutbreak = dummyAlerts.find(a => a.facilityId === facilityId && a.type === 'OUTBREAK' && !a.resolved);
+
+  const [tasks, setTasks] = useState(localTasks.filter(t => t.facilityId === facilityId));
+
+  const toggleTask = (id: number) => {
+    const updatedTasks = tasks.map(t => {
+      if (t.id === id) {
+        const updated = { ...t, completed: !t.completed };
+        updateLocalTask(updated);
+        return updated;
+      }
+      return t;
+    });
+    setTasks(updatedTasks);
+  };
 
   const facilityNames: Record<string, string> = {
     'phc_barola': 'PHC Barola',
@@ -93,7 +109,7 @@ export default function PHCHomeDashboard() {
             </View>
             <Text className="text-4xl font-black text-[#1E3A8A]">68%</Text>
             <Text className="text-[11px] font-semibold text-slate-500 mb-4">12 / 18 Beds Occupied</Text>
-            <TouchableOpacity className="flex-row items-center justify-between mt-auto border-t border-slate-50 pt-3 active:opacity-60">
+            <TouchableOpacity onPress={() => router.push('/(tabs)/reports')} className="flex-row items-center justify-between mt-auto border-t border-slate-50 pt-3 active:opacity-60">
               <Text className="text-[11px] font-bold text-emerald-500">View Details</Text>
               <Feather name="chevron-right" size={14} color="#10B981" />
             </TouchableOpacity>
@@ -109,7 +125,7 @@ export default function PHCHomeDashboard() {
             </View>
             <Text className="text-4xl font-black text-[#1E3A8A]">24</Text>
             <Text className="text-[11px] font-semibold text-slate-500 mb-4">Awaiting Results</Text>
-            <TouchableOpacity className="flex-row items-center justify-between mt-auto border-t border-slate-50 pt-3 active:opacity-60">
+            <TouchableOpacity onPress={() => router.push('/(tabs)/reports')} className="flex-row items-center justify-between mt-auto border-t border-slate-50 pt-3 active:opacity-60">
               <Text className="text-[11px] font-bold text-purple-500">View All</Text>
               <Feather name="chevron-right" size={14} color="#8B5CF6" />
             </TouchableOpacity>
@@ -148,7 +164,7 @@ export default function PHCHomeDashboard() {
       <View className="mt-8">
         <View className="px-4 flex-row justify-between items-center mb-4">
           <Text className="text-slate-500 font-extrabold text-[12px] tracking-widest uppercase">Today's Summary</Text>
-          <TouchableOpacity className="flex-row items-center">
+          <TouchableOpacity onPress={() => router.push('/(tabs)/reports')} className="flex-row items-center">
             <Feather name="pie-chart" size={12} color="#3B82F6" />
             <Text className="text-blue-600 font-bold text-[12px] ml-1 mr-0.5">View Full Dashboard</Text>
             <Feather name="chevron-right" size={14} color="#3B82F6" />
@@ -215,85 +231,10 @@ export default function PHCHomeDashboard() {
         </ScrollView>
       </View>
 
-      {/* Main Content Layout (Responsive Flex) */}
-      <View className={`px-4 mt-8 flex ${isTablet ? 'flex-row gap-6' : 'flex-col gap-8'}`}>
-
-        {/* Quick Actions */}
-        <View className={isTablet ? 'flex-1' : 'w-full'}>
-          <Text className="text-slate-500 font-extrabold text-[12px] tracking-widest uppercase mb-4">Quick Actions</Text>
-          <View className="flex-row flex-wrap justify-between">
-
-            <TouchableOpacity className="w-[48%] bg-white rounded-2xl border border-slate-100 p-4 mb-3 shadow-sm shadow-slate-200/50 flex-row items-center active:opacity-60">
-              <View className="w-10 h-10 rounded-full bg-purple-50 items-center justify-center mr-3">
-                <Feather name="edit-2" size={16} color="#8B5CF6" />
-              </View>
-              <View className="flex-1 pr-1">
-                <Text className="text-[#1E3A8A] font-bold text-[12px] mb-0.5">Add Patient Entry</Text>
-                <Text className="text-slate-400 text-[9px] font-medium leading-tight">Record new OPD or IPD case</Text>
-              </View>
-              <Feather name="chevron-right" size={12} color="#CBD5E1" />
-            </TouchableOpacity>
-
-            <TouchableOpacity className="w-[48%] bg-white rounded-2xl border border-slate-100 p-4 mb-3 shadow-sm shadow-slate-200/50 flex-row items-center active:opacity-60">
-              <View className="w-10 h-10 rounded-full bg-emerald-50 items-center justify-center mr-3">
-                <MaterialCommunityIcons name="file-document-outline" size={18} color="#10B981" />
-              </View>
-              <View className="flex-1 pr-1">
-                <Text className="text-[#1E3A8A] font-bold text-[12px] mb-0.5">Request Indent</Text>
-                <Text className="text-slate-400 text-[9px] font-medium leading-tight">Order medicines from BMO</Text>
-              </View>
-              <Feather name="chevron-right" size={12} color="#CBD5E1" />
-            </TouchableOpacity>
-
-            <TouchableOpacity className="w-[48%] bg-white rounded-2xl border border-slate-100 p-4 mb-3 shadow-sm shadow-slate-200/50 flex-row items-center active:opacity-60">
-              <View className="w-10 h-10 rounded-full bg-orange-50 items-center justify-center mr-3">
-                <Feather name="user-plus" size={16} color="#F97316" />
-              </View>
-              <View className="flex-1 pr-1">
-                <Text className="text-[#1E3A8A] font-bold text-[12px] mb-0.5">Refer Patient</Text>
-                <Text className="text-slate-400 text-[9px] font-medium leading-tight">Refer to higher facility</Text>
-              </View>
-              <Feather name="chevron-right" size={12} color="#CBD5E1" />
-            </TouchableOpacity>
-
-            <TouchableOpacity className="w-[48%] bg-white rounded-2xl border border-slate-100 p-4 mb-3 shadow-sm shadow-slate-200/50 flex-row items-center active:opacity-60">
-              <View className="w-10 h-10 rounded-full bg-red-50 items-center justify-center mr-3">
-                <MaterialCommunityIcons name="flask-empty-outline" size={18} color="#EF4444" />
-              </View>
-              <View className="flex-1 pr-1">
-                <Text className="text-[#1E3A8A] font-bold text-[12px] mb-0.5">Lab Test Entry</Text>
-                <Text className="text-slate-400 text-[9px] font-medium leading-tight">Record lab test results</Text>
-              </View>
-              <Feather name="chevron-right" size={12} color="#CBD5E1" />
-            </TouchableOpacity>
-
-            <TouchableOpacity className="w-[48%] bg-white rounded-2xl border border-slate-100 p-4 shadow-sm shadow-slate-200/50 flex-row items-center active:opacity-60">
-              <View className="w-10 h-10 rounded-full bg-blue-50 items-center justify-center mr-3">
-                <Feather name="calendar" size={16} color="#3B82F6" />
-              </View>
-              <View className="flex-1 pr-1">
-                <Text className="text-[#1E3A8A] font-bold text-[12px] mb-0.5">View Appointments</Text>
-                <Text className="text-slate-400 text-[9px] font-medium leading-tight">Today's scheduled appointments</Text>
-              </View>
-              <Feather name="chevron-right" size={12} color="#CBD5E1" />
-            </TouchableOpacity>
-
-            <TouchableOpacity className="w-[48%] bg-white rounded-2xl border border-slate-100 p-4 shadow-sm shadow-slate-200/50 flex-row items-center active:opacity-60">
-              <View className="w-10 h-10 rounded-full bg-teal-50 items-center justify-center mr-3">
-                <Feather name="book-open" size={16} color="#14B8A6" />
-              </View>
-              <View className="flex-1 pr-1">
-                <Text className="text-[#1E3A8A] font-bold text-[12px] mb-0.5">Health Education</Text>
-                <Text className="text-slate-400 text-[9px] font-medium leading-tight">View IEC materials & resources</Text>
-              </View>
-              <Feather name="chevron-right" size={12} color="#CBD5E1" />
-            </TouchableOpacity>
-
-          </View>
-        </View>
+      <View className="px-4 mt-8 flex flex-col">
 
         {/* Today's Tasks */}
-        <View className={isTablet ? 'w-[320px]' : 'w-full'}>
+        <View className="w-full">
           <Text className="text-slate-500 font-extrabold text-[12px] tracking-widest uppercase mb-4">Today's Tasks</Text>
           <View className="bg-white rounded-[24px] border border-slate-100 shadow-sm shadow-slate-200/50 p-4 relative overflow-hidden">
             {/* Faint clipboard icon background */}
@@ -301,51 +242,24 @@ export default function PHCHomeDashboard() {
 
             <View className="flex-col gap-4 relative z-10">
 
-              <View className="flex-row items-start justify-between border-b border-slate-50 pb-4">
-                <View className="flex-row items-center flex-1">
-                  <View className="w-5 h-5 rounded-full bg-emerald-500 items-center justify-center mr-3 mt-0.5">
-                    <Feather name="check" size={12} color="white" />
+              {tasks.map((task, index) => (
+                <TouchableOpacity key={task.id} onPress={() => toggleTask(task.id)} className={`flex-row items-start justify-between ${index !== tasks.length - 1 ? 'border-b border-slate-50 pb-4' : ''}`}>
+                  <View className="flex-row items-center flex-1">
+                    {task.completed ? (
+                      <View className="w-5 h-5 rounded-full bg-emerald-500 items-center justify-center mr-3 mt-0.5">
+                        <Feather name="check" size={12} color="white" />
+                      </View>
+                    ) : (
+                      <View className="w-5 h-5 rounded-full border-2 border-slate-300 mr-3 mt-0.5" />
+                    )}
+                    <View>
+                      <Text className={task.completed ? "text-slate-800 font-bold text-[13px] line-through opacity-70" : "text-[#1E3A8A] font-bold text-[13px]"}>{task.title}</Text>
+                      <Text className="text-slate-400 text-[10px] font-medium mt-0.5">{task.desc}</Text>
+                    </View>
                   </View>
-                  <View>
-                    <Text className="text-slate-800 font-bold text-[13px] line-through opacity-70">Morning OPD Rounds</Text>
-                    <Text className="text-slate-400 text-[10px] font-medium mt-0.5">General OPD Consultation</Text>
-                  </View>
-                </View>
-                <Text className="text-slate-400 text-[9px] font-bold mt-1">09:00 AM</Text>
-              </View>
-
-              <View className="flex-row items-start justify-between border-b border-slate-50 pb-4">
-                <View className="flex-row items-center flex-1">
-                  <View className="w-5 h-5 rounded-full border-2 border-slate-300 mr-3 mt-0.5" />
-                  <View>
-                    <Text className="text-[#1E3A8A] font-bold text-[13px]">Dengue Surveillance Report</Text>
-                    <Text className="text-slate-400 text-[10px] font-medium mt-0.5">Daily Reporting</Text>
-                  </View>
-                </View>
-                <Text className="text-slate-400 text-[9px] font-bold mt-1">11:00 AM</Text>
-              </View>
-
-              <View className="flex-row items-start justify-between border-b border-slate-50 pb-4">
-                <View className="flex-row items-center flex-1">
-                  <View className="w-5 h-5 rounded-full border-2 border-slate-300 mr-3 mt-0.5" />
-                  <View>
-                    <Text className="text-[#1E3A8A] font-bold text-[13px]">Vaccine Session</Text>
-                    <Text className="text-slate-400 text-[10px] font-medium mt-0.5">Immunization Drive</Text>
-                  </View>
-                </View>
-                <Text className="text-slate-400 text-[9px] font-bold mt-1">01:00 PM</Text>
-              </View>
-
-              <View className="flex-row items-start justify-between">
-                <View className="flex-row items-center flex-1">
-                  <View className="w-5 h-5 rounded-full border-2 border-slate-300 mr-3 mt-0.5" />
-                  <View>
-                    <Text className="text-[#1E3A8A] font-bold text-[13px]">Inventory Verification</Text>
-                    <Text className="text-slate-400 text-[10px] font-medium mt-0.5">Stock Check</Text>
-                  </View>
-                </View>
-                <Text className="text-slate-400 text-[9px] font-bold mt-1">03:00 PM</Text>
-              </View>
+                  <Text className="text-slate-400 text-[9px] font-bold mt-1">{task.time}</Text>
+                </TouchableOpacity>
+              ))}
 
             </View>
 

@@ -66,7 +66,7 @@ export default function TabLayout() {
     const visibleRoutes = state.routes.filter((route: any) => {
       if (route.name === 'profile' || route.name === 'phc-detail') return false;
       if (authState?.role === 'PHC') {
-        return ['situation-room', 'inventory', 'reports'].includes(route.name);
+        return ['situation-room', 'inventory', 'reports', 'emergency'].includes(route.name);
       }
       return ['situation-room', 'district-map', 'phcs', 'reports'].includes(route.name);
     });
@@ -95,7 +95,7 @@ export default function TabLayout() {
                 position: 'absolute',
                 top: 0,
                 bottom: 0,
-                width: '20%', // 1/5th of the inner container width to account for 5 buttons
+                width: '25%', // 1/4th of the inner container width since there are exactly 4 buttons
                 transform: [{
                   translateX: slideAnim.interpolate({
                     inputRange: [0, 1, 2, 3],
@@ -135,6 +135,10 @@ export default function TabLayout() {
               else if (route.name === 'phcs') { iconName = 'heart'; label = 'PHCs'; }
               else if (route.name === 'inventory') { iconName = 'box'; label = 'Inventory'; }
               else if (route.name === 'reports') { iconName = 'bar-chart-2'; label = 'Reports'; }
+              else if (route.name === 'emergency') { iconName = 'shield'; label = 'Alert'; }
+
+              // For Emergency tab, we might want a different active color, but blue overlay is standard
+              const activeColor = route.name === 'emergency' ? '#EF4444' : '#0E62CC';
 
               return (
                 <Pressable
@@ -146,11 +150,11 @@ export default function TabLayout() {
                     <Feather
                       name={iconName}
                       size={18}
-                      color={isFocused ? '#0E62CC' : '#94A3B8'}
+                      color={isFocused ? activeColor : '#94A3B8'}
                     />
                   </View>
                   <Text
-                    className={`text-[10px] font-extrabold mt-1 ${isFocused ? 'text-[#0E62CC]' : 'text-slate-400'}`}
+                    className={`text-[10px] font-extrabold mt-1 ${isFocused ? (route.name === 'emergency' ? 'text-red-500' : 'text-[#0E62CC]') : 'text-slate-400'}`}
                   >
                     {label}
                   </Text>
@@ -158,27 +162,7 @@ export default function TabLayout() {
               );
             })}
 
-            {/* Emergency Action Button in Nav Bar */}
-            <Pressable
-              onPress={() => {
-                setEmergencyMode(!emergencyMode);
-                alert(emergencyMode ? 'Emergency mode deactivated.' : 'EMERGENCY MODE DEPLOYED IN DISTRICT!');
-              }}
-              className="items-center justify-center py-2.5 px-3.5 rounded-full flex-1 z-10 bg-transparent"
-            >
-              <View className="h-5 items-center justify-center">
-                <Feather
-                  name="shield"
-                  size={18}
-                  color={emergencyMode ? '#EF4444' : '#94A3B8'}
-                />
-              </View>
-              <Text
-                className={`text-[10px] font-extrabold mt-1 ${emergencyMode ? 'text-red-500' : 'text-slate-400'}`}
-              >
-                Alert
-              </Text>
-            </Pressable>
+
 
           </View>
         </View>
@@ -212,6 +196,7 @@ export default function TabLayout() {
         <Tabs.Screen name="resource-redistribution" options={{ href: null }} />
         <Tabs.Screen name="resource-movement-tracker" options={{ href: null }} />
         <Tabs.Screen name="settings" options={{ href: null }} />
+        <Tabs.Screen name="emergency" options={{ href: null }} />
       </Tabs>
 
       {/* Global Drawer Menu */}

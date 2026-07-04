@@ -3,7 +3,9 @@ import { View, Text, Pressable, ScrollView, ActivityIndicator, Image } from 'rea
 import { useRouter } from 'expo-router';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import ScreenContainer from '@/components/ui/layout/ScreenContainer';
-import { localRecommendations } from '@/services/repositories/localDb';
+import { Dropdown } from '@/components/ui/inputs/Dropdown';
+import geminiService from '@/services/ai/geminiService';
+import { ScenarioSimulationResult } from '@/shared/types/ai';
 
 export default function ScenarioSimulatorScreen() {
   const router = useRouter();
@@ -14,17 +16,21 @@ export default function ScenarioSimulatorScreen() {
   const [timeWindow, setTimeWindow] = useState('Next 7 Days');
   
   const [simulating, setSimulating] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<ScenarioSimulationResult | null>(null);
 
-  const handleRunSimulation = () => {
+  const handleRunSimulation = async () => {
     setSimulating(true);
     setResult(null);
     
-    // Simulate Gemini processing lag
-    setTimeout(() => {
+    try {
+      const simResult = await geminiService.simulateScenario(scenario, { severity, region, timeWindow });
+      setResult(simResult);
+    } catch (error) {
+      console.error('Simulation failed', error);
+      alert('Failed to run simulation. Please try again.');
+    } finally {
       setSimulating(false);
-      setResult(true);
-    }, 1800);
+    }
   };
 
   return (
@@ -106,16 +112,17 @@ export default function ScenarioSimulatorScreen() {
             
             {/* Scenario */}
             <View className="mb-6">
-              <Text className="text-brand-navy text-[11px] font-extrabold mb-2">1. Select Hypothetical Risk Scenario</Text>
-              <View className="bg-white border border-slate-200 rounded-xl px-4 py-3 flex-row items-center justify-between">
-                <View className="flex-row items-center">
-                   <View className="w-6 h-6 rounded-md bg-blue-50 items-center justify-center mr-3">
-                     <Feather name="command" size={12} color="#3B82F6" />
-                   </View>
-                   <Text className="text-brand-navy font-bold text-xs">{scenario}</Text>
-                </View>
-                <Feather name="chevron-down" size={16} color="#94A3B8" />
-              </View>
+              <Dropdown
+                label="1. Select Hypothetical Risk Scenario"
+                selectedValue={scenario}
+                onValueChange={setScenario}
+                options={[
+                  { label: 'Dengue Outbreak Surge', value: 'Dengue Outbreak Surge' },
+                  { label: 'Severe Heatwave', value: 'Severe Heatwave' },
+                  { label: 'Monsoon Flooding', value: 'Monsoon Flooding' },
+                  { label: 'Viral Fever Epidemic', value: 'Viral Fever Epidemic' }
+                ]}
+              />
             </View>
 
             {/* Severity */}
@@ -151,31 +158,32 @@ export default function ScenarioSimulatorScreen() {
             </View>
 
             {/* Region */}
-            <View className="mb-6">
-              <Text className="text-brand-navy text-[11px] font-extrabold mb-2 mt-1">3. Region / Area</Text>
-              <View className="bg-white border border-slate-200 rounded-xl px-4 py-3 flex-row items-center justify-between">
-                <View className="flex-row items-center">
-                   <View className="w-6 h-6 rounded-md bg-slate-50 items-center justify-center mr-3">
-                     <Feather name="map-pin" size={12} color="#3B82F6" />
-                   </View>
-                   <Text className="text-brand-navy font-bold text-xs">{region}</Text>
-                </View>
-                <Feather name="chevron-down" size={16} color="#94A3B8" />
-              </View>
+            <View className="mb-6 mt-1">
+              <Dropdown
+                label="3. Region / Area"
+                selectedValue={region}
+                onValueChange={setRegion}
+                options={[
+                  { label: 'Gautam Budh Nagar', value: 'Gautam Budh Nagar' },
+                  { label: 'Noida City Zone', value: 'Noida City Zone' },
+                  { label: 'Dadri Rural', value: 'Dadri Rural' },
+                  { label: 'Jewar Block', value: 'Jewar Block' }
+                ]}
+              />
             </View>
 
             {/* Time Window */}
-            <View className="mb-8">
-              <Text className="text-brand-navy text-[11px] font-extrabold mb-2 mt-1">4. Simulation Time Window</Text>
-              <View className="bg-white border border-slate-200 rounded-xl px-4 py-3 flex-row items-center justify-between mb-4">
-                <View className="flex-row items-center">
-                   <View className="w-6 h-6 rounded-md bg-slate-50 items-center justify-center mr-3">
-                     <Feather name="calendar" size={12} color="#3B82F6" />
-                   </View>
-                   <Text className="text-brand-navy font-bold text-xs">{timeWindow}</Text>
-                </View>
-                <Feather name="chevron-down" size={16} color="#94A3B8" />
-              </View>
+            <View className="mb-8 mt-1">
+              <Dropdown
+                label="4. Simulation Time Window"
+                selectedValue={timeWindow}
+                onValueChange={setTimeWindow}
+                options={[
+                  { label: 'Next 7 Days', value: 'Next 7 Days' },
+                  { label: 'Next 14 Days', value: 'Next 14 Days' },
+                  { label: 'Next 30 Days', value: 'Next 30 Days' }
+                ]}
+              />
             </View>
 
             {/* Action Button */}
@@ -224,13 +232,13 @@ export default function ScenarioSimulatorScreen() {
                   </View>
                   <Text className="text-emerald-800 font-extrabold text-[13px]">AI Impact Assessment</Text>
                 </View>
-                <View className="bg-emerald-100/50 rounded-full px-2 py-1">
+              <View className="bg-emerald-100/50 rounded-full px-2 py-1">
                   <Text className="text-emerald-700 font-extrabold text-[9px]">High Risk Detected</Text>
                 </View>
               </View>
               <Text className="text-slate-600 font-semibold text-[10px] leading-relaxed">
-                {localRecommendations.length > 0 
-                  ? localRecommendations[0].reasoning 
+                {result.suggestedTransfers.length > 0 
+                  ? result.suggestedTransfers[0].reasoning 
                   : "Based on regional trends, climate indices, and current case patterns, a high severity scenario may cause a sharp rise in patient admissions within 72 hours. Immediate action is recommended to prevent resource strain."}
               </Text>
             </View>
@@ -244,7 +252,7 @@ export default function ScenarioSimulatorScreen() {
                   <MaterialCommunityIcons name="bed-empty" size={16} color="#EF4444" />
                 </View>
                 <Text className="text-slate-700 font-bold text-[8px] text-center mb-0.5" numberOfLines={1}>Inpatient Beds Required</Text>
-                <Text className="text-red-500 font-black text-lg mb-1">12 units</Text>
+                <Text className="text-red-500 font-black text-lg mb-1">{result.estimatedBedRequirement} units</Text>
                 <View className="bg-red-100/60 rounded-full px-2 py-0.5">
                   <Text className="text-red-600 font-bold text-[7px]">High Demand</Text>
                 </View>
@@ -256,7 +264,9 @@ export default function ScenarioSimulatorScreen() {
                   <MaterialCommunityIcons name="pill" size={16} color="#F97316" />
                 </View>
                 <Text className="text-slate-700 font-bold text-[8px] text-center mb-0.5" numberOfLines={1}>Drug Demand Surge</Text>
-                <Text className="text-orange-500 font-black text-lg mb-1">+150%</Text>
+                <Text className="text-orange-500 font-black text-lg mb-1">
+                  {Object.values(result.estimatedMedicineDemand).reduce((a, b) => a + b, 0)} units
+                </Text>
                 <View className="bg-orange-100/60 rounded-full px-2 py-0.5">
                   <Text className="text-orange-600 font-bold text-[7px]">Very High</Text>
                 </View>
@@ -267,8 +277,8 @@ export default function ScenarioSimulatorScreen() {
                 <View className="w-8 h-8 rounded-full bg-purple-100/50 items-center justify-center mb-1">
                   <Feather name="users" size={14} color="#8B5CF6" />
                 </View>
-                <Text className="text-slate-700 font-bold text-[8px] text-center mb-0.5" numberOfLines={1}>Patients Impacted (Est.)</Text>
-                <Text className="text-purple-600 font-black text-lg mb-1">450-600</Text>
+                <Text className="text-slate-700 font-bold text-[8px] text-center mb-0.5" numberOfLines={1}>Additional Staff</Text>
+                <Text className="text-purple-600 font-black text-lg mb-1">+{result.estimatedStaffRequirement}</Text>
                 <View className="bg-purple-100/60 rounded-full px-2 py-0.5">
                   <Text className="text-purple-600 font-bold text-[7px]">In 7 Days</Text>
                 </View>
@@ -287,13 +297,13 @@ export default function ScenarioSimulatorScreen() {
                 </View>
 
                 <View className="space-y-2">
-                  {localRecommendations.slice(0, 3).map((rec, i) => (
-                    <View key={rec.id} className="flex-row items-start">
+                  {result.suggestedTransfers.slice(0, 3).map((rec, i) => (
+                    <View key={rec.id || i} className="flex-row items-start">
                       <Feather name="check-circle" size={10} color="#3B82F6" className="mt-0.5 mr-2" />
-                      <Text className="text-brand-navy font-semibold text-[9px] leading-3 flex-1">{rec.title}</Text>
+                      <Text className="text-brand-navy font-semibold text-[9px] leading-3 flex-1">{rec.title || `Transfer ${rec.quantity} ${rec.item}`}</Text>
                     </View>
                   ))}
-                  {localRecommendations.length === 0 && (
+                  {result.suggestedTransfers.length === 0 && (
                     <View className="flex-row items-start">
                       <Feather name="check-circle" size={10} color="#3B82F6" className="mt-0.5 mr-2" />
                       <Text className="text-brand-navy font-semibold text-[9px] leading-3 flex-1">Ensure resources are properly stocked based on regular schedules.</Text>

@@ -100,6 +100,10 @@ export default function SituationRoomScreen() {
   const blockPhcIds = blockPhcs.map(p => p.id);
   const filteredAlerts = isBMO ? alerts.filter(a => blockPhcIds.includes(a.facilityId)) : alerts;
 
+  const filteredTelemetryAudits = isBMO 
+    ? telemetryAudits.filter(a => blockPhcs.some(p => a.desc.includes(p.name) || a.desc.includes(p.id) || a.desc.includes(assignedFacilityId)))
+    : telemetryAudits;
+
   // Dynamic Outbreaks Carousel derived from active alerts in DB
   const unresolvedOutbreaks = filteredAlerts
     .filter((a) => a.type === 'OUTBREAK' && !a.resolved)
@@ -117,7 +121,7 @@ export default function SituationRoomScreen() {
   const aiRecommendations = activeMissions.filter((r) => isBMO ? (blockPhcIds.includes(r.sourceFacility) || blockPhcIds.includes(r.targetFacility)) : true);
 
   // Logistics requests (dynamic from DB)
-  const logisticsRequests = isBMO ? commandQueue.filter(l => l.from.includes(assignedFacilityId) || l.to.includes(assignedFacilityId)) : commandQueue;
+  const logisticsRequests = isBMO ? commandQueue.filter(l => blockPhcs.some(p => l.from.includes(p.name) || l.from.includes(p.id) || l.to.includes(p.name) || l.to.includes(p.id) || l.from.includes(assignedFacilityId) || l.to.includes(assignedFacilityId))) : commandQueue;
 
   // Dynamic Data for Disease Trends
   const diseaseTrendsData = localDiseaseTrends;
@@ -245,14 +249,7 @@ export default function SituationRoomScreen() {
     }
   };
 
-  const diseases = [
-    { name: 'Dengue', rate: '+18%', risk: 'HIGH', color: '#EF4444' },
-    { name: 'Malaria', rate: '-4%', risk: 'LOW', color: '#10B981' },
-    { name: 'Chikungunya', rate: '+2%', risk: 'MED', color: '#F59E0B' },
-    { name: 'Seasonal Influenza', rate: '+12%', risk: 'MED', color: '#F59E0B' },
-    { name: 'Acute Diarrheal', rate: '+22%', risk: 'HIGH', color: '#EF4444' },
-    { name: 'Typhoid', rate: '0%', risk: 'LOW', color: '#10B981' }
-  ];
+
 
   if (isPHC) {
     return <PHCHomeDashboard />;
@@ -361,7 +358,7 @@ export default function SituationRoomScreen() {
                   <View className="w-6 h-6 rounded-full bg-green-500 items-center justify-center mr-2.5 shadow-sm shadow-green-500/10">
                     <Feather name="activity" size={10} color="white" />
                   </View>
-                  <Text className="text-slate-800 text-[11.5px] font-bold" numberOfLines={1}>{filteredAlerts.filter(a => a.priority === 'CRITICAL' && !a.resolved).length} PHCs need attention</Text>
+                  <Text className="text-slate-800 text-[11.5px] font-bold" numberOfLines={1}>{filteredAlerts.filter(a => !a.resolved).length} Alerts need attention</Text>
                 </View>
               </View>
 
@@ -761,14 +758,14 @@ export default function SituationRoomScreen() {
               {/* Header (Clickable for dropdown) */}
               <Pressable
                 onPress={() => {
-                  if (commandQueue.length > 3) {
+                  if (logisticsRequests.length > 3) {
                     setIsLogisticsOpen(!isLogisticsOpen);
                   }
                 }}
                 className="py-4 flex-row justify-between items-center relative z-10"
               >
                 <Text className="text-brand-navy font-extrabold text-[15px]">Logistics & Dispatch Queue</Text>
-                {commandQueue.length > 3 && (
+                {logisticsRequests.length > 3 && (
                   <View className="flex-row items-center">
                     <Text className="text-blue-600 font-bold text-xs mr-1">{isLogisticsOpen ? 'Show Less' : 'View All'}</Text>
                     <Feather name={isLogisticsOpen ? "chevron-up" : "chevron-down"} size={16} color="#2563EB" />
@@ -781,7 +778,7 @@ export default function SituationRoomScreen() {
 
               {/* Items List */}
               <View className="pb-2 relative z-10">
-                {(isLogisticsOpen ? commandQueue : commandQueue.slice(0, 3)).map((item, index) => {
+                {(isLogisticsOpen ? logisticsRequests : logisticsRequests.slice(0, 3)).map((item, index) => {
                   const statusColors: Record<string, string> = {
                     'pending': '#F59E0B',
                     'approved': '#3B82F6',
@@ -814,8 +811,8 @@ export default function SituationRoomScreen() {
             {/* Timeline Line */}
             <View className="absolute left-[27px] top-[40px] bottom-[40px] w-[2px] bg-slate-100" />
 
-            {telemetryAudits.slice(0, 3).map((audit, i) => (
-              <View key={audit.id} className={`flex-row items-center py-3 ${i !== Math.min(telemetryAudits.length, 3) - 1 ? 'border-b border-slate-50' : ''} relative`}>
+            {filteredTelemetryAudits.slice(0, 3).map((audit, i) => (
+              <View key={audit.id} className={`flex-row items-center py-3 ${i !== Math.min(filteredTelemetryAudits.length, 3) - 1 ? 'border-b border-slate-50' : ''} relative`}>
                 <View className="w-6 items-center justify-center bg-white z-10 mr-3">
                   <View className={`w-[18px] h-[18px] rounded-full bg-${audit.color}-500 items-center justify-center border-2 border-white`}>
                     <Feather name={audit.icon as any} size={10} color="white" />

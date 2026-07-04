@@ -114,9 +114,9 @@ export function GlobalHamburgerMenu({ visible, onClose }: GlobalHamburgerMenuPro
             </View>
 
             {/* Menu Items */}
-            <View className="space-y-3 mb-8">
+            <View className="mb-8">
 
-              <Pressable onPress={() => handleNavigate('/scenario-simulator')} className="bg-white rounded-2xl p-3 flex-row items-center border border-slate-100 shadow-sm shadow-black/5 active:bg-slate-50">
+              <Pressable onPress={() => handleNavigate('/scenario-simulator')} className="bg-white rounded-2xl p-3 flex-row items-center border border-slate-100 shadow-sm shadow-black/5 active:bg-slate-50 mb-4">
                 <View className="w-10 h-10 rounded-xl bg-blue-50 items-center justify-center mr-3">
                   <Feather name="sliders" size={18} color="#3B82F6" />
                 </View>
@@ -127,9 +127,7 @@ export function GlobalHamburgerMenu({ visible, onClose }: GlobalHamburgerMenuPro
                 <Feather name="chevron-right" size={16} color="#94A3B8" />
               </Pressable>
 
-
-
-              <Pressable onPress={() => handleNavigate('/resource-redistribution')} className="bg-white rounded-2xl p-3 flex-row items-center border border-slate-100 shadow-sm shadow-black/5 active:bg-slate-50">
+              <Pressable onPress={() => handleNavigate('/resource-redistribution')} className="bg-white rounded-2xl p-3 flex-row items-center border border-slate-100 shadow-sm shadow-black/5 active:bg-slate-50 mb-4">
                 <View className="w-10 h-10 rounded-xl bg-emerald-50 items-center justify-center mr-3">
                   <Feather name="refresh-cw" size={18} color="#10B981" />
                 </View>
@@ -140,7 +138,7 @@ export function GlobalHamburgerMenu({ visible, onClose }: GlobalHamburgerMenuPro
                 <Feather name="chevron-right" size={16} color="#94A3B8" />
               </Pressable>
 
-              <Pressable onPress={() => handleNavigate('/resource-movement-tracker')} className="bg-white rounded-2xl p-3 flex-row items-center border border-slate-100 shadow-sm shadow-black/5 active:bg-slate-50">
+              <Pressable onPress={() => handleNavigate('/resource-movement-tracker')} className="bg-white rounded-2xl p-3 flex-row items-center border border-slate-100 shadow-sm shadow-black/5 active:bg-slate-50 mb-4">
                 <View className="w-10 h-10 rounded-xl bg-orange-50 items-center justify-center mr-3">
                   <Feather name="truck" size={18} color="#F59E0B" />
                 </View>

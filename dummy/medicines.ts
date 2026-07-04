@@ -540,5 +540,43 @@ export const dummyMedicines: MedicineStock[] = [
     minRequiredStock: 379,
     unit: 'Bottles',
     facilityId: 'phc_rabupura',
-  }
+  },
+  // VACCINES
+  { id: 'm61', name: 'Polio Drops', type: 'VACCINE' as any, currentStock: 215, minRequiredStock: 150, unit: 'Vials', facilityId: 'phc_barola' },
+  { id: 'v1', name: 'BCG Vaccine', type: 'VACCINE' as any, currentStock: 80, minRequiredStock: 50, unit: 'Vials', facilityId: 'phc_barola' },
+  { id: 'v2', name: 'Hepatitis B Vaccine', type: 'VACCINE' as any, currentStock: 120, minRequiredStock: 100, unit: 'Vials', facilityId: 'phc_barola' },
+  { id: 'v3', name: 'Pentavalent Vaccine', type: 'VACCINE' as any, currentStock: 45, minRequiredStock: 60, unit: 'Vials', facilityId: 'phc_barola' },
+  { id: 'v4', name: 'Rotavirus Vaccine', type: 'VACCINE' as any, currentStock: 200, minRequiredStock: 100, unit: 'Vials', facilityId: 'phc_barola' },
+  { id: 'v5', name: 'PCV (Pneumococcal)', type: 'VACCINE' as any, currentStock: 30, minRequiredStock: 50, unit: 'Vials', facilityId: 'phc_barola' },
+  { id: 'v6', name: 'fIPV', type: 'VACCINE' as any, currentStock: 150, minRequiredStock: 80, unit: 'Vials', facilityId: 'phc_barola' },
+  { id: 'v7', name: 'Measles Rubella (MR)', type: 'VACCINE' as any, currentStock: 90, minRequiredStock: 75, unit: 'Vials', facilityId: 'phc_barola' },
+  { id: 'v8', name: 'DPT Booster', type: 'VACCINE' as any, currentStock: 110, minRequiredStock: 90, unit: 'Vials', facilityId: 'phc_barola' },
+  { id: 'v9', name: 'Tetanus Toxoid (TT)', type: 'VACCINE' as any, currentStock: 500, minRequiredStock: 200, unit: 'Vials', facilityId: 'phc_barola' },
+  { id: 'v10', name: 'Japanese Encephalitis', type: 'VACCINE' as any, currentStock: 40, minRequiredStock: 60, unit: 'Vials', facilityId: 'phc_barola' },
+  
+  // CONSUMABLES
+  { id: 'm62', name: 'Surgical Masks', type: 'CONSUMABLE' as any, currentStock: 1200, minRequiredStock: 500, unit: 'Pieces', facilityId: 'phc_barola' },
+  { id: 'c1', name: 'Latex Gloves (Medium)', type: 'CONSUMABLE' as any, currentStock: 800, minRequiredStock: 1000, unit: 'Pairs', facilityId: 'phc_barola' },
+  { id: 'c2', name: 'Cotton Rolls (500g)', type: 'CONSUMABLE' as any, currentStock: 45, minRequiredStock: 50, unit: 'Rolls', facilityId: 'phc_barola' },
+  { id: 'c3', name: 'Bandages (4 inch)', type: 'CONSUMABLE' as any, currentStock: 300, minRequiredStock: 200, unit: 'Rolls', facilityId: 'phc_barola' },
+  { id: 'c4', name: 'Syringes (5ml)', type: 'CONSUMABLE' as any, currentStock: 1500, minRequiredStock: 1000, unit: 'Pieces', facilityId: 'phc_barola' },
+  { id: 'c5', name: 'Syringes (10ml)', type: 'CONSUMABLE' as any, currentStock: 850, minRequiredStock: 500, unit: 'Pieces', facilityId: 'phc_barola' },
+  { id: 'c6', name: 'IV Cannula (20G)', type: 'CONSUMABLE' as any, currentStock: 120, minRequiredStock: 200, unit: 'Pieces', facilityId: 'phc_barola' },
+  { id: 'c7', name: 'Adhesive Tape', type: 'CONSUMABLE' as any, currentStock: 60, minRequiredStock: 40, unit: 'Spools', facilityId: 'phc_barola' },
+  { id: 'c8', name: 'Gauze Pads', type: 'CONSUMABLE' as any, currentStock: 2500, minRequiredStock: 1500, unit: 'Pieces', facilityId: 'phc_barola' },
+  { id: 'c9', name: 'Hand Sanitizer (500ml)', type: 'CONSUMABLE' as any, currentStock: 25, minRequiredStock: 40, unit: 'Bottles', facilityId: 'phc_barola' },
+  { id: 'c10', name: 'Biohazard Bags (Red)', type: 'CONSUMABLE' as any, currentStock: 300, minRequiredStock: 200, unit: 'Bags', facilityId: 'phc_barola' },
+  
+  // EQUIPMENT
+  { id: 'm63', name: 'BP Monitor (Digital)', type: 'EQUIPMENT' as any, currentStock: 12, minRequiredStock: 15, unit: 'Units', facilityId: 'phc_barola' },
+  { id: 'e1', name: 'Stethoscope', type: 'EQUIPMENT' as any, currentStock: 18, minRequiredStock: 20, unit: 'Units', facilityId: 'phc_barola' },
+  { id: 'e2', name: 'Pulse Oximeter', type: 'EQUIPMENT' as any, currentStock: 8, minRequiredStock: 10, unit: 'Units', facilityId: 'phc_barola' },
+  { id: 'e3', name: 'Thermometer (Digital)', type: 'EQUIPMENT' as any, currentStock: 25, minRequiredStock: 15, unit: 'Units', facilityId: 'phc_barola' },
+  { id: 'e4', name: 'Weighing Scale (Adult)', type: 'EQUIPMENT' as any, currentStock: 5, minRequiredStock: 5, unit: 'Units', facilityId: 'phc_barola' },
+  { id: 'e5', name: 'Weighing Scale (Infant)', type: 'EQUIPMENT' as any, currentStock: 3, minRequiredStock: 3, unit: 'Units', facilityId: 'phc_barola' },
+  { id: 'e6', name: 'Fetal Doppler', type: 'EQUIPMENT' as any, currentStock: 2, minRequiredStock: 2, unit: 'Units', facilityId: 'phc_barola' },
+  { id: 'e7', name: 'Oxygen Cylinder (B Type)', type: 'EQUIPMENT' as any, currentStock: 4, minRequiredStock: 6, unit: 'Cylinders', facilityId: 'phc_barola' },
+  { id: 'e8', name: 'Nebulizer Machine', type: 'EQUIPMENT' as any, currentStock: 6, minRequiredStock: 5, unit: 'Units', facilityId: 'phc_barola' },
+  { id: 'e9', name: 'Glucometer', type: 'EQUIPMENT' as any, currentStock: 10, minRequiredStock: 10, unit: 'Units', facilityId: 'phc_barola' },
+  { id: 'e10', name: 'ECG Machine (Portable)', type: 'EQUIPMENT' as any, currentStock: 1, minRequiredStock: 1, unit: 'Units', facilityId: 'phc_barola' }
 ];

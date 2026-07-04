@@ -14,6 +14,7 @@ import { ReportItem } from '@/shared/types/report';
 import { AIRecommendation } from '@/shared/types/ai';
 import { dummyLogistics, LogisticsRequest } from '@/dummy/logistics';
 import { dummyDiseaseTrends, DiseaseTrend } from '@/dummy/diseaseTrends';
+import { dummyTasks, TaskItem } from '@/dummy/tasks';
 
 export let localPHCs = JSON.parse(JSON.stringify(dummyPHCs)) as PHC[];
 export let localAttendance = JSON.parse(JSON.stringify(dummyAttendance)) as AttendanceRecord[];
@@ -24,9 +25,12 @@ export let localReports = JSON.parse(JSON.stringify(dummyReports)) as ReportItem
 export let localDistrict = { ...dummyDistrict };
 export let localLogistics = JSON.parse(JSON.stringify(dummyLogistics)) as LogisticsRequest[];
 export let localDiseaseTrends = JSON.parse(JSON.stringify(dummyDiseaseTrends)) as DiseaseTrend[];
+export let localTasks = JSON.parse(JSON.stringify(dummyTasks)) as TaskItem[];
 export let localTelemetryAudits = [
   { id: 'ta-1', type: 'approved', icon: 'check', color: 'green', text: 'Redistribution Approved', desc: 'DHO Rajesh Kumar approved transfer of 50 Dengue Kits to PHC Badalpur.', time: '10m ago' },
-  { id: 'ta-2', type: 'alert', icon: 'alert-triangle', color: 'red', text: 'Critical Stockout Alert', desc: 'Paracetamol stock dropped below 150 tablets at PHC Badalpur.', time: '1h ago' }
+  { id: 'ta-2', type: 'alert', icon: 'alert-triangle', color: 'red', text: 'Critical Stockout Alert', desc: 'Paracetamol stock dropped below 150 tablets at PHC Badalpur.', time: '1h ago' },
+  { id: 'ta-3', type: 'alert', icon: 'activity', color: 'blue', text: 'Disease Trend Spike', desc: 'Malaria cases increased by 15% in PHC Barola.', time: '2h ago' },
+  { id: 'ta-4', type: 'approved', icon: 'truck', color: 'orange', text: 'Logistics Dispatched', desc: 'Dengue NS1 Kits dispatched to CHC Bisrakh.', time: '3h ago' }
 ];
 
 const dengueBarolaRec = dummyMedicines.find(m => m.facilityId === 'phc_barola' && m.name.includes('Dengue'));
@@ -104,8 +108,38 @@ export interface TransferOrder {
   timestamp: string;
 }
 
-export let localTransfers: TransferOrder[] = [];
-
+export let localTransfers: TransferOrder[] = [
+  {
+    id: 'SHP-1234',
+    sourceFacilityId: 'phc_barola',
+    targetFacilityId: 'phc_badalpur',
+    medicineId: 'm2',
+    medicineName: 'Dengue NS1 Antigen Test Kit',
+    quantity: 50,
+    status: 'EN_ROUTE',
+    timestamp: new Date(Date.now() - 3600000).toISOString(),
+  },
+  {
+    id: 'SHP-5678',
+    sourceFacilityId: 'chc_bisrakh',
+    targetFacilityId: 'phc_mandi',
+    medicineId: 'm1',
+    medicineName: 'Paracetamol 650mg',
+    quantity: 200,
+    status: 'PENDING',
+    timestamp: new Date(Date.now() - 1800000).toISOString(),
+  },
+  {
+    id: 'SHP-9012',
+    sourceFacilityId: 'uphc_surajpur',
+    targetFacilityId: 'chc_dadri',
+    medicineId: 'm5',
+    medicineName: 'Amoxicillin 250mg',
+    quantity: 150,
+    status: 'DELIVERED',
+    timestamp: new Date(Date.now() - 86400000).toISOString(),
+  }
+];
 // Helper functions to update state
 export const updateLocalPHC = (updated: PHC) => {
   localPHCs = localPHCs.map((p) => (p.id === updated.id ? updated : p));
@@ -117,6 +151,14 @@ export const addLocalAttendance = (record: AttendanceRecord) => {
 
 export const updateLocalMedicine = (updated: MedicineStock) => {
   localMedicines = localMedicines.map((m) => (m.id === updated.id ? updated : m));
+};
+
+export const addLocalMedicine = (newItem: MedicineStock) => {
+  localMedicines = [newItem, ...localMedicines];
+};
+
+export const updateLocalTask = (updated: TaskItem) => {
+  localTasks = localTasks.map((t) => (t.id === updated.id ? updated : t));
 };
 
 export const updateLocalAlert = (updated: AlertItem) => {
