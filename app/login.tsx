@@ -1,12 +1,12 @@
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
+import { sendPasswordResetEmail } from 'firebase/auth';
 import { useState } from 'react';
 import { Image, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { useAuth, LoginRole } from '../context/AuthContext';
+import { LoginRole, useAuth } from '../context/AuthContext';
 import { useTranslation } from '../hooks/useTranslation';
-import { isFirebaseConfigured, auth } from '../services/firebase/firebaseConfig';
-import { sendPasswordResetEmail } from 'firebase/auth';
+import { auth, isFirebaseConfigured } from '../services/firebase/firebaseConfig';
 
 export default function LoginScreen() {
   const { login } = useAuth();
@@ -77,16 +77,6 @@ export default function LoginScreen() {
           style={{ width: 140, height: 45, marginLeft: -15 }}
           resizeMode="contain"
         />
-        <View className="flex-row bg-slate-50 rounded-full px-3 py-1.5 items-center border border-slate-200">
-          <TouchableOpacity onPress={() => setLanguage('en')} className="flex-row items-center">
-            <Feather name="globe" size={12} color={language === 'en' ? '#0E62CC' : '#64748B'} style={{ marginRight: 4 }} />
-            <Text className={`text-[11px] font-bold ${language === 'en' ? 'text-[#0E62CC]' : 'text-slate-500'}`}>English</Text>
-          </TouchableOpacity>
-          <Text className="text-[11px] text-slate-300 mx-1">|</Text>
-          <TouchableOpacity onPress={() => setLanguage('hi')}>
-            <Text className={`text-[11px] font-bold ${language === 'hi' ? 'text-[#0E62CC]' : 'text-slate-500'}`}>हिंदी</Text>
-          </TouchableOpacity>
-        </View>
       </View>
 
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="flex-grow-1" keyboardShouldPersistTaps="handled">

@@ -1,9 +1,8 @@
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
-import { Feather, MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
-import { useAuth } from '../../../context/AuthContext';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { Dimensions, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { useAuth } from '../../../context/AuthContext';
+import { useInventory } from '../../../hooks/useInventory';
 
 const { width } = Dimensions.get('window');
 const isTablet = width >= 768;
@@ -11,15 +10,26 @@ const isTablet = width >= 768;
 export default function PHCHomeDashboard() {
   const { authState } = useAuth();
   const router = useRouter();
-  
+
+  const facilityId = authState?.facilityId || 'phc_dharampur';
+  const { stocks } = useInventory(facilityId);
+  const lowStockCount = stocks.filter((s) => s.currentStock < s.minRequiredStock).length;
+
+  const facilityNames: Record<string, string> = {
+    'phc_dharampur': 'Dharampur PHC',
+    'phc_kalan': 'Rampur Kalan PHC',
+    'phc_sewapur': 'Sewapur PHC',
+  };
+  const facilityName = facilityNames[facilityId] || 'Dharampur PHC';
+
   return (
     <ScrollView className="flex-1 bg-[#F8FAFC]" contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
-      
+
       {/* Header & Weather */}
       <View className="px-4 mt-6 flex-row justify-between items-start">
         <View className="flex-1 pr-2">
           <Text className="text-3xl font-black text-[#1E3A8A] tracking-tight">Welcome, Staff 👋</Text>
-          <Text className="text-slate-500 text-[13px] font-semibold mt-1">Dharampur PHC • Today, 20 May 2025</Text>
+          <Text className="text-slate-500 text-[13px] font-semibold mt-1">{facilityName} • Today, 20 May 2025</Text>
         </View>
         <View className="bg-white rounded-[20px] p-3 shadow-sm border border-slate-100 flex-row items-center w-36">
           <MaterialCommunityIcons name="weather-partly-cloudy" size={28} color="#FBBF24" />
@@ -28,7 +38,7 @@ export default function PHCHomeDashboard() {
               <Text className="text-lg font-black text-slate-800">32°C</Text>
             </View>
             <Text className="text-[9px] font-bold text-slate-500">Partly Cloudy</Text>
-            <Text className="text-[9px] font-bold text-slate-400 mt-0.5"><Feather name="droplet" size={8} color="#3B82F6"/> 62%</Text>
+            <Text className="text-[9px] font-bold text-slate-400 mt-0.5"><Feather name="droplet" size={8} color="#3B82F6" /> 62%</Text>
           </View>
         </View>
       </View>
@@ -36,7 +46,7 @@ export default function PHCHomeDashboard() {
       {/* 4 Key Metrics Cards (Horizontal Scroll) */}
       <View className="mt-6">
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
-          
+
           {/* Today's OPD */}
           <View className="bg-white rounded-[24px] border border-blue-100 shadow-sm w-[160px] p-4 relative overflow-hidden">
             <View className="flex-row items-center mb-4">
@@ -62,7 +72,7 @@ export default function PHCHomeDashboard() {
               </View>
               <Text className="text-[10px] font-bold text-red-500 tracking-widest uppercase">Low Stock Items</Text>
             </View>
-            <Text className="text-4xl font-black text-[#1E3A8A]">3</Text>
+            <Text className="text-4xl font-black text-[#1E3A8A]">{lowStockCount}</Text>
             <Text className="text-[11px] font-semibold text-slate-500 mb-4">Need Attention</Text>
             <TouchableOpacity className="flex-row items-center justify-between mt-auto border-t border-slate-50 pt-3 active:opacity-60" onPress={() => router.push('/(tabs)/inventory')}>
               <Text className="text-[11px] font-bold text-red-500">View Stock</Text>
@@ -139,9 +149,9 @@ export default function PHCHomeDashboard() {
             <Feather name="chevron-right" size={14} color="#3B82F6" />
           </TouchableOpacity>
         </View>
-        
+
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 10 }}>
-          
+
           <View className="bg-white border border-slate-100 rounded-2xl py-3 px-4 flex-row items-center shadow-sm shadow-slate-200/50">
             <View className="w-8 h-8 rounded-full bg-blue-50 items-center justify-center mr-3">
               <Feather name="user-plus" size={14} color="#3B82F6" />
@@ -202,12 +212,12 @@ export default function PHCHomeDashboard() {
 
       {/* Main Content Layout (Responsive Flex) */}
       <View className={`px-4 mt-8 flex ${isTablet ? 'flex-row gap-6' : 'flex-col gap-8'}`}>
-        
+
         {/* Quick Actions */}
         <View className={isTablet ? 'flex-1' : 'w-full'}>
           <Text className="text-slate-500 font-extrabold text-[12px] tracking-widest uppercase mb-4">Quick Actions</Text>
           <View className="flex-row flex-wrap justify-between">
-            
+
             <TouchableOpacity className="w-[48%] bg-white rounded-2xl border border-slate-100 p-4 mb-3 shadow-sm shadow-slate-200/50 flex-row items-center active:opacity-60">
               <View className="w-10 h-10 rounded-full bg-purple-50 items-center justify-center mr-3">
                 <Feather name="edit-2" size={16} color="#8B5CF6" />
@@ -283,9 +293,9 @@ export default function PHCHomeDashboard() {
           <View className="bg-white rounded-[24px] border border-slate-100 shadow-sm shadow-slate-200/50 p-4 relative overflow-hidden">
             {/* Faint clipboard icon background */}
             <MaterialCommunityIcons name="clipboard-check-outline" size={120} color="#F1F5F9" style={{ position: 'absolute', top: -10, right: -20, opacity: 0.5, transform: [{ rotate: '15deg' }] }} />
-            
+
             <View className="flex-col gap-4 relative z-10">
-              
+
               <View className="flex-row items-start justify-between border-b border-slate-50 pb-4">
                 <View className="flex-row items-center flex-1">
                   <View className="w-5 h-5 rounded-full bg-emerald-500 items-center justify-center mr-3 mt-0.5">
@@ -362,7 +372,7 @@ export default function PHCHomeDashboard() {
           </View>
 
           <View className="flex-row justify-between flex-wrap gap-y-4">
-            
+
             <View className="flex-row items-center w-[48%]">
               <View className="w-6 h-6 rounded-full bg-emerald-100 items-center justify-center mr-2 border border-emerald-200">
                 <Feather name="wifi" size={10} color="#059669" />

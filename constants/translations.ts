@@ -16,7 +16,7 @@ export const translations = {
     phcSubtitle: 'Health Centre\nStaff',
     emailPlaceholder: 'official@health.gov.in',
     passwordPlaceholder: 'Enter your password',
-    
+
     // Global Header & Navigation
     facility: 'Facility',
     inventory: 'Inventory',
@@ -33,7 +33,7 @@ export const translations = {
     activeAlerts: 'Active Alerts',
     viewDetails: 'View Details',
     viewAll: 'View All',
-    
+
     // Outbreaks & Supply Shortages
     outbreaks: 'Unresolved Outbreaks',
     shortages: 'Supply Shortages',

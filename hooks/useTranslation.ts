@@ -1,5 +1,5 @@
+import { TranslationKey, translations } from '../constants/translations';
 import { useConfigStore } from '../store/useConfigStore';
-import { translations, TranslationKey } from '../constants/translations';
 
 export function useTranslation() {
   const language = useConfigStore((state) => state.language);

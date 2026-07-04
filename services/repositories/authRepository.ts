@@ -6,13 +6,15 @@ import { UserRole } from '@/constants/roles';
 import { dummyUsers } from '@/dummy/users';
 
 export const authRepository = {
-  login: async (email: string, password: string, role: UserRole): Promise<{ user: User; token: string }> => {
+  login: async (email: string, password: string, role: string): Promise<{ user: User; token: string }> => {
+    const targetRole = role === 'PHC' ? 'PHC_MO' : role;
+
     if (!isFirebaseConfigured) {
       const matched = dummyUsers.find((u) => u.email.toLowerCase() === email.toLowerCase());
       if (!matched) {
         throw new Error('AUTH/INVALID_CREDENTIALS');
       }
-      if (matched.role !== role) {
+      if (matched.role !== targetRole) {
         throw new Error('AUTH/ROLE_MISMATCH');
       }
       return {
@@ -31,7 +33,7 @@ export const authRepository = {
       }
 
       const userData = userDoc.data() as Omit<User, 'id'>;
-      if (userData.role !== role) {
+      if (userData.role !== targetRole) {
         throw new Error('AUTH/ROLE_MISMATCH');
       }
 

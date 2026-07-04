@@ -11,6 +11,9 @@ interface AuthState {
   role: LoginRole | null;
   email: string | null;
   uid: string | null;
+  facilityId?: string;
+  name?: string;
+  avatarUrl?: string;
 }
 
 interface AuthContextType {
@@ -41,10 +44,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               const userDoc = await getDoc(doc(db, 'users', user.uid));
               if (userDoc.exists()) {
                 const userData = userDoc.data();
+                const mappedRole = userData.role === 'PHC_MO' ? 'PHC' : (userData.role as LoginRole);
                 setAuthState({
                   uid: user.uid,
                   email: user.email,
-                  role: userData.role as LoginRole,
+                  role: mappedRole,
+                  facilityId: userData.facilityId,
+                  name: userData.name,
+                  avatarUrl: userData.avatarUrl,
                 });
               }
             } else {
@@ -57,10 +64,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const savedSession = await SecureStore.getItemAsync(SECURE_STORE_KEY);
           if (savedSession) {
             const session = JSON.parse(savedSession);
+            const mappedRole = session.role === 'PHC_MO' ? 'PHC' : (session.role as LoginRole);
             setAuthState({
               uid: session.uid,
               email: session.email,
-              role: session.role as LoginRole,
+              role: mappedRole,
+              facilityId: session.facilityId,
+              name: session.name,
+              avatarUrl: session.avatarUrl,
             });
           }
           setLoading(false);
@@ -80,10 +91,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const response = await authRepository.login(email, password, role as any);
       
+      const mappedRole = response.user.role === 'PHC_MO' ? 'PHC' : (response.user.role as LoginRole);
+      
       const session = {
         uid: response.user.id,
         email: response.user.email,
-        role: response.user.role as LoginRole,
+        role: mappedRole,
+        facilityId: response.user.facilityId,
+        name: response.user.name,
+        avatarUrl: response.user.avatarUrl,
       };
 
       setAuthState(session);

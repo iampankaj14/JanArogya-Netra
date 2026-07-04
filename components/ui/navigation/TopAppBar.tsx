@@ -47,7 +47,8 @@ export function TopAppBar({
             onPress={onNotificationsPress}
           />
           <ProfileAvatar
-            name="DHO Rajesh"
+            name={authState?.name || "Dr. Rajesh Kumar"}
+            imageUrl={authState?.avatarUrl}
             size="sm"
             onPress={onProfilePress}
           />

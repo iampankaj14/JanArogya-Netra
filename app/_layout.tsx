@@ -1,16 +1,16 @@
-import React, { useEffect, useState } from 'react';
-import { View, LogBox } from 'react-native';
+import { AuthProvider } from '@/context/AuthContext';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useFonts } from 'expo-font';
+import { Slot } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
+import { LogBox, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import '../global.css';
 
 // Ignore all log notifications on the device screen (warnings will still appear in the terminal)
 LogBox.ignoreAllLogs();
-import { Slot } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useFonts } from 'expo-font';
-import * as SplashScreen from 'expo-splash-screen';
-import { AuthProvider } from '@/context/AuthContext';
-import '../global.css';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();

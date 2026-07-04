@@ -1,15 +1,15 @@
-import { Tabs, useRouter, usePathname } from 'expo-router';
-import { View, Text, Pressable, StyleSheet, LayoutAnimation, Platform, UIManager, Animated, PanResponder, Dimensions } from 'react-native';
+import { Feather } from '@expo/vector-icons';
+import { Tabs, useRouter } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, Dimensions, LayoutAnimation, PanResponder, Platform, Pressable, StyleSheet, Text, UIManager, View } from 'react-native';
+import GlobalHamburgerMenu from '../../components/common/GlobalHamburgerMenu';
+import { NetraAIAssistant } from '../../components/common/NetraAIAssistant';
+import TopAppBar from '../../components/ui/navigation/TopAppBar';
 import { useAuth } from '../../context/AuthContext';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
-import { Feather } from '@expo/vector-icons';
-import React, { useState, useEffect, useRef } from 'react';
-import TopAppBar from '../../components/ui/navigation/TopAppBar';
-import GlobalHamburgerMenu from '../../components/common/GlobalHamburgerMenu';
-import { NetraAIAssistant } from '../../components/common/NetraAIAssistant';
 
 export default function TabLayout() {
   const { authState } = useAuth();
@@ -43,7 +43,7 @@ export default function TabLayout() {
       ),
       onPanResponderRelease: () => {
         pan.flattenOffset();
-        
+
         const currentX = (pan.x as any)._value;
         // Snap to left or right edge based on midpoint
         const targetX = currentX < (MAX_LEFT / 2) ? MAX_LEFT : 0;
@@ -88,9 +88,9 @@ export default function TabLayout() {
         {/* Floating Dock */}
         <View className="bg-white border border-slate-100/50 py-1.5 px-2 rounded-[32px] mx-6 mb-6 shadow-xl">
           <View className="flex-row justify-between items-center relative">
-            
+
             {/* Smooth Sliding Background Indicator */}
-            <Animated.View 
+            <Animated.View
               style={{
                 position: 'absolute',
                 top: 0,
@@ -107,57 +107,57 @@ export default function TabLayout() {
               }}
             />
 
-          {visibleRoutes.map((route: any, index: number) => {
-            const isFocused = route.name === highlightRouteName;
+            {visibleRoutes.map((route: any, index: number) => {
+              const isFocused = route.name === highlightRouteName;
 
-            const onPress = () => {
-              LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-              const event = navigation.emit({
-                type: 'tabPress',
-                target: route.key,
-                canPreventDefault: true,
-              });
+              const onPress = () => {
+                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                const event = navigation.emit({
+                  type: 'tabPress',
+                  target: route.key,
+                  canPreventDefault: true,
+                });
 
-              const isActuallyFocused = currentActiveRouteName === route.name;
+                const isActuallyFocused = currentActiveRouteName === route.name;
 
-              if (!isActuallyFocused && !event.defaultPrevented) {
-                navigation.navigate(route.name);
+                if (!isActuallyFocused && !event.defaultPrevented) {
+                  navigation.navigate(route.name);
+                }
+              };
+
+              let iconName: any = 'activity';
+              let label = 'Home';
+              if (route.name === 'situation-room') {
+                iconName = 'activity';
+                label = authState?.role === 'PHC' ? 'Facility' : 'Home';
               }
-            };
+              else if (route.name === 'district-map') { iconName = 'map'; label = 'Map'; }
+              else if (route.name === 'phcs') { iconName = 'heart'; label = 'PHCs'; }
+              else if (route.name === 'inventory') { iconName = 'box'; label = 'Inventory'; }
+              else if (route.name === 'reports') { iconName = 'bar-chart-2'; label = 'Reports'; }
 
-            let iconName: any = 'activity';
-            let label = 'Home';
-            if (route.name === 'situation-room') { 
-              iconName = 'activity'; 
-              label = authState?.role === 'PHC' ? 'Facility' : 'Home'; 
-            }
-            else if (route.name === 'district-map') { iconName = 'map'; label = 'Map'; }
-            else if (route.name === 'phcs') { iconName = 'heart'; label = 'PHCs'; }
-            else if (route.name === 'inventory') { iconName = 'box'; label = 'Inventory'; }
-            else if (route.name === 'reports') { iconName = 'bar-chart-2'; label = 'Reports'; }
-
-            return (
-              <Pressable
-                key={route.name}
-                onPress={onPress}
-                className="items-center justify-center py-2.5 px-3.5 rounded-full flex-1 z-10 bg-transparent"
-              >
-                <View className="h-5 items-center justify-center">
-                  <Feather
-                    name={iconName}
-                    size={18}
-                    color={isFocused ? '#0E62CC' : '#94A3B8'}
-                  />
-                </View>
-                <Text
-                  className={`text-[10px] font-extrabold mt-1 ${isFocused ? 'text-[#0E62CC]' : 'text-slate-400'}`}
+              return (
+                <Pressable
+                  key={route.name}
+                  onPress={onPress}
+                  className="items-center justify-center py-2.5 px-3.5 rounded-full flex-1 z-10 bg-transparent"
                 >
-                  {label}
-                </Text>
-              </Pressable>
-            );
-          })}
-            
+                  <View className="h-5 items-center justify-center">
+                    <Feather
+                      name={iconName}
+                      size={18}
+                      color={isFocused ? '#0E62CC' : '#94A3B8'}
+                    />
+                  </View>
+                  <Text
+                    className={`text-[10px] font-extrabold mt-1 ${isFocused ? 'text-[#0E62CC]' : 'text-slate-400'}`}
+                  >
+                    {label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+
             {/* Emergency Action Button in Nav Bar */}
             <Pressable
               onPress={() => {

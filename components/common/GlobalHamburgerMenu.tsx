@@ -1,9 +1,9 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, Pressable, Animated, Dimensions, StyleSheet, Image, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useAuth } from '@/context/AuthContext';
 import { Feather } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useEffect, useRef } from 'react';
+import { Animated, Dimensions, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { dummyUsers } from '@/dummy/users';
 
 interface GlobalHamburgerMenuProps {
   visible: boolean;
@@ -17,7 +17,11 @@ export function GlobalHamburgerMenu({ visible, onClose }: GlobalHamburgerMenuPro
   const router = useRouter();
   const slideAnim = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
-  const dhoUser = dummyUsers[0];
+  const { authState } = useAuth();
+
+  const name = authState?.name || 'Dr. Rajesh Kumar';
+  const roleDisplay = authState?.role === 'DHO' ? 'District Health Officer' : authState?.role === 'BMO' ? 'Block Medical Officer' : 'PHC Officer';
+  const avatarUrl = authState?.avatarUrl || 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80';
 
   useEffect(() => {
     if (visible) {
@@ -57,8 +61,8 @@ export function GlobalHamburgerMenu({ visible, onClose }: GlobalHamburgerMenuPro
   };
 
   return (
-    <View 
-      style={[StyleSheet.absoluteFill, { zIndex: visible ? 999 : -1 }]} 
+    <View
+      style={[StyleSheet.absoluteFill, { zIndex: visible ? 999 : -1 }]}
       pointerEvents={visible ? 'auto' : 'none'}
       className="flex-row"
     >
@@ -80,7 +84,7 @@ export function GlobalHamburgerMenu({ visible, onClose }: GlobalHamburgerMenuPro
       >
         <SafeAreaView className="flex-1" edges={['top', 'bottom']}>
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 24, paddingBottom: 40 }}>
-            
+
             {/* Header / Brand */}
             <View className="flex-row justify-end mb-6">
               <Pressable onPress={onClose} className="w-10 h-10 rounded-full bg-slate-100 items-center justify-center active:bg-slate-200">
@@ -95,8 +99,8 @@ export function GlobalHamburgerMenu({ visible, onClose }: GlobalHamburgerMenuPro
               </View>
               <View className="flex-1 pr-2">
                 <Text className="text-blue-100 text-[9px] font-bold mb-0.5 tracking-wide">Welcome Back!</Text>
-                <Text className="text-white font-black text-[15px] mb-0.5" numberOfLines={1}>{dhoUser.name}</Text>
-                <Text className="text-blue-200 text-[9px] font-medium" numberOfLines={1}>District Health Officer</Text>
+                <Text className="text-white font-black text-[15px] mb-0.5" numberOfLines={1}>{name}</Text>
+                <Text className="text-blue-200 text-[9px] font-medium" numberOfLines={1}>{roleDisplay}</Text>
               </View>
             </View>
 
@@ -111,7 +115,7 @@ export function GlobalHamburgerMenu({ visible, onClose }: GlobalHamburgerMenuPro
 
             {/* Menu Items */}
             <View className="space-y-3 mb-8">
-              
+
               <Pressable onPress={() => handleNavigate('/scenario-simulator')} className="bg-white rounded-2xl p-3 flex-row items-center border border-slate-100 shadow-sm shadow-black/5 active:bg-slate-50">
                 <View className="w-10 h-10 rounded-xl bg-blue-50 items-center justify-center mr-3">
                   <Feather name="sliders" size={18} color="#3B82F6" />
@@ -180,17 +184,17 @@ export function GlobalHamburgerMenu({ visible, onClose }: GlobalHamburgerMenuPro
               </View>
             </View>
           </ScrollView>
-          
+
           {/* Bottom Footer User Row */}
           <View className="px-6 py-4 border-t border-slate-100 flex-row items-center justify-between bg-white">
             <View className="flex-row items-center flex-1 pr-4">
-              <Image 
-                source={{ uri: dhoUser.avatarUrl }} 
+              <Image
+                source={{ uri: avatarUrl }}
                 className="w-12 h-12 rounded-full mr-3 border border-slate-200"
               />
               <View className="flex-1">
-                <Text className="text-brand-navy font-black text-[13px] mb-0.5">{dhoUser.name}</Text>
-                <Text className="text-slate-500 text-[8px] font-extrabold uppercase tracking-widest">District Health Officer</Text>
+                <Text className="text-brand-navy font-black text-[13px] mb-0.5">{name}</Text>
+                <Text className="text-slate-500 text-[8px] font-extrabold uppercase tracking-widest">{roleDisplay}</Text>
               </View>
             </View>
             <Pressable onPress={() => { onClose(); router.replace('/login'); }} className="p-2 bg-slate-50 rounded-xl border border-slate-200 active:bg-slate-100">

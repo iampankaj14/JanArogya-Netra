@@ -2,15 +2,17 @@ import ErrorState from '@/components/ui/feedback/ErrorState';
 import ScreenContainer from '@/components/ui/layout/ScreenContainer';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { FlatList, Image, ImageBackground, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
+import { FlatList, Image, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 import Svg, { Defs, Path, Pattern, Stop, LinearGradient as SvgLinearGradient } from 'react-native-svg';
 
-import { dummyAlerts } from '@/dummy/alerts';
-import { AIRecommendation } from '@/shared/types/ai';
-import { useAuth } from '@/context/AuthContext';
 import PHCHomeDashboard from '@/components/features/dashboard/PHCHomeDashboard';
+import { useAuth } from '@/context/AuthContext';
+import { useAlerts } from '@/hooks/useAlerts';
+import { useDashboard } from '@/hooks/useDashboard';
+import { useTranslation } from '@/hooks/useTranslation';
+import { AIRecommendation } from '@/shared/types/ai';
 
 const generateSparkline = (data: number[], width: number, height: number) => {
   if (!data || data.length === 0) return { path: '', areaPath: '', lastPoint: { x: 0, y: 0 } };
@@ -42,14 +44,18 @@ export default function SituationRoomScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const carouselWidth = width - 44;
-  
+
   const { authState } = useAuth();
+  const { t } = useTranslation();
+  const { district, alerts: hookAlerts, recommendations: hookRecommendations, loading: dashboardLoading, refetch } = useDashboard();
+  const { approveAlert, rejectAlert } = useAlerts();
+
   const isBMO = authState?.role === 'BMO';
   const isPHC = authState?.role === 'PHC';
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const alerts = dummyAlerts;
+  const alerts = hookAlerts;
   const [showAllTrends, setShowAllTrends] = useState(false);
   const [isLogisticsOpen, setIsLogisticsOpen] = useState(false);
 
@@ -60,9 +66,11 @@ export default function SituationRoomScreen() {
     }
   }, [showAllTrendsParam]);
 
-  if (isPHC) {
-    return <PHCHomeDashboard />;
-  }
+  useEffect(() => {
+    if (!dashboardLoading) {
+      setLoading(false);
+    }
+  }, [dashboardLoading]);
 
   // Detailed Dynamic Dummy Data for Sparklines (To be replaced with Firebase data)
   // Generating a detailed trend that ends precisely at 84 and 12
@@ -72,22 +80,20 @@ export default function SituationRoomScreen() {
   const telemetrySparkline = generateSparkline(telemetryData, 100, 35); // 35 height to leave room
   const aiSparkline = generateSparkline(aiRecData, 100, 35);
 
-  // Dummy Data for Unresolved Outbreaks Carousel using Official Disease List
-  const allOutbreaks = [
-    { id: '1', disease: 'Dengue', location: 'Sector 62, Noida, Gautam Buddh Nagar', priority: 'High Priority (Outbreak)', cases: 28, isEmergency: true },
-    { id: '2', disease: 'Acute Diarrheal Disease (ADD)', location: 'Dadri, Gautam Buddh Nagar', priority: 'High Priority (Outbreak)', cases: 12, isEmergency: true },
-    { id: '3', disease: 'Malaria', location: 'Jewar, Gautam Buddh Nagar', priority: 'Medium Priority', cases: 8, isEmergency: false },
-    { id: '4', disease: 'Typhoid', location: 'Greater Noida West', priority: 'High Priority (Outbreak)', cases: 15, isEmergency: true },
-  ];
-  const unresolvedOutbreaks = isBMO ? allOutbreaks.slice(0, 2) : allOutbreaks;
+  // Dynamic Outbreaks Carousel derived from active alerts in DB
+  const unresolvedOutbreaks = alerts
+    .filter((a) => a.type === 'OUTBREAK' && !a.resolved)
+    .map((a) => ({
+      id: a.id,
+      disease: a.title.replace(' Surge Warning', '').replace(' Warning', ''),
+      location: a.facilityName,
+      priority: a.priority === 'CRITICAL' ? 'High Priority (Outbreak)' : 'Medium Priority',
+      cases: a.title.includes('Dengue') ? 28 : (a.title.includes('Diarrheal') ? 12 : 15),
+      isEmergency: a.priority === 'CRITICAL',
+    }));
 
   // Real-world AI Recommendations Data
-  const allAiRecommendations: AIRecommendation[] = [
-    { id: '1', title: 'Outbreak Reallocation', confidence: 94.0, sourceFacility: 'Dharampur PHC', targetFacility: 'Rampur Kalan PHC', item: 'Testing Kits', quantity: 150, reasoning: 'Dengue cases at Rampur Kalan PHC are surging. Dharampur PHC has available resources.', timestamp: new Date().toISOString() },
-    { id: '2', title: 'Resource Pre-deployment', confidence: 89.5, sourceFacility: 'State Warehouse', targetFacility: 'Surajpur CHC', item: 'Medicine', quantity: 200, reasoning: 'Predictive model indicates high risk of Malaria outbreak next week due to monsoons.', timestamp: new Date().toISOString() },
-    { id: '3', title: 'Staff Relocation', confidence: 91.2, sourceFacility: 'District Hospital', targetFacility: 'Jewar PHC', item: 'Doctors', quantity: 2, reasoning: 'High patient volume at Jewar PHC due to ADD outbreak. Additional doctors required.', timestamp: new Date().toISOString() },
-  ];
-  const aiRecommendations = isBMO ? allAiRecommendations.slice(0, 1) : allAiRecommendations;
+  const aiRecommendations = hookRecommendations.filter((r) => isBMO ? r.sourceFacility.includes('phc') : true);
 
   // Logistics requests (simulated)
   const allLogisticsRequests = [
@@ -105,7 +111,7 @@ export default function SituationRoomScreen() {
     { id: '4', disease: 'Viral Fever', cases: 210, trend: '+30%', isUp: true, color: '#EF4444', bg: '#FEE2E2', data: [100, 110, 130, 140, 150, 160, 175, 180, 190, 200, 210] },
   ];
 
-  // Dynamic Image Mapping for Diseases (including typos matching filenames in data/disease)
+  // Dynamic Image Mapping for Diseases
   const diseaseImages: Record<string, any> = {
     'Dengue': require('@/data/disease/dengue.png'),
     'Malaria': require('@/data/disease/malaria.png'),
@@ -125,6 +131,7 @@ export default function SituationRoomScreen() {
   const cardWidthWithGap = width - 48 + 12;
 
   useEffect(() => {
+    if (unresolvedOutbreaks.length === 0) return;
     const intervalId = setInterval(() => {
       setCurrentIndex((prevIndex) => {
         const nextIndex = (prevIndex + 1) % unresolvedOutbreaks.length;
@@ -136,17 +143,24 @@ export default function SituationRoomScreen() {
     return () => clearInterval(intervalId);
   }, [cardWidthWithGap, unresolvedOutbreaks.length]);
 
-  // Dummy Data for AI Decision Requests
-  const aiDecisionRequests = [
-    { id: '1', type: 'Outbreak Reallocation', confidence: '94.00%', source: 'Dharampur PHC', target: 'Rampur Kalan PHC', reason: 'Dengue cases at Rampur Kalan PHC are surging. Dharampur PHC has available resources.' },
-    { id: '2', type: 'Resource Pre-deployment', confidence: '89.50%', source: 'State Warehouse', target: 'Surajpur CHC', reason: 'Predictive model indicates high risk of Malaria outbreak next week due to monsoons.' },
-  ];
+  // Dynamic AI Decision Requests mapped from alertsRepository recommendations
+  const aiDecisionRequests = hookRecommendations.map((r) => ({
+    id: r.id,
+    type: r.title,
+    confidence: typeof r.confidence === 'number'
+      ? (r.confidence > 1 ? r.confidence : r.confidence * 100).toFixed(1) + '%'
+      : '94.0%',
+    source: r.sourceFacility,
+    target: r.targetFacility,
+    reason: r.reasoning,
+  }));
 
   // Auto-scroll logic for the AI carousel
   const aiScrollViewRef = useRef<ScrollView>(null);
   const [currentAiIndex, setCurrentAiIndex] = useState(0);
 
   useEffect(() => {
+    if (aiDecisionRequests.length === 0) return;
     const aiIntervalId = setInterval(() => {
       setCurrentAiIndex((prevIndex) => {
         const nextIndex = (prevIndex + 1) % aiDecisionRequests.length;
@@ -234,6 +248,10 @@ export default function SituationRoomScreen() {
     { name: 'Typhoid', rate: '0%', risk: 'LOW', color: '#10B981' }
   ];
 
+  if (isPHC) {
+    return <PHCHomeDashboard />;
+  }
+
   if (loading) {
     return (
       <View className="flex-1 bg-white px-6 py-12 justify-between">
@@ -319,25 +337,25 @@ export default function SituationRoomScreen() {
                   <View className="w-6 h-6 rounded-full bg-blue-500 items-center justify-center mr-2.5 shadow-sm shadow-blue-500/10">
                     <Feather name="home" size={10} color="white" />
                   </View>
-                  <Text className="text-slate-800 text-[11.5px] font-bold" numberOfLines={1}>3 Districts under watch</Text>
+                  <Text className="text-slate-800 text-[11.5px] font-bold" numberOfLines={1}>{district?.totalPHCs || 3} PHCs under watch</Text>
                 </View>
                 <View className="flex-row items-center">
                   <View className="w-6 h-6 rounded-full bg-red-500 items-center justify-center mr-2.5 shadow-sm shadow-red-500/10">
                     <Feather name="alert-triangle" size={10} color="white" />
                   </View>
-                  <Text className="text-slate-800 text-[11.5px] font-bold" numberOfLines={1}>12 Outbreak alerts</Text>
+                  <Text className="text-slate-800 text-[11.5px] font-bold" numberOfLines={1}>{alerts.filter(a => a.type === 'OUTBREAK' && !a.resolved).length} Outbreak alerts</Text>
                 </View>
                 <View className="flex-row items-center">
                   <View className="w-6 h-6 rounded-full bg-yellow-500 items-center justify-center mr-2.5 shadow-sm shadow-yellow-500/10">
                     <Feather name="battery" size={10} color="white" />
                   </View>
-                  <Text className="text-slate-800 text-[11.5px] font-bold" numberOfLines={1}>8 Medicine shortages</Text>
+                  <Text className="text-slate-800 text-[11.5px] font-bold" numberOfLines={1}>{alerts.filter(a => a.type === 'SHORTAGE' && !a.resolved).length} Medicine shortages</Text>
                 </View>
                 <View className="flex-row items-center">
                   <View className="w-6 h-6 rounded-full bg-green-500 items-center justify-center mr-2.5 shadow-sm shadow-green-500/10">
                     <Feather name="activity" size={10} color="white" />
                   </View>
-                  <Text className="text-slate-800 text-[11.5px] font-bold" numberOfLines={1}>5 PHCs need attention</Text>
+                  <Text className="text-slate-800 text-[11.5px] font-bold" numberOfLines={1}>{alerts.filter(a => a.priority === 'CRITICAL' && !a.resolved).length} PHCs need attention</Text>
                 </View>
               </View>
 
@@ -364,7 +382,7 @@ export default function SituationRoomScreen() {
               <View className="flex-1 ml-3 pt-0.5">
                 <Text className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{isBMO ? 'Block Score' : 'District Score'}</Text>
                 <View className="flex-row items-baseline mt-1">
-                  <Text className="text-4xl font-black text-slate-800 tracking-tighter">{isBMO ? '81' : '76'}</Text>
+                  <Text className="text-4xl font-black text-slate-800 tracking-tighter">{district?.healthIndex || (isBMO ? '81' : '76')}</Text>
                   <Text className="text-sm font-bold text-slate-400 ml-1">/100</Text>
                 </View>
               </View>
@@ -690,7 +708,10 @@ export default function SituationRoomScreen() {
                         <Text className="text-blue-700 font-extrabold text-[12px]">View Details</Text>
                       </Pressable>
 
-                      <Pressable className="flex-1 py-3 rounded-xl bg-blue-600/90 border border-blue-400 items-center justify-center flex-row shadow-lg shadow-blue-500/40">
+                      <Pressable
+                        onPress={() => approveAlert(request.id)}
+                        className="flex-1 py-3 rounded-xl bg-blue-600/90 border border-blue-400 items-center justify-center flex-row shadow-lg shadow-blue-500/40"
+                      >
                         <Feather name="check-circle" size={14} color="white" style={{ marginRight: 6 }} />
                         <Text className="text-white font-extrabold text-[12px]">Approve Request</Text>
                       </Pressable>
@@ -717,7 +738,7 @@ export default function SituationRoomScreen() {
           <View className="bg-white rounded-[24px] shadow-sm shadow-slate-200/50 border border-slate-100 overflow-hidden">
             <View className="px-4 py-2">
               {/* Header (Clickable for dropdown) */}
-              <Pressable 
+              <Pressable
                 onPress={() => {
                   if (commandQueue.length > 3) {
                     setIsLogisticsOpen(!isLogisticsOpen);
@@ -733,7 +754,7 @@ export default function SituationRoomScreen() {
                   </View>
                 )}
               </Pressable>
-              
+
               {/* Border line separating header from list */}
               <View className="border-t border-slate-100 mb-2 relative z-10" />
 
@@ -747,13 +768,13 @@ export default function SituationRoomScreen() {
                       <View className={`w-12 h-12 rounded-2xl items-center justify-center mr-3 ${isTransit ? 'bg-blue-50' : 'bg-green-50'}`}>
                         <Feather name={isTransit ? 'truck' : 'shield'} size={20} color={isTransit ? '#2563EB' : '#16A34A'} />
                       </View>
-                      
+
                       {/* Details */}
                       <View className="flex-1">
                         <Text className="text-brand-navy font-extrabold text-[14px] mb-0.5">{item.item}</Text>
                         <Text className="text-slate-500 font-bold text-[11px]">Quantity: {item.qty} units</Text>
                       </View>
-                      
+
                       {/* Status / ETA */}
                       <View className="items-end">
                         <View className={`px-3 py-1.5 rounded-full mb-1 ${isTransit ? 'bg-blue-100/50' : 'bg-orange-100/50'}`}>
@@ -773,10 +794,10 @@ export default function SituationRoomScreen() {
         <View className="mb-8 px-1">
           <Text className="text-brand-navy font-extrabold text-[15px] mb-3 ml-2">Recent Telemetry Audits</Text>
           <View className="bg-white rounded-[24px] shadow-sm shadow-slate-200/50 border border-slate-100 overflow-hidden p-4 relative">
-            
+
             {/* Timeline Line */}
             <View className="absolute left-[27px] top-[40px] bottom-[40px] w-[2px] bg-slate-100" />
-            
+
             {/* Audit Item 1 */}
             <View className="flex-row items-center py-3 border-b border-slate-50 relative">
               <View className="w-6 items-center justify-center bg-white z-10 mr-3">
@@ -784,16 +805,16 @@ export default function SituationRoomScreen() {
                   <Feather name="check" size={10} color="white" />
                 </View>
               </View>
-              
+
               <View className="w-11 h-11 rounded-full bg-green-50 items-center justify-center mr-3 border border-green-100/50">
                 <Feather name="shield" size={16} color="#16A34A" />
               </View>
-              
+
               <View className="flex-1">
                 <Text className="text-brand-navy font-bold text-[13px] mb-0.5">Redistribution Approved</Text>
                 <Text className="text-slate-500 font-semibold text-[11px] leading-relaxed pr-2">DHO Rajesh Kumar approved transfer of 50 Dengue Kits to Rampur Kalan PHC.</Text>
               </View>
-              
+
               <View className="items-end pl-2">
                 <Text className="text-slate-400 font-bold text-[10px] mb-2">10m ago</Text>
                 <Feather name="chevron-right" size={14} color="#CBD5E1" />
@@ -807,16 +828,16 @@ export default function SituationRoomScreen() {
                   <Feather name="alert-triangle" size={8} color="white" />
                 </View>
               </View>
-              
+
               <View className="w-11 h-11 rounded-full bg-red-50 items-center justify-center mr-3 border border-red-100/50">
                 <Feather name="alert-triangle" size={16} color="#DC2626" />
               </View>
-              
+
               <View className="flex-1">
                 <Text className="text-brand-navy font-bold text-[13px] mb-0.5">New Epidemic Alert</Text>
                 <Text className="text-slate-500 font-semibold text-[11px] leading-relaxed pr-2">Dengue Surge Warning triggered for Rampur Kalan PHC.</Text>
               </View>
-              
+
               <View className="items-end pl-2">
                 <Text className="text-slate-400 font-bold text-[10px] mb-2">10m ago</Text>
                 <Feather name="chevron-right" size={14} color="#CBD5E1" />
@@ -830,16 +851,16 @@ export default function SituationRoomScreen() {
                   <Feather name="info" size={10} color="white" />
                 </View>
               </View>
-              
+
               <View className="w-11 h-11 rounded-full bg-blue-50 items-center justify-center mr-3 border border-blue-100/50">
                 <Feather name="info" size={16} color="#2563EB" />
               </View>
-              
+
               <View className="flex-1">
                 <Text className="text-brand-navy font-bold text-[13px] mb-0.5">Monthly Summary Ready</Text>
                 <Text className="text-slate-500 font-semibold text-[11px] leading-relaxed pr-2">The AI-generated health briefing for Devgarh District is now available.</Text>
               </View>
-              
+
               <View className="items-end pl-2">
                 <Text className="text-slate-400 font-bold text-[10px] mb-2">10m ago</Text>
                 <Feather name="chevron-right" size={14} color="#CBD5E1" />
