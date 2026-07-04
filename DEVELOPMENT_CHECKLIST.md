@@ -34,7 +34,7 @@ This checklist defines the phases, development tasks, and validation criteria fo
 - [ ] **Integrate Vertex AI SDK**: Connect the functions to Gemini models.
 - [ ] **Netra Chat Panel**: Implement the interactive chat component in the UI.
 - [ ] **Simulation Charts View**: Render Area/Bar charts on simulation completion.
-- [ ] **Completion Criteria**: Asking Netra "What is the stock of Paracetamol in Dharampur?" queries the database context and returns a valid natural language answer.
+- [ ] **Completion Criteria**: Asking Netra "What is the stock of Paracetamol in Bisrakh?" queries the database context and returns a valid natural language answer.
 
 ---
 

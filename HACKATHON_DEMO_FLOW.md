@@ -25,12 +25,12 @@ This guide defines a 5-7 minute live presentation sequence for the **JanArogya N
 - **Narrative**: *"Welcome to JanArogya Netra. I am logging in as the District Health Officer. Immediately, I am presented with the Situation Room."*
 
 ### Step 2: Approve AI redistribution
-- **Action**: Tap the **AI Recommendation Card** recommending moving 50 Dengue Kits from Dharampur to Rampur Kalan. Review the reasoning showing a surge in Dengue cases, and click **Approve**.
-- **Narrative**: *"Instead of a static chart, Netra AI has already computed a solution: move surplus kits from Dharampur to Rampur Kalan where a dengue outbreak is growing. I approve this recommendation, and the transfer order is dispatched."*
+- **Action**: Tap the **AI Recommendation Card** recommending moving 50 Dengue Kits from Bisrakh to Badalpur. Review the reasoning showing a surge in Dengue cases, and click **Approve**.
+- **Narrative**: *"Instead of a static chart, Netra AI has already computed a solution: move surplus kits from Bisrakh to Badalpur where a dengue outbreak is growing. I approve this recommendation, and the transfer order is dispatched."*
 
 ### Step 3: Geographic verification
 - **Action**: Navigate to **District Map**. View the map pins.
-- **Narrative**: *"By viewing the map, I can verify that the health score pin of Rampur Kalan has updated from Critical Red to Stable Green as resources are en-route."*
+- **Narrative**: *"By viewing the map, I can verify that the health score pin of Badalpur has updated from Critical Red to Stable Green as resources are en-route."*
 
 ### Step 4: Run Scenario Simulation
 - **Action**: Open the **Scenario Simulator**, select the "Heatwave" preset, and click **Simulate**. Show the predicted demand for IV fluids.
@@ -38,4 +38,4 @@ This guide defines a 5-7 minute live presentation sequence for the **JanArogya N
 
 ### Step 5: Conversational Query
 - **Action**: Open the **Netra Assistant** chat bubble, send: *"Do we have surplus ORS in the district?"* Show Netra's text response.
-- **Narrative**: *"I can query Netra in natural language. It scans our inventory repository and confirms that Dharampur PHC has a surplus of 800 sachets of ORS, ready for redistribution."*
+- **Narrative**: *"I can query Netra in natural language. It scans our inventory repository and confirms that PHC Barola has a surplus of 800 sachets of ORS, ready for redistribution."*

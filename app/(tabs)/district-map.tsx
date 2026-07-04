@@ -1,290 +1,239 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
 import ScreenContainer from '@/components/ui/layout/ScreenContainer';
-import Badge from '@/components/ui/badges/Badge';
-import PrimaryButton from '@/components/ui/buttons/PrimaryButton';
-import OutlineButton from '@/components/ui/buttons/OutlineButton';
-import BottomSheet from '@/components/ui/layout/BottomSheet';
 import { dummyPHCs } from '@/dummy/phcs';
 import { PHC } from '@/shared/types/phc';
+import { WebView } from 'react-native-webview';
+
+// Mock User Location (Center of Gautam Buddha Nagar)
+const USER_LOCATION = { latitude: 28.4744, longitude: 77.5040 };
+
+type FacilityStatus = 'Operational' | 'Limited Services' | 'Sub Center' | 'Closed';
+
+function getFacilityStatus(phc: PHC): FacilityStatus {
+  if (phc.healthScore < 60) return 'Closed';
+  if (phc.bedsTotal <= 5) return 'Sub Center';
+  if (phc.healthScore < 75) return 'Limited Services';
+  return 'Operational';
+}
+
+function getStatusColor(status: FacilityStatus) {
+  switch(status) {
+    case 'Operational': return { core: '#10B981', bg: 'rgba(16,185,129,0.2)', sign: '+' };
+    case 'Limited Services': return { core: '#3B82F6', bg: 'rgba(59,130,246,0.2)', sign: '+' };
+    case 'Sub Center': return { core: '#F59E0B', bg: 'rgba(245,158,11,0.2)', sign: '+' };
+    case 'Closed': return { core: '#EF4444', bg: 'rgba(239,68,68,0.2)', sign: '×' };
+  }
+}
 
 export default function DistrictMapScreen() {
   const router = useRouter();
   const { authState } = useAuth();
   const isBMO = authState?.role === 'BMO';
-  const assignedBlock = 'Rampur';
+  const assignedBlock = 'Dadri';
 
   const [search, setSearch] = useState('');
-  const [showHotspots] = useState(true);
-  const [showVehicles] = useState(true);
-  const [showTwinPreview, setShowTwinPreview] = useState(false);
-  const [selectedPHC, setSelectedPHC] = useState<PHC | null>(null);
+  const [isLegendExpanded, setIsLegendExpanded] = useState(true);
 
   // Filtered PHC markers
-  const filteredPHCs = dummyPHCs.filter(phc => {
-    if (isBMO && phc.block !== assignedBlock) return false;
-    return phc.name.toLowerCase().includes(search.toLowerCase()) ||
-           phc.block.toLowerCase().includes(search.toLowerCase());
-  });
-
-  // Mocked active cargo vehicle
-  const cargoVehicle = {
-    id: 'v1',
-    item: 'Dengue NS1 Test Kits',
-    qty: 50,
-    from: 'Dharampur PHC',
-    to: 'Rampur Kalan PHC',
-    status: 'In Transit',
-    progress: '65%',
-  };
-
-  const handleNavigateToPHC = (id: string) => {
-    setSelectedPHC(null);
-    router.push({
-      pathname: '/(tabs)/phc-detail',
-      params: { id }
+  const filteredPHCs = useMemo(() => {
+    return dummyPHCs.filter(phc => {
+      if (isBMO && phc.block !== assignedBlock) return false;
+      return phc.name.toLowerCase().includes(search.toLowerCase()) ||
+             phc.block.toLowerCase().includes(search.toLowerCase());
+    }).map(phc => {
+       const status = getFacilityStatus(phc);
+       const colors = getStatusColor(status);
+       return { ...phc, status, colors };
     });
-  };
+  }, [isBMO, assignedBlock, search]);
+
+  const leafletHTML = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+      <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+      <style>
+        body { padding: 0; margin: 0; }
+        html, body, #map { height: 100%; width: 100vw; }
+        .leaflet-control-attribution { display: none; }
+        .custom-marker {
+           display: flex;
+           align-items: center;
+           justify-content: center;
+           border-radius: 50%;
+           box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+        .custom-marker-inner {
+           width: 20px;
+           height: 20px;
+           border-radius: 50%;
+           border: 2px solid white;
+           display: flex;
+           align-items: center;
+           justify-content: center;
+           color: white;
+           font-size: 16px;
+           font-weight: bold;
+           font-family: sans-serif;
+           line-height: 1;
+        }
+      </style>
+    </head>
+    <body>
+      <div id="map"></div>
+      <script>
+        var map = L.map('map', { zoomControl: false }).setView([${USER_LOCATION.latitude}, ${USER_LOCATION.longitude}], 11);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19
+        }).addTo(map);
+
+        var phcs = ${JSON.stringify(filteredPHCs)};
+        
+        function createIcon(phc) {
+          var html = '<div class="custom-marker" style="background-color: ' + phc.colors.bg + '; width: 48px; height: 48px;">' +
+                     '<div class="custom-marker-inner" style="background-color: ' + phc.colors.core + ';">' + phc.colors.sign + '</div>' +
+                     '</div>';
+
+          return L.divIcon({
+            html: html,
+            className: '',
+            iconSize: [48, 48],
+            iconAnchor: [24, 24],
+            popupAnchor: [0, -24]
+          });
+        }
+
+        phcs.forEach(function(phc) {
+          var marker = L.marker([phc.latitude, phc.longitude], {icon: createIcon(phc)}).addTo(map);
+          marker.bindPopup("<div style='font-family:sans-serif;text-align:center;'><b>" + phc.name + "</b><br><span style='color:#64748B;font-size:11px;'>" + phc.status + "</span></div>");
+          
+          marker.on('click', function() {
+             setTimeout(function() {
+                window.ReactNativeWebView.postMessage(phc.id);
+             }, 300); // slight delay to allow popup to show before routing
+          });
+        });
+
+        // Add custom zoom controls that react native will trigger (if needed)
+        window.zoomIn = function() { map.zoomIn(); }
+        window.zoomOut = function() { map.zoomOut(); }
+        window.recenter = function() { map.setView([${USER_LOCATION.latitude}, ${USER_LOCATION.longitude}], 11); }
+      </script>
+    </body>
+    </html>
+  `;
+
+  let webviewRef: any = null;
 
   return (
-    <ScreenContainer>
-      {/* Search Bar & Overlay Controls */}
-      <View className="absolute top-4 left-4 right-4 z-50 bg-slate-900/95 border border-slate-800 rounded-full px-5 py-3 flex-row items-center shadow-2xl">
-        <Feather name="search" size={18} color="#64748B" className="mr-3" />
-        <TextInput
-          className="flex-1 text-white text-sm font-medium"
-          placeholder="Search health centers, blocks..."
-          placeholderTextColor="#64748B"
-          value={search}
-          onChangeText={setSearch}
+    <ScreenContainer scrollable={false} padding={false}>
+      <View className="flex-1 relative bg-[#F1EFE9]">
+        
+        <WebView
+          ref={(ref) => (webviewRef = ref)}
+          source={{ html: leafletHTML }}
+          style={{ flex: 1, width: '100%', height: '100%', position: 'absolute' }}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
+          bounces={false}
+          scrollEnabled={false}
+          onMessage={(event) => {
+             const phcId = event.nativeEvent.data;
+             router.push({ pathname: '/(tabs)/phc-detail', params: { id: phcId } });
+          }}
         />
-        {search ? (
-          <Pressable onPress={() => setSearch('')}>
-            <Feather name="x" size={16} color="#94A3B8" />
+
+        {/* Top Search Bar */}
+        <View className="absolute top-4 left-4 right-4 z-50 flex-row items-center space-x-3 pointer-events-none">
+          <View className="flex-1 bg-white rounded-[24px] px-4 py-3.5 flex-row items-center shadow-sm border border-slate-100 pointer-events-auto">
+            <Feather name="search" size={18} color="#94A3B8" className="mr-3" />
+            <TextInput
+              className="flex-1 text-slate-800 text-[15px] font-medium"
+              placeholder="Search health centers, blocks..."
+              placeholderTextColor="#94A3B8"
+              value={search}
+              onChangeText={setSearch}
+            />
+          </View>
+        </View>
+
+        {/* Legend Overlay with Toggle functionality */}
+        <View className="absolute top-24 left-4 bg-white/95 rounded-[24px] p-5 shadow-md w-52 z-40 border border-slate-100">
+          <Pressable 
+            onPress={() => setIsLegendExpanded(!isLegendExpanded)}
+            className="flex-row items-center justify-between"
+          >
+            <Text className="text-slate-900 font-bold text-sm">Legend</Text>
+            <Feather name={isLegendExpanded ? "chevron-up" : "chevron-down"} size={18} color="#64748B" />
           </Pressable>
-        ) : null}
-      </View>
-
-      {/* Map Canvas Simulator */}
-      <View className="flex-1 bg-slate-950 items-center justify-center relative overflow-hidden">
-        {/* Mock Grid Lines representing map grid */}
-        <View className="absolute inset-0 opacity-10 flex-col justify-between p-4">
-          <View className="border-b border-blue-500 h-[1px] w-full" />
-          <View className="border-b border-blue-500 h-[1px] w-full" />
-          <View className="border-b border-blue-500 h-[1px] w-full" />
-          <View className="border-b border-blue-500 h-[1px] w-full" />
-        </View>
-        <View className="absolute inset-0 opacity-10 flex-row justify-between p-4">
-          <View className="border-r border-blue-500 w-[1px] h-full" />
-          <View className="border-r border-blue-500 w-[1px] h-full" />
-          <View className="border-r border-blue-500 w-[1px] h-full" />
-          <View className="border-r border-blue-500 w-[1px] h-full" />
-        </View>
-
-        {/* Pulsing Hotspot Rings */}
-        {showHotspots && (
-          <View className="absolute top-[40%] left-[30%] w-40 h-40 rounded-full border border-red-500/30 bg-red-500/5 items-center justify-center">
-            <View className="w-20 h-20 rounded-full border border-red-500/40 bg-red-500/10 items-center justify-center">
-              <View className="w-4 h-4 rounded-full bg-red-500 animate-ping" />
-            </View>
-          </View>
-        )}
-
-        {/* Cargo Vehicle Simulator Indicator */}
-        {showVehicles && (
-          <View className="absolute top-[45%] left-[50%] bg-blue-600 border border-blue-400 rounded-full p-2.5 shadow-lg flex-row items-center">
-            <Feather name="truck" size={12} color="white" />
-            <Text className="text-white text-[9px] font-bold ml-1.5">Cargo V1 (65%)</Text>
-          </View>
-        )}
-
-        {/* Dynamic PHC Pins */}
-        {filteredPHCs.map((phc) => {
-          // Absolute layout simulation of geographic positions
-          let top = '30%';
-          let left = '45%';
-          if (phc.id === 'phc_dharampur') { top = '28%'; left = '20%'; }
-          if (phc.id === 'phc_kalan') { top = '48%'; left = '70%'; }
-          if (phc.id === 'phc_sewapur') { top = '65%'; left = '40%'; }
-          if (phc.id === 'phc_kheri') { top = '75%'; left = '60%'; }
-
-          const scoreColor = phc.healthScore > 80 
-            ? 'bg-green-500 border-green-400' 
-            : phc.healthScore > 60 
-            ? 'bg-yellow-500 border-yellow-400' 
-            : 'bg-red-500 border-red-400';
-
-          return (
-            <Pressable
-              key={phc.id}
-              onPress={() => setSelectedPHC(phc)}
-              style={{ position: 'absolute', top, left } as any}
-              className="items-center z-40"
-            >
-              <View className={`w-8 h-8 rounded-full border-2 ${scoreColor} items-center justify-center shadow-lg active:scale-110`}>
-                <Feather name="heart" size={14} color="white" />
-              </View>
-              <View className="bg-slate-900/90 border border-slate-800 rounded px-1.5 py-0.5 mt-1">
-                <Text className="text-white text-[8px] font-extrabold">{phc.name.split(' ')[0]}</Text>
-              </View>
-            </Pressable>
-          );
-        })}
-      </View>
-
-      {/* Map Legend Overlay */}
-      <View className="absolute bottom-6 left-6 bg-slate-900/95 border border-slate-800 rounded-3xl p-4 shadow-xl z-50">
-        <Text className="text-white font-bold text-xs mb-2">Map Legend</Text>
-        <View className="space-y-1.5">
-          <View className="flex-row items-center">
-            <View className="w-2.5 h-2.5 rounded-full bg-green-505 bg-green-500 mr-2" />
-            <Text className="text-slate-400 text-[10px] font-semibold">Health Score &gt; 80 (Adequate)</Text>
-          </View>
-          <View className="flex-row items-center">
-            <View className="w-2.5 h-2.5 rounded-full bg-yellow-500 mr-2" />
-            <Text className="text-slate-400 text-[10px] font-semibold">Health Score 60-80 (Warning)</Text>
-          </View>
-          <View className="flex-row items-center">
-            <View className="w-2.5 h-2.5 rounded-full bg-red-500 mr-2" />
-            <Text className="text-slate-400 text-[10px] font-semibold">Health Score &lt; 60 (Critical)</Text>
-          </View>
-          <View className="flex-row items-center">
-            <View className="w-3.5 h-0.5 border-t-2 border-dashed border-red-400 mr-1.5" />
-            <Text className="text-slate-400 text-[10px] font-semibold ml-1">Disease Hotspot Zone</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Map Layers Toggles Overlay (Right Sidebar Control) */}
-      <View className="absolute bottom-6 right-6 space-y-3 z-50">
-        <Pressable
-          onPress={() => setShowTwinPreview(prev => !prev)}
-          className={`w-12 h-12 rounded-full items-center justify-center border shadow-xl ${
-            showTwinPreview ? 'bg-blue-600 border-blue-400' : 'bg-slate-900 border-slate-800'
-          }`}
-        >
-          <Feather name="layers" size={20} color="white" />
-        </Pressable>
-      </View>
-
-      {/* Twin Digital Twin Overlay Slide out */}
-      {showTwinPreview && (
-        <View className="absolute top-20 right-4 w-72 bg-slate-900/95 border border-slate-800 rounded-3xl p-5 shadow-2xl z-50">
-          <View className="flex-row items-center justify-between mb-3">
-            <Text className="text-white font-extrabold text-sm">District Digital Twin</Text>
-            <Pressable onPress={() => setShowTwinPreview(false)}>
-              <Feather name="x" size={16} color="#94A3B8" />
-            </Pressable>
-          </View>
-          <Text className="text-slate-400 text-[10px] leading-relaxed mb-4">
-            Real-time aggregate telemetry models of beds, doctors, and primary pharmaceutical stocks.
-          </Text>
-          <View className="space-y-3">
+          
+          {isLegendExpanded && (
             <View>
-              <Text className="text-slate-400 text-[10px] font-bold uppercase mb-1">Dengue Kits</Text>
-              <View className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
-                <View className="h-full bg-yellow-500 w-[62%]" />
-              </View>
-              <Text className="text-slate-500 text-[9px] mt-1 text-right">310 / 500 Available</Text>
-            </View>
-            <View>
-              <Text className="text-slate-400 text-[10px] font-bold uppercase mb-1">Bed Occupancy</Text>
-              <View className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
-                <View className="h-full bg-blue-500 w-[82%]" />
-              </View>
-              <Text className="text-slate-500 text-[9px] mt-1 text-right">30 / 36 Occupied</Text>
-            </View>
-          </View>
-        </View>
-      )}
-
-      {/* PHC Details Modal drawer (BottomSheet) */}
-      <BottomSheet
-        visible={!!selectedPHC}
-        title={selectedPHC?.name || ''}
-        onClose={() => setSelectedPHC(null)}
-      >
-        {selectedPHC && (
-          <View className="p-2">
-            <View className="flex-row items-center justify-between mb-4">
-              <View>
-                <Text className="text-slate-400 text-xs">{selectedPHC.block} Block</Text>
-                <View className="flex-row items-center mt-1">
-                  <Feather 
-                    name={selectedPHC.doctorAvailable ? "check-circle" : "x-circle"} 
-                    size={14} 
-                    color={selectedPHC.doctorAvailable ? "#10B981" : "#EF4444"} 
-                    className="mr-1.5"
-                  />
-                  <Text className="text-slate-300 text-xs font-semibold">
-                    {selectedPHC.doctorAvailable ? 'Medical Officer Present' : 'Medical Officer Absent'}
-                  </Text>
+              <View className="space-y-3 mt-4 mb-5">
+                <View className="flex-row items-center gap-3">
+                  <View className="w-5 h-6 bg-[#10B981] rounded-l-full rounded-tr-full" />
+                  <Text className="text-slate-600 font-medium text-xs">PHC (Operational)</Text>
+                </View>
+                <View className="flex-row items-center gap-3">
+                  <View className="w-5 h-6 bg-[#3B82F6] rounded-l-full rounded-tr-full" />
+                  <Text className="text-slate-600 font-medium text-xs">PHC (Limited Services)</Text>
+                </View>
+                <View className="flex-row items-center gap-3">
+                  <View className="w-5 h-6 bg-[#F59E0B] rounded-l-full rounded-tr-full" />
+                  <Text className="text-slate-600 font-medium text-xs">Sub Center</Text>
+                </View>
+                <View className="flex-row items-center gap-3">
+                  <View className="w-5 h-6 bg-[#EF4444] rounded-l-full rounded-tr-full" />
+                  <Text className="text-slate-600 font-medium text-xs">PHC (Closed)</Text>
                 </View>
               </View>
-              <View className="items-end">
-                <Text className="text-slate-400 text-[10px] uppercase font-bold">Health Score</Text>
-                <Text className={`text-2xl font-black ${
-                  selectedPHC.healthScore > 80 ? 'text-green-400' : selectedPHC.healthScore > 60 ? 'text-yellow-400' : 'text-red-400'
-                }`}>
-                  {selectedPHC.healthScore}%
-                </Text>
-              </View>
-            </View>
 
-            <View className="bg-slate-800/50 border border-slate-700/30 rounded-2xl p-4 mb-4">
-              <View className="flex-row justify-between mb-2.5">
-                <Text className="text-slate-400 text-xs">Available Beds</Text>
-                <Text className="text-white font-bold text-xs">{selectedPHC.bedsTotal - selectedPHC.bedsOccupied} / {selectedPHC.bedsTotal}</Text>
-              </View>
-              <View className="flex-row justify-between">
-                <Text className="text-slate-400 text-xs">Stock Level Status</Text>
-                <Badge label={selectedPHC.stockStatus.toUpperCase()} variant={selectedPHC.stockStatus === 'adequate' ? 'success' : selectedPHC.stockStatus === 'warning' ? 'warning' : 'critical'} />
-              </View>
+              <View className="h-[1px] w-full bg-slate-100 mb-3" />
+              
+              <Text className="text-slate-500 font-medium text-xs mb-1">Total Facilities</Text>
+              <Text className="text-[#208AEF] font-bold text-2xl">{filteredPHCs.length}</Text>
             </View>
-
-            {/* Quick Actions inside Map Drawer */}
-            <View className="flex-row space-x-3">
-              <View className="flex-1">
-                <PrimaryButton
-                  title="Command Details"
-                  onPress={() => handleNavigateToPHC(selectedPHC.id)}
-                />
-              </View>
-              <View className="flex-1">
-                <OutlineButton
-                  title="Close Map View"
-                  onPress={() => setSelectedPHC(null)}
-                />
-              </View>
-            </View>
-          </View>
-        )}
-      </BottomSheet>
-
-      {/* Cargo Redistribution Overlay Modal */}
-      {selectedPHC?.id === 'phc_kalan' && showVehicles && (
-        <View className="absolute bottom-36 left-6 right-6 bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl z-50 flex-row items-center justify-between">
-          <View className="flex-row items-center flex-1 mr-4">
-            <View className="w-10 h-10 rounded-full bg-blue-500/10 items-center justify-center mr-3 border border-blue-500/20">
-              <Feather name="truck" size={18} color="#60A5FA" />
-            </View>
-            <View className="flex-1">
-              <View className="flex-row items-center">
-                <Text className="text-white font-bold text-xs">Logistics Cargo V1</Text>
-                <Text className="text-blue-400 text-[9px] font-extrabold ml-2 bg-blue-900/30 px-1.5 py-0.5 rounded">IN TRANSIT</Text>
-              </View>
-              <Text className="text-slate-400 text-[10px] mt-0.5 truncate">{cargoVehicle.qty} kits from Dharampur PHC</Text>
-            </View>
-          </View>
-          <OutlineButton 
-            title="Track Route" 
-            onPress={() => router.push('/resource-movement-tracker')}
-          />
+          )}
         </View>
-      )}
+
+        {/* Map Controls */}
+        <View className="absolute top-24 right-4 space-y-3 z-40">
+          <Pressable 
+            onPress={() => webviewRef?.injectJavaScript('window.recenter(); true;')}
+            className="w-[52px] h-[52px] bg-white rounded-full items-center justify-center shadow-md border border-slate-50"
+          >
+            <MaterialCommunityIcons name="crosshairs-gps" size={24} color="#208AEF" />
+          </Pressable>
+          <View className="bg-white rounded-full shadow-md border border-slate-50 overflow-hidden">
+            <Pressable 
+              onPress={() => webviewRef?.injectJavaScript('window.zoomIn(); true;')}
+              className="w-12 h-12 items-center justify-center border-b border-slate-100 active:bg-slate-50"
+            >
+              <Feather name="plus" size={22} color="#64748B" />
+            </Pressable>
+            <Pressable 
+              onPress={() => webviewRef?.injectJavaScript('window.zoomOut(); true;')}
+              className="w-12 h-12 items-center justify-center active:bg-slate-50"
+            >
+              <Feather name="minus" size={22} color="#64748B" />
+            </Pressable>
+          </View>
+        </View>
+
+        {/* Navigation Arrow */}
+        <View className="absolute bottom-6 right-4 z-40">
+           <Pressable className="w-[52px] h-[52px] bg-white rounded-full items-center justify-center shadow-md border border-slate-50">
+             <Feather name="navigation" size={24} color="#208AEF" style={{ transform: [{ rotate: '45deg' }], marginLeft: -2, marginTop: 2 }} />
+           </Pressable>
+        </View>
+
+      </View>
     </ScreenContainer>
   );
 }

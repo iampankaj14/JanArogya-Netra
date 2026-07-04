@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { Dimensions, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useAuth } from '../../../context/AuthContext';
 import { useInventory } from '../../../hooks/useInventory';
+import dummyAlerts from '../../../dummy/alerts';
 
 const { width } = Dimensions.get('window');
 const isTablet = width >= 768;
@@ -11,16 +12,18 @@ export default function PHCHomeDashboard() {
   const { authState } = useAuth();
   const router = useRouter();
 
-  const facilityId = authState?.facilityId || 'phc_dharampur';
+  const facilityId = authState?.facilityId || 'phc_barola';
   const { stocks } = useInventory(facilityId);
   const lowStockCount = stocks.filter((s) => s.currentStock < s.minRequiredStock).length;
+  
+  const activeOutbreak = dummyAlerts.find(a => a.facilityId === facilityId && a.type === 'OUTBREAK' && !a.resolved);
 
   const facilityNames: Record<string, string> = {
-    'phc_dharampur': 'Dharampur PHC',
-    'phc_kalan': 'Rampur Kalan PHC',
-    'phc_sewapur': 'Sewapur PHC',
+    'phc_barola': 'PHC Barola',
+    'phc_badalpur': 'PHC Badalpur',
+    'phc_mandi_shyam_nagar': 'PHC Mandi Shyam Nagar',
   };
-  const facilityName = facilityNames[facilityId] || 'Dharampur PHC';
+  const facilityName = facilityNames[facilityId] || 'PHC Barola';
 
   return (
     <ScrollView className="flex-1 bg-[#F8FAFC]" contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
@@ -116,28 +119,30 @@ export default function PHCHomeDashboard() {
       </View>
 
       {/* High Alert Banner */}
-      <View className="px-4 mt-6">
-        <View className="bg-[#FFF5F5] border border-red-200 rounded-[20px] p-4 flex-row items-center relative overflow-hidden shadow-sm shadow-red-100">
-          <View className="w-12 h-12 rounded-full bg-red-100/80 items-center justify-center mr-3 border border-red-200">
-            <MaterialCommunityIcons name="virus" size={24} color="#EF4444" />
-          </View>
-          <View className="flex-1">
-            <View className="flex-row items-center mb-1">
-              <Text className="text-[#991B1B] font-extrabold text-[15px] mr-2">Dengue Cluster Detected</Text>
-              <View className="bg-red-200/60 px-2 py-0.5 rounded-full border border-red-300">
-                <Text className="text-red-700 font-bold text-[8px] tracking-wider uppercase">High Alert</Text>
-              </View>
+      {activeOutbreak && (
+        <View className="px-4 mt-6">
+          <View className="bg-[#FFF5F5] border border-red-200 rounded-[20px] p-4 flex-row items-center relative overflow-hidden shadow-sm shadow-red-100">
+            <View className="w-12 h-12 rounded-full bg-red-100/80 items-center justify-center mr-3 border border-red-200">
+              <MaterialCommunityIcons name="virus" size={24} color="#EF4444" />
             </View>
-            <Text className="text-red-900/80 text-[11px] font-medium leading-relaxed pr-2">
-              5 new cases reported in Village Rampur within the last 24 hours. Prepare IV fluids and testing kits.
-            </Text>
+            <View className="flex-1">
+              <View className="flex-row items-center mb-1">
+                <Text className="text-[#991B1B] font-extrabold text-[15px] mr-2">{activeOutbreak.title}</Text>
+                <View className="bg-red-200/60 px-2 py-0.5 rounded-full border border-red-300">
+                  <Text className="text-red-700 font-bold text-[8px] tracking-wider uppercase">High Alert</Text>
+                </View>
+              </View>
+              <Text className="text-red-900/80 text-[11px] font-medium leading-relaxed pr-8">
+                {activeOutbreak.description}
+              </Text>
+            </View>
+            <TouchableOpacity className="absolute right-4 top-4 bg-white px-2 py-1.5 rounded-full border border-red-200 flex-row items-center shadow-sm active:bg-slate-50">
+              <Text className="text-red-600 font-bold text-[9px] mr-0.5">View</Text>
+              <Feather name="chevron-right" size={10} color="#EF4444" />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity className="absolute right-4 top-4 bg-white px-3 py-1.5 rounded-full border border-red-200 flex-row items-center shadow-sm active:bg-slate-50">
-            <Text className="text-red-600 font-bold text-[10px] mr-1">View Alert Details</Text>
-            <Feather name="chevron-right" size={12} color="#EF4444" />
-          </TouchableOpacity>
         </View>
-      </View>
+      )}
 
       {/* Today's Summary */}
       <View className="mt-8">

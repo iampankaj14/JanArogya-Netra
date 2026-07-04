@@ -13,23 +13,30 @@ export const geminiService = {
       // High-fidelity local fallback based on common query patterns
       const lowerQuery = queryText.toLowerCase();
 
+      const orsBarola = localMedicines.find(m => m.facilityId === 'phc_barola' && m.name.toLowerCase().includes('ors'));
+      const orsBadalpur = localMedicines.find(m => m.facilityId === 'phc_badalpur' && m.name.toLowerCase().includes('ors'));
+      const pcmBarola = localMedicines.find(m => m.facilityId === 'phc_barola' && m.name.toLowerCase().includes('paracetamol'));
+      const pcmBadalpur = localMedicines.find(m => m.facilityId === 'phc_badalpur' && m.name.toLowerCase().includes('paracetamol'));
+      const dengueBarola = localMedicines.find(m => m.facilityId === 'phc_barola' && m.name.toLowerCase().includes('dengue'));
+      const dengueBadalpur = localMedicines.find(m => m.facilityId === 'phc_badalpur' && m.name.toLowerCase().includes('dengue'));
+
       if (lowerQuery.includes('ors') || lowerQuery.includes('oral rehydration')) {
-        return 'Netra Database Scan: Dharampur PHC currently holds a substantial surplus of ORS (800 sachets, minimum requirement 300). Rampur Kalan PHC has no active ORS shortages. You have sufficient ORS inventory across the district.';
+        return `Netra Database Scan: PHC Barola currently holds a substantial surplus of ORS (${orsBarola?.currentStock || 800} sachets, minimum requirement ${orsBarola?.minRequiredStock || 300}). PHC Badalpur has ${(orsBadalpur?.currentStock || 0) < (orsBadalpur?.minRequiredStock || 0) ? 'an active ORS shortage' : 'no active ORS shortages'}. You have sufficient ORS inventory across the district.`;
       }
 
       if (lowerQuery.includes('paracetamol')) {
-        return 'Netra Database Scan: Rampur Kalan PHC is facing a critical Paracetamol shortage (120 tablets remaining against a minimum requirement of 500). Dharampur and Sewapur PHCs have adequate stocks. I recommend executing a manual transfer of 200 tablets from Sewapur to Rampur Kalan.';
+        return `Netra Database Scan: PHC Badalpur is facing a critical Paracetamol shortage (${pcmBadalpur?.currentStock || 120} tablets remaining against a minimum requirement of ${pcmBadalpur?.minRequiredStock || 500}). PHC Barola has a surplus (${pcmBarola?.currentStock || 800} tablets). I recommend executing a manual transfer from Bisrakh to Badalpur.`;
       }
 
       if (lowerQuery.includes('dengue') || lowerQuery.includes('kit')) {
-        return 'Netra Database Scan: Rampur Kalan PHC has a critical shortage of Dengue NS1 Antigen Test Kits (15 kits remaining, minimum required 100). Dharampur PHC has a healthy surplus. Netra has already generated an alert and a redistribution recommendation to transfer 50 kits from Dharampur.';
+        return `Netra Database Scan: PHC Badalpur has a critical shortage of Dengue NS1 Antigen Test Kits (${dengueBadalpur?.currentStock || 15} kits remaining, minimum required ${dengueBadalpur?.minRequiredStock || 100}). PHC Barola has a healthy surplus (${dengueBarola?.currentStock || 200} kits). Netra has already generated an alert and a redistribution recommendation to transfer kits from Bisrakh.`;
       }
 
       if (lowerQuery.includes('status') || lowerQuery.includes('health') || lowerQuery.includes('critical')) {
-        return 'Netra District Summary: Devgarh District health index is currently at 68 (Stable/Warning). Rampur Kalan PHC is flagged as CRITICAL (score 48) due to a Dengue surge and Paracetamol shortage. All other facilities are currently in stable green or warning yellow states.';
+        return 'Netra District Summary: Gautam Budh Nagar health index is currently at 68 (Stable/Warning). PHC Badalpur is flagged as CRITICAL (score 48) due to a Dengue surge and Paracetamol shortage. All other facilities are currently in stable green or warning yellow states.';
       }
 
-      return `Netra Assistant: Thank you for your question. I am analyzing the district healthcare telemetry. Currently, the most critical issue is the Dengue surge in Rampur Kalan PHC, causing a stockout of test kits and analgesics. We have sufficient redistribution routes available from Dharampur PHC to resolve these shortages. Let me know if you would like me to compile a specific report.`;
+      return `Netra Assistant: Thank you for your question. I am analyzing the district healthcare telemetry. Currently, the most critical issue is the Dengue surge in PHC Badalpur, causing a stockout of test kits and analgesics. We have sufficient redistribution routes available from PHC Barola to resolve these shortages. Let me know if you would like me to compile a specific report.`;
     }
 
     try {
@@ -61,12 +68,12 @@ export const geminiService = {
             {
               id: 'sim_rec_' + Date.now() + '_1',
               title: 'Heatwave Support Transfer',
-              sourceFacility: 'Dharampur PHC',
-              targetFacility: 'Sewapur PHC',
+              sourceFacility: 'PHC Barola',
+              targetFacility: 'PHC Mandi Shyam Nagar',
               item: 'ORAL REHYDRATION SALTS (ORS)',
               quantity: 250,
               confidence: 0.89,
-              reasoning: 'Sewapur PHC is predicted to experience a 180% surge in heat exhaustion admissions. Transferring surplus ORS from Dharampur will secure supply.',
+              reasoning: 'PHC Mandi Shyam Nagar is predicted to experience a 180% surge in heat exhaustion admissions. Transferring surplus ORS from Bisrakh will secure supply.',
               timestamp: new Date().toISOString(),
             },
           ],
@@ -84,12 +91,12 @@ export const geminiService = {
             {
               id: 'sim_rec_' + Date.now() + '_2',
               title: 'Dengue Outbreak Supply',
-              sourceFacility: 'Dharampur PHC',
-              targetFacility: 'Rampur Kalan PHC',
+              sourceFacility: 'PHC Barola',
+              targetFacility: 'PHC Badalpur',
               item: 'Dengue NS1 Antigen Test Kit',
               quantity: 50,
               confidence: 0.95,
-              reasoning: 'Rampur Kalan is the epicenter of the surge. Stock is near zero. Dharampur holds a surplus of kits.',
+              reasoning: 'Badalpur is the epicenter of the surge. Stock is near zero. Bisrakh holds a surplus of kits.',
               timestamp: new Date().toISOString(),
             },
           ],
@@ -118,7 +125,7 @@ export const geminiService = {
       await new Promise((resolve) => setTimeout(resolve, 400));
 
       if (type === 'PHC_HEALTH') {
-        const baseScore = targetId === 'phc_kalan' ? 48 : 72;
+        const baseScore = targetId === 'phc_badalpur' ? 48 : 72;
         return [baseScore, baseScore - 2, baseScore + 3, baseScore + 8, baseScore + 12, baseScore + 15, baseScore + 18].map(
           (s) => Math.min(100, Math.max(0, s))
         );

@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Dimensions, Alert, Pressable } from 'react-native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
+import { dummyPHCs } from '@/dummy/phcs';
+import { localRecommendations } from '@/services/repositories/localDb';
 import Svg, { Circle, Path, Defs, Stop, LinearGradient as SvgLinearGradient, Rect, Text as SvgText, G } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -18,31 +20,52 @@ export default function ReportsScreen() {
   const [activeForecastPoint, setActiveForecastPoint] = useState<number | null>(8);
   const [showTodayMenu, setShowTodayMenu] = useState(false);
 
-  // Dynamic Chart Data based on selectedFormat
+  // Dynamic Data Computation
+  const assignedFacilityId = authState?.facilityId || 'phc_barola';
+  const isBMO = authState?.role === 'BMO';
+  const phcsToReport = isBMO 
+    ? dummyPHCs.filter(p => p.block === assignedFacilityId)
+    : dummyPHCs.filter(p => p.id === assignedFacilityId);
+
+  const reportPhcs = phcsToReport.length > 0 ? phcsToReport : [dummyPHCs[0]];
+
+  const totalOpdMonth = reportPhcs.reduce((sum, p) => sum + p.weeklyFootfall.reduce((s,f) => s+f, 0) * 4 + p.healthScore * 10, 0);
+  const totalOpdToday = reportPhcs.reduce((sum, p) => sum + p.weeklyFootfall[p.weeklyFootfall.length - 1], 0);
+
+  const totalBeds = reportPhcs.reduce((sum, p) => sum + p.bedsTotal, 0);
+  const occupiedBeds = reportPhcs.reduce((sum, p) => sum + p.bedsOccupied, 0);
+  const occupiedBedsPct = totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 100) : 0;
+
+  const avgWaitTime = reportPhcs.length > 0 
+    ? Math.round(reportPhcs.reduce((sum, p) => sum + Math.max(5, 100 - p.healthScore), 0) / reportPhcs.length)
+    : 0;
+
+  const recs = localRecommendations.filter(r => isBMO ? reportPhcs.some(p => p.id === r.sourceFacility || p.id === r.targetFacility) : r.sourceFacility === assignedFacilityId || r.targetFacility === assignedFacilityId);
+  const activeRec = recs.length > 0 ? recs[0] : null;
+
+  // Dynamic Chart Data
   const getBedData = () => {
-    if (selectedFormat === 'Weekly Report') {
-      return [
-        { cx: 30, cy: 50, val: '70%' }, { cx: 80, cy: 45, val: '75%' }, { cx: 130, cy: 60, val: '60%' },
-        { cx: 180, cy: 50, val: '70%' }, { cx: 230, cy: 40, val: '80%' }, { cx: 280, cy: 65, val: '55%' }, { cx: 330, cy: 55, val: '65%' }
-      ];
-    }
-    return [
-      { cx: 30, cy: 70, val: '50%' }, { cx: 80, cy: 85, val: '35%' }, { cx: 130, cy: 80, val: '40%' },
-      { cx: 180, cy: 80, val: '40%' }, { cx: 230, cy: 65, val: '55%' }, { cx: 280, cy: 75, val: '45%' }, { cx: 330, cy: 73, val: '47%' }
-    ];
+    const xPoints = [30, 80, 130, 180, 230, 280, 330];
+    return xPoints.map((x, i) => {
+      // simple pseudo-random generation ending at the exact current pct
+      const val = i === 6 ? occupiedBedsPct : Math.max(10, Math.min(90, occupiedBedsPct + (Math.sin(i) * 10) + (6-i)));
+      const y = 120 - (val / 100) * 100;
+      return { cx: x, cy: y, val: `${Math.round(val)}%` };
+    });
   };
 
   const getOpdData = () => {
-    if (selectedFormat === 'Weekly Report') {
-      return [
-        { cx: 30, h: 60, yTop: 60, val: '1.2K' }, { cx: 80, h: 80, yTop: 40, val: '1.6K' }, { cx: 130, h: 90, yTop: 30, val: '1.8K' },
-        { cx: 180, h: 100, yTop: 20, val: '2.0K' }, { cx: 230, h: 110, yTop: 10, val: '2.2K' }, { cx: 280, h: 70, yTop: 50, val: '1.4K' }, { cx: 330, h: 30, yTop: 90, val: '600' }
-      ];
-    }
-    return [
-      { cx: 30, h: 40, yTop: 80, val: '800' }, { cx: 80, h: 60, yTop: 60, val: '1.2K' }, { cx: 130, h: 75, yTop: 45, val: '1.5K' },
-      { cx: 180, h: 90, yTop: 30, val: '1.8K' }, { cx: 230, h: 100, yTop: 20, val: '2K' }, { cx: 280, h: 60, yTop: 60, val: '1.2K' }, { cx: 330, h: 15, yTop: 105, val: '300' }
-    ];
+    const xPoints = [30, 80, 130, 180, 230, 280, 330];
+    const isWeekly = selectedFormat === 'Weekly Report';
+    const baseVal = isWeekly ? Math.round(totalOpdMonth / 30) : totalOpdToday;
+    
+    return xPoints.map((x, i) => {
+      const val = i === 6 ? baseVal : Math.max(0, baseVal + Math.floor(Math.sin(i * 1.5) * (baseVal * 0.2)));
+      const maxPossible = baseVal * 1.5 || 10;
+      const h = Math.min(100, Math.max(10, (val / maxPossible) * 100));
+      const yTop = 120 - h;
+      return { cx: x, h, yTop, val: val.toString() };
+    });
   };
 
   const bedData = getBedData();
@@ -97,49 +120,53 @@ export default function ReportsScreen() {
         </View>
 
         {/* NETRA AI RECOMMENDATION (PHC Style Glassmorphism) */}
-        <View className="px-4 mb-5">
-          <View className="rounded-[24px] shadow-sm shadow-blue-200/50 border border-white/60 overflow-hidden bg-white">
-            <LinearGradient
-              colors={['#E8F2FC', '#D4E6FA']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={{ width: '100%' }}
-            >
-              <View className="p-4 relative">
-                <View className="flex-row justify-between items-center mb-3 relative z-10">
-                  <View className="flex-row items-center">
-                    <View className="w-10 h-10 rounded-[12px] bg-white/70 border border-white items-center justify-center mr-3">
-                      <Feather name="cpu" size={18} color="#4F46E5" />
+        {activeRec && (
+          <View className="px-4 mb-5">
+            <View className="rounded-[24px] shadow-sm shadow-blue-200/50 border border-white/60 overflow-hidden bg-white">
+              <LinearGradient
+                colors={['#E8F2FC', '#D4E6FA']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{ width: '100%' }}
+              >
+                <View className="p-4 relative">
+                  <View className="flex-row justify-between items-center mb-3 relative z-10">
+                    <View className="flex-row items-center">
+                      <View className="w-10 h-10 rounded-[12px] bg-white/70 border border-white items-center justify-center mr-3">
+                        <Feather name="cpu" size={18} color="#4F46E5" />
+                      </View>
+                      <View>
+                        <Text className="text-slate-600 font-bold text-[11px] mb-0.5">Netra Recommendation</Text>
+                        <Text className="text-brand-navy font-black text-[14px]">AI Executive Briefing</Text>
+                      </View>
                     </View>
-                    <View>
-                      <Text className="text-slate-600 font-bold text-[11px] mb-0.5">Netra Recommendation</Text>
-                      <Text className="text-brand-navy font-black text-[14px]">AI Executive Briefing</Text>
+                    <View className="bg-white/70 border border-white px-2.5 py-1 rounded-full">
+                      <Text className="text-emerald-600 font-extrabold text-[10px]">
+                        {typeof activeRec.confidence === 'number' ? (activeRec.confidence > 1 ? activeRec.confidence : activeRec.confidence * 100).toFixed(1) : '94.0'}% Sync
+                      </Text>
                     </View>
                   </View>
-                  <View className="bg-white/70 border border-white px-2.5 py-1 rounded-full">
-                    <Text className="text-emerald-600 font-extrabold text-[10px]">98.2% Sync</Text>
+
+                  <View className="mb-2 relative z-10">
+                    <Text className="text-slate-700 font-semibold text-[11px] leading-relaxed">
+                      {activeRec.reasoning}
+                    </Text>
+                  </View>
+
+                  <View className="relative z-10 bg-white/60 rounded-[16px] p-3 border border-white mt-1">
+                    <View className="flex-row items-center mb-1">
+                      <Feather name="zap" size={12} color="#4F46E5" style={{ marginRight: 4 }} />
+                      <Text className="text-indigo-600 font-black text-[10px] tracking-widest uppercase">ACTION REQUIRED</Text>
+                    </View>
+                    <Text className="text-slate-800 font-bold text-[11px]">
+                      {activeRec.title}
+                    </Text>
                   </View>
                 </View>
-
-                <View className="mb-2 relative z-10">
-                  <Text className="text-slate-700 font-semibold text-[11px] leading-relaxed">
-                    Data sync completeness is at <Text className="font-bold text-emerald-600">98.2%</Text> across Gautam Buddh Nagar facilities. Dengue vectors are projected to climb in Dadri block over the next 10 days.
-                  </Text>
-                </View>
-
-                <View className="relative z-10 bg-white/60 rounded-[16px] p-3 border border-white mt-1">
-                  <View className="flex-row items-center mb-1">
-                    <Feather name="zap" size={12} color="#4F46E5" style={{ marginRight: 4 }} />
-                    <Text className="text-indigo-600 font-black text-[10px] tracking-widest uppercase">ACTION REQUIRED</Text>
-                  </View>
-                  <Text className="text-slate-800 font-bold text-[11px]">
-                    Pre-position rapid antigen cassettes in Dadri block.
-                  </Text>
-                </View>
-              </View>
-            </LinearGradient>
+              </LinearGradient>
+            </View>
           </View>
-        </View>
+        )}
 
         {/* METRICS GRID 2x2 */}
         <View className="px-4 mb-5 flex-row flex-wrap justify-between">
@@ -150,7 +177,7 @@ export default function ReportsScreen() {
               </View>
               <View>
                 <Text className="text-slate-500 font-bold text-[9px]">Total OPD</Text>
-                <Text className="text-brand-navy font-black text-lg">{selectedFormat === 'Weekly Report' ? '28,450' : '4,732'}</Text>
+                <Text className="text-brand-navy font-black text-lg">{selectedFormat === 'Weekly Report' ? totalOpdMonth.toLocaleString() : totalOpdToday.toLocaleString()}</Text>
               </View>
             </View>
             <View className="flex-row items-center">
@@ -167,10 +194,10 @@ export default function ReportsScreen() {
               </View>
               <View>
                 <Text className="text-slate-500 font-bold text-[9px]">Beds Occupied</Text>
-                <Text className="text-brand-navy font-black text-lg">{selectedFormat === 'Weekly Report' ? '68%' : '47%'}</Text>
+                <Text className="text-brand-navy font-black text-lg">{occupiedBedsPct}%</Text>
               </View>
             </View>
-            <Text className="text-slate-400 font-bold text-[10px] ml-1">{selectedFormat === 'Weekly Report' ? '10 / 15 avg' : '7 / 15'}</Text>
+            <Text className="text-slate-400 font-bold text-[10px] ml-1">{occupiedBeds} / {totalBeds} beds</Text>
           </View>
           
           <View className="w-[48%] bg-white rounded-2xl p-3 border border-slate-100 shadow-sm">
@@ -181,14 +208,14 @@ export default function ReportsScreen() {
               <View>
                 <Text className="text-slate-500 font-bold text-[9px]">Avg. Wait Time</Text>
                 <View className="flex-row items-baseline">
-                  <Text className="text-brand-navy font-black text-lg">26</Text>
+                  <Text className="text-brand-navy font-black text-lg">{avgWaitTime}</Text>
                   <Text className="text-slate-500 font-bold text-[9px] ml-1 relative bottom-1">mins</Text>
                 </View>
               </View>
             </View>
             <View className="flex-row items-center">
               <Feather name="arrow-down" size={10} color="#10B981" />
-              <Text className="text-emerald-500 font-bold text-[10px] ml-0.5 mr-1">8 mins</Text>
+              <Text className="text-emerald-500 font-bold text-[10px] ml-0.5 mr-1">4 mins</Text>
               <Text className="text-slate-400 text-[9px]">vs last week</Text>
             </View>
           </View>
@@ -203,7 +230,7 @@ export default function ReportsScreen() {
                 <Text className="text-emerald-500 font-black text-sm">Available</Text>
               </View>
             </View>
-            <Text className="text-slate-600 font-bold text-[10px] ml-1 mt-0.5"><Text className="text-brand-navy font-black">24</Text> today</Text>
+            <Text className="text-slate-600 font-bold text-[10px] ml-1 mt-0.5"><Text className="text-brand-navy font-black">{Math.max(0, reportPhcs[0]?.phcCode ? parseInt(reportPhcs[0].phcCode) % 40 : 24)}</Text> today</Text>
           </View>
         </View>
 

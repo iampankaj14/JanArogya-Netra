@@ -1,4 +1,4 @@
-import { dummyMedicines } from '@/dummy/medicines';
+import { localMedicines, localRecommendations, localAlerts, removeLocalRecommendation } from '@/services/repositories/localDb';
 import { dummyPHCs } from '@/dummy/phcs';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -43,36 +43,49 @@ export default function PHCDetailScreen() {
 
   // Find target facility
   const phc = dummyPHCs.find(p => p && p.id === id) || dummyPHCs[0];
-  const stocks = dummyMedicines; // Assume they all belong to this PHC for demo
+  const stocks = localMedicines.filter(m => m.facilityId === phc.id);
+  const displayedStocks = showAllMedicines ? stocks : stocks.slice(0, 3);
 
-  const displayedStocks = showAllMedicines ? stocks : stocks.slice(0, 5);
+  const [aiRecommendations, setAiRecommendations] = useState(
+    localRecommendations.filter(r => r.targetFacility === phc.id || r.sourceFacility === phc.id)
+  );
 
-  const aiRecommendations = [
-    {
-      id: '1',
-      type: 'Stock Transfer',
-      confidence: '95%',
-      source: 'Rampur Kalan PHC',
-      target: phc.name,
-      reason: 'Rising Dengue cases detected. Transfer ORS and Paracetamol based on predictive footfall models.'
-    },
-    {
-      id: '2',
-      type: 'Staff Relocation',
-      confidence: '88%',
-      source: 'District Hospital',
-      target: phc.name,
-      reason: 'Critical shortage of Medical Officers. Temporary relocation recommended for 3 days.'
-    },
-    {
-      id: '3',
-      type: 'Equipment Maintenance',
-      confidence: '92%',
-      source: phc.name,
-      target: 'Maintenance Hub',
-      reason: 'X-Ray machine operating at 60% efficiency. Urgent calibration required before failure.'
-    }
-  ];
+  const handleApproveReject = (recId: string) => {
+    removeLocalRecommendation(recId);
+    setAiRecommendations(prev => prev.filter(r => r.id !== recId));
+    // Optional: add a toast or alert here
+  };
+  const phcAlerts = localAlerts.filter(a => a.facilityId === phc.id);
+
+  // Added footfall data
+  const footfallData = phc.weeklyFootfall || [50, 60, 70, 80, 90, 100, 110];
+  const totalFootfall = footfallData.reduce((a, b) => a + b, 0);
+  const avgFootfall = Math.round(totalFootfall / footfallData.length);
+  const minF = Math.min(...footfallData);
+  const maxF = Math.max(...footfallData);
+  const xCoords = [20, 70, 120, 170, 220, 270, 330];
+  const graphPts = footfallData.map((val, i) => {
+    let cy = 100;
+    if (maxF > minF) cy = 160 - ((val - minF) / (maxF - minF)) * 100 - 20; 
+    return { cx: xCoords[i], cy, val, i };
+  });
+  const pathD = `M20,${graphPts[0].cy} ` + graphPts.slice(1).map(p => `L${p.cx},${p.cy}`).join(' ');
+  const areaPath = pathD + ` L330,180 L20,180 Z`;
+
+  const todayFootfall = footfallData[footfallData.length - 1];
+  const yesterdayFootfall = footfallData[footfallData.length - 2] || todayFootfall;
+  const footfallDiff = todayFootfall - yesterdayFootfall;
+  const footfallTrend = footfallDiff >= 0 ? 'up' : 'down';
+  const footfallPct = yesterdayFootfall > 0 ? Math.round(Math.abs(footfallDiff) / yesterdayFootfall * 100) : 0;
+
+  const opdThisMonth = (totalFootfall * 4) + Math.floor(phc.healthScore * 10);
+  
+  const bedsAvailable = Math.max(0, phc.bedsTotal - phc.bedsOccupied);
+  const bedsOccupiedPct = Math.round((phc.bedsOccupied / Math.max(1, phc.bedsTotal)) * 100);
+
+  const avgWaitTime = Math.max(5, Math.round(100 - phc.healthScore)); // higher score = lower wait time
+
+  const lastSyncTime = new Date(Date.now() - 15 * 60000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
   // Auto-scroll logic for Infrastructure
   useEffect(() => {
@@ -86,6 +99,13 @@ export default function PHCDetailScreen() {
     return () => clearInterval(interval);
   }, []);
 
+  let illustrationSrc = require('@/data/phc/phc illustration/green1.png');
+  if (phc.healthScore < 70) {
+    illustrationSrc = require('@/data/phc/phc illustration/red1.png');
+  } else if (phc.healthScore < 90) {
+    illustrationSrc = require('@/data/phc/phc illustration/yellow1.png');
+  }
+
   return (
     <View className="flex-1 bg-[#F8FAFC]">
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
@@ -94,7 +114,7 @@ export default function PHCDetailScreen() {
         <View className="bg-white px-4 py-6 shadow-sm border-b border-slate-100 mb-4 rounded-b-3xl mt-2">
           <View className="flex-row">
             <View className="w-32 h-28 bg-[#E6F3FF] rounded-2xl mr-4 items-center justify-center overflow-hidden border border-blue-50">
-              <Image source={require('@/data/phc/phc illustration/green1.png')} className="w-full h-full" resizeMode="cover" />
+              <Image source={illustrationSrc} className="w-full h-full" resizeMode="cover" />
             </View>
             <View className="flex-1 justify-center">
               <View className="flex-row items-center mb-1">
@@ -112,10 +132,10 @@ export default function PHCDetailScreen() {
                   <Text className="text-[9px] font-bold text-emerald-700">Uttar Pradesh</Text>
                 </View>
                 <View className="bg-blue-50 px-2 py-1 rounded-full border border-blue-100">
-                  <Text className="text-[9px] font-bold text-blue-700">Established 2012</Text>
+                  <Text className="text-[9px] font-bold text-blue-700">Established {phc.establishedYear}</Text>
                 </View>
                 <View className="bg-purple-50 px-2 py-1 rounded-full border border-purple-100">
-                  <Text className="text-[9px] font-bold text-purple-700">PHC Code: UP-GBN-012</Text>
+                  <Text className="text-[9px] font-bold text-purple-700">PHC Code: {phc.phcCode}</Text>
                 </View>
               </View>
             </View>
@@ -147,7 +167,7 @@ export default function PHCDetailScreen() {
               </View>
               <View>
                 <Text className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Last Sync</Text>
-                <Text className="text-xs font-bold text-brand-navy">Today, 10:30 AM</Text>
+                <Text className="text-xs font-bold text-brand-navy">Today, {lastSyncTime}</Text>
               </View>
             </View>
           </View>
@@ -157,8 +177,8 @@ export default function PHCDetailScreen() {
         <View className="px-4 mb-6">
           <LinearGradient
             colors={
-              phc.healthScore >= 80 ? ['#ECFDF5', '#D1FAE5'] :
-                phc.healthScore >= 60 ? ['#FFFBEB', '#FEF3C7'] :
+              phc.healthScore >= 90 ? ['#ECFDF5', '#D1FAE5'] :
+                phc.healthScore >= 70 ? ['#FFFBEB', '#FEF3C7'] :
                   ['#FEF2F2', '#FEE2E2']
             }
             start={{ x: 0, y: 0 }}
@@ -166,7 +186,7 @@ export default function PHCDetailScreen() {
             style={{
               borderRadius: 20,
               borderWidth: 1.5,
-              borderColor: phc.healthScore >= 80 ? '#6EE7B7' : phc.healthScore >= 60 ? '#FCD34D' : '#FCA5A5',
+              borderColor: phc.healthScore >= 90 ? '#6EE7B7' : phc.healthScore >= 70 ? '#FCD34D' : '#FCA5A5',
               paddingHorizontal: 24,
               paddingTop: 16,
               paddingBottom: 40,
@@ -188,7 +208,7 @@ export default function PHCDetailScreen() {
                     cx="36"
                     cy="36"
                     r="32"
-                    stroke={phc.healthScore >= 80 ? '#10B981' : phc.healthScore >= 60 ? '#F59E0B' : '#EF4444'}
+                    stroke={phc.healthScore >= 90 ? '#10B981' : phc.healthScore >= 70 ? '#F59E0B' : '#EF4444'}
                     strokeWidth="6"
                     fill="none"
                     strokeDasharray="201.06"
@@ -197,20 +217,20 @@ export default function PHCDetailScreen() {
                     transform="rotate(-90 36 36)"
                   />
                 </Svg>
-                <View className="items-center justify-center mt-1.5">
-                  <View className="flex-row items-baseline">
-                    <Text className="text-slate-800 font-black text-xl leading-none">{phc.healthScore}</Text>
+                <View className="items-center justify-center absolute w-full h-full" style={{ left: 0, top: 0, right: 0, bottom: 0 }}>
+                  <Text className="text-slate-800 font-black text-[22px]" style={{ textAlign: 'center', includeFontPadding: false }}>
+                    {phc.healthScore}
                     <Text className="text-slate-500 font-bold text-[10px]">%</Text>
-                  </View>
+                  </Text>
                 </View>
               </View>
 
               <View className="flex-1">
                 <Text
                   className="font-bold text-[9px] mb-1"
-                  style={{ color: phc.healthScore >= 80 ? '#059669' : phc.healthScore >= 60 ? '#D97706' : '#DC2626' }}
+                  style={{ color: phc.healthScore >= 90 ? '#059669' : phc.healthScore >= 70 ? '#D97706' : '#DC2626' }}
                 >
-                  {phc.healthScore >= 80 ? 'OPERATIONAL' : phc.healthScore >= 60 ? 'NEEDS ATTENTION' : 'CRITICAL'}
+                  {phc.healthScore >= 90 ? 'OPERATIONAL' : phc.healthScore >= 70 ? 'ATTENTION' : 'CRITICAL'}
                 </Text>
                 <Text className="text-slate-600 text-xs leading-relaxed">
                   Netra AI is monitoring this facility. Based on upcoming data, we will recommend specific actions here to improve the score.
@@ -224,35 +244,35 @@ export default function PHCDetailScreen() {
         <View className="px-4 mb-4 flex-row flex-wrap justify-between">
           <MetricCard
             title="Footfall (Today)"
-            value="236"
+            value={todayFootfall.toString()}
             icon="account-group" iconBg="bg-purple-500"
-            trend="up" trendVal="18%" subtitle="vs yesterday"
+            trend={footfallTrend} trendVal={`${footfallPct}%`} subtitle="vs yesterday"
             borderColor="border-purple-200"
           />
           <MetricCard
             title="OPD (This Month)"
-            value="4,732"
+            value={opdThisMonth.toLocaleString()}
             icon="calendar-text" iconBg="bg-blue-500"
             trend="up" trendVal="12%" subtitle="vs last month"
             borderColor="border-blue-200"
           />
           <MetricCard
             title="Beds Available"
-            value="7 / 15"
+            value={`${bedsAvailable} / ${phc.bedsTotal}`}
             icon="bed-empty" iconBg="bg-emerald-500"
-            subtitle="47% Occupied"
+            subtitle={`${bedsOccupiedPct}% Occupied`}
             borderColor="border-emerald-200"
           />
           <MetricCard
             title="Avg. Wait Time"
-            value="26 mins"
+            value={`${avgWaitTime} mins`}
             icon="clock-outline" iconBg="bg-amber-500"
             trend="down" trendVal="8 mins" subtitle="vs last week"
             borderColor="border-amber-200"
           />
           <MetricCard
             title="Consultation Rooms"
-            value="2"
+            value={phc.consultRooms.toString()}
             icon="doctor" iconBg="bg-purple-400"
             borderColor="border-purple-200"
           />
@@ -321,6 +341,44 @@ export default function PHCDetailScreen() {
           </View>
         </View>
 
+        {/* Active Alerts */}
+        <View className="px-4 mb-6">
+          <View className="w-full bg-white rounded-[24px] p-5 shadow-sm border border-slate-100">
+            <View className="flex-row justify-between items-center mb-5">
+              <View className="flex-row items-center">
+                <View className="w-5 h-5 bg-red-100 rounded-full items-center justify-center mr-2">
+                  <Feather name="bell" size={12} color="#EF4444" />
+                </View>
+                <Text className="text-brand-navy font-bold text-sm">Active Alerts</Text>
+              </View>
+            </View>
+
+            <View>
+              {phcAlerts.length > 0 ? phcAlerts.map(alert => (
+                <View key={alert.id} className={`flex-row items-center rounded-xl p-3 border mb-3 ${alert.type === 'OUTBREAK' ? 'bg-red-50 border-red-100' : alert.type === 'SHORTAGE' ? 'bg-amber-50 border-amber-100' : 'bg-blue-50 border-blue-100'}`}>
+                  <View className={`mr-3 rounded-full p-2 ${alert.type === 'OUTBREAK' ? 'bg-red-100' : alert.type === 'SHORTAGE' ? 'bg-amber-100' : 'bg-blue-100'}`}>
+                    <MaterialCommunityIcons 
+                      name={alert.type === 'OUTBREAK' ? 'alert-circle-outline' : alert.type === 'SHORTAGE' ? 'medical-bag' : 'information-outline'} 
+                      size={20} 
+                      color={alert.type === 'OUTBREAK' ? '#EF4444' : alert.type === 'SHORTAGE' ? '#F59E0B' : '#3B82F6'} 
+                    />
+                  </View>
+                  <View className="flex-1">
+                    <Text className={`${alert.type === 'OUTBREAK' ? 'text-red-600' : alert.type === 'SHORTAGE' ? 'text-amber-600' : 'text-blue-600'} font-bold text-xs mb-0.5`}>{alert.title}</Text>
+                    <Text className="text-slate-500 text-[10px] font-medium">{alert.description}</Text>
+                  </View>
+                  <Feather name="chevron-right" size={16} color={alert.type === 'OUTBREAK' ? '#EF4444' : alert.type === 'SHORTAGE' ? '#F59E0B' : '#3B82F6'} />
+                </View>
+              )) : (
+                <View className="items-center py-6">
+                  <Feather name="check-circle" size={32} color="#10B981" />
+                  <Text className="text-slate-500 font-bold mt-2">No active alerts</Text>
+                </View>
+              )}
+            </View>
+          </View>
+        </View>
+
         {/* INFRASTRUCTURE SNAPSHOT */}
         <View className="px-4 mb-6">
           <View className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100">
@@ -331,9 +389,6 @@ export default function PHCDetailScreen() {
                 </View>
                 <Text className="text-brand-navy font-bold text-sm">Infrastructure Snapshot</Text>
               </View>
-              <TouchableOpacity>
-                <Text className="text-blue-600 font-bold text-xs">View Details</Text>
-              </TouchableOpacity>
             </View>
 
             <ScrollView
@@ -348,35 +403,35 @@ export default function PHCDetailScreen() {
                     <MaterialCommunityIcons name="bed-empty" size={18} color="#3B82F6" className="mr-2" />
                     <Text className="text-slate-500 font-bold text-[10px]">Total Beds</Text>
                   </View>
-                  <Text className="text-brand-navy font-black text-2xl">15</Text>
+                  <Text className="text-brand-navy font-black text-2xl">{phc.bedsTotal}</Text>
                 </View>
                 <View className="bg-emerald-50/50 rounded-2xl p-4 w-32 border border-emerald-50">
                   <View className="flex-row items-center mb-3">
                     <MaterialCommunityIcons name="bed-outline" size={18} color="#10B981" className="mr-2" />
                     <Text className="text-slate-500 font-bold text-[10px]">Available</Text>
                   </View>
-                  <Text className="text-brand-navy font-black text-2xl">7</Text>
+                  <Text className="text-brand-navy font-black text-2xl">{phc.bedsTotal - phc.bedsOccupied}</Text>
                 </View>
                 <View className="bg-purple-50/50 rounded-2xl p-4 w-32 border border-purple-50">
                   <View className="flex-row items-center mb-3">
                     <MaterialCommunityIcons name="doctor" size={18} color="#8B5CF6" className="mr-2" />
                     <Text className="text-slate-500 font-bold text-[10px]">Consult Rooms</Text>
                   </View>
-                  <Text className="text-brand-navy font-black text-2xl">2</Text>
+                  <Text className="text-brand-navy font-black text-2xl">{phc.consultRooms}</Text>
                 </View>
                 <View className="bg-amber-50/50 rounded-2xl p-4 w-32 border border-amber-50">
                   <View className="flex-row items-center mb-3">
                     <MaterialCommunityIcons name="ambulance" size={18} color="#F59E0B" className="mr-2" />
                     <Text className="text-slate-500 font-bold text-[10px]">Ambulances</Text>
                   </View>
-                  <Text className="text-brand-navy font-black text-2xl">1</Text>
+                  <Text className="text-brand-navy font-black text-2xl">{phc.ambulances}</Text>
                 </View>
                 <View className="bg-red-50/50 rounded-2xl p-4 w-32 border border-red-50">
                   <View className="flex-row items-center mb-3">
                     <MaterialCommunityIcons name="gas-cylinder" size={18} color="#EF4444" className="mr-2" />
                     <Text className="text-slate-500 font-bold text-[10px]">O2 Cylinders</Text>
                   </View>
-                  <Text className="text-brand-navy font-black text-2xl">12</Text>
+                  <Text className="text-brand-navy font-black text-2xl">{phc.o2Cylinders}</Text>
                 </View>
               </View>
             </ScrollView>
@@ -410,9 +465,9 @@ export default function PHCDetailScreen() {
               <View className="flex-1">
                 <View className="flex-row justify-between items-center mb-1">
                   <Text className="text-brand-navy font-bold text-sm">Medical Officers</Text>
-                  <Text className="text-emerald-600 font-black text-3xl leading-none relative top-1">100%</Text>
+                  <Text className="text-emerald-600 font-black text-3xl leading-none relative top-1">{Math.round((phc.staffPresent / phc.staffTotal) * 100)}%</Text>
                 </View>
-                <Text className="text-emerald-500 font-bold text-xs mb-4">0 absent today</Text>
+                <Text className="text-emerald-500 font-bold text-xs mb-4">{phc.staffTotal - phc.staffPresent} absent today</Text>
 
                 <View className="flex-row justify-between border-t border-slate-100 pt-4 mt-2">
                   <View>
@@ -420,14 +475,14 @@ export default function PHCDetailScreen() {
                       <MaterialCommunityIcons name="account-check-outline" size={14} color="#94A3B8" className="mr-1" />
                       <Text className="text-slate-500 font-bold text-[10px]">Staff Present</Text>
                     </View>
-                    <Text className="text-brand-navy font-black text-lg">12</Text>
+                    <Text className="text-brand-navy font-black text-lg">{phc.staffPresent}</Text>
                   </View>
                   <View>
                     <View className="flex-row items-center mb-1.5">
                       <MaterialCommunityIcons name="account-multiple-outline" size={14} color="#94A3B8" className="mr-1" />
                       <Text className="text-slate-500 font-bold text-[10px]">Total Staff</Text>
                     </View>
-                    <Text className="text-brand-navy font-black text-lg">12</Text>
+                    <Text className="text-brand-navy font-black text-lg">{phc.staffTotal}</Text>
                   </View>
                 </View>
               </View>
@@ -437,44 +492,51 @@ export default function PHCDetailScreen() {
 
         {/* NETRA AI RECOMMENDATION CAROUSEL */}
         <View className="mb-6">
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            pagingEnabled
-            snapToInterval={SCREEN_WIDTH}
-            decelerationRate="fast"
-            onMomentumScrollEnd={(event) => {
-              const newIndex = Math.round(event.nativeEvent.contentOffset.x / SCREEN_WIDTH);
-              setCurrentAiIndex(newIndex);
-            }}
-          >
-            {aiRecommendations.map((rec) => (
-              <View key={rec.id} style={{ width: SCREEN_WIDTH }} className="px-4">
-                <View className="rounded-[24px] shadow-sm shadow-blue-200/50 border border-white/60 overflow-hidden bg-white">
+          {aiRecommendations.length === 0 ? (
+            <View className="bg-green-50 rounded-[24px] border border-green-100 p-6 items-center justify-center mt-2 mx-4">
+              <View className="w-14 h-14 rounded-full bg-green-100 items-center justify-center mb-3">
+                <Feather name="check-circle" size={24} color="#16A34A" />
+              </View>
+              <Text className="text-green-800 font-extrabold text-[15px] mb-1">All Clear!</Text>
+              <Text className="text-green-600 font-semibold text-center text-[12px]">No active recommendations. Everything is fine.</Text>
+            </View>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              pagingEnabled
+              decelerationRate="fast"
+              snapToInterval={SCREEN_WIDTH * 0.85 + 16}
+              contentContainerStyle={{ paddingHorizontal: 16 }}
+              onScroll={(e) => {
+                const offsetX = e.nativeEvent.contentOffset.x;
+                const index = Math.round(offsetX / (SCREEN_WIDTH * 0.85 + 16));
+                setCurrentAiIndex(index);
+              }}
+              scrollEventThrottle={16}
+            >
+              {aiRecommendations.map((rec, index) => (
+                <View key={rec.id} style={{ width: SCREEN_WIDTH * 0.85, marginRight: 16 }}>
+                  <View className="rounded-[24px] shadow-sm shadow-blue-200/50 border border-white/60 overflow-hidden bg-white">
                     <LinearGradient
                       colors={['#E8F2FC', '#D4E6FA']}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 1 }}
-                      style={{ width: '100%' }}
                     >
                       <View className="p-4 relative">
                         {/* Header Row */}
-                      <View className="flex-row justify-between items-center mb-4 relative z-10">
-                        <View className="flex-row items-center">
-                          {/* Glass Icon */}
-                          <View className="w-10 h-10 rounded-[12px] bg-white/70 border border-white items-center justify-center mr-3">
-                            <Feather name="cpu" size={18} color="#4F46E5" />
-                          </View>
-                          <View>
-                            <Text className="text-slate-600 font-bold text-[11px] mb-0.5">Netra Recommendation</Text>
-                            <Text className="text-brand-navy font-black text-[15px]">{rec.type}</Text>
+                        <View className="flex-row justify-between items-center mb-4 relative z-10">
+                          <View className="flex-row items-center">
+                            {/* Glass Icon */}
+                            <View className="w-10 h-10 rounded-[12px] bg-white/70 border border-white items-center justify-center mr-3">
+                              <Feather name="cpu" size={18} color="#4F46E5" />
+                            </View>
+                            <View>
+                              <Text className="text-slate-600 font-bold text-[11px] mb-0.5">Netra Recommendation</Text>
+                              <Text className="text-brand-navy font-black text-[15px]">{rec.title}</Text>
+                            </View>
                           </View>
                         </View>
-                        {/* Glass Pill */}
-                        <View className="bg-white/70 border border-white px-2.5 py-1 rounded-full">
-                          <Text className="text-blue-700 font-extrabold text-[10px]">{rec.confidence} Conf.</Text>
-                        </View>
-                      </View>
 
                       {/* Facilities Flow */}
                       <View className="flex-row items-center justify-between mb-4 relative z-10">
@@ -485,7 +547,7 @@ export default function PHCDetailScreen() {
                           </View>
                           <View className="flex-1">
                             <Text className="text-slate-500 font-bold text-[9px] mb-0.5">Source Facility</Text>
-                            <Text className="text-brand-navy font-bold text-[11px]" numberOfLines={1}>{rec.source}</Text>
+                            <Text className="text-brand-navy font-bold text-[11px]" numberOfLines={1}>{rec.sourceFacility}</Text>
                           </View>
                         </View>
 
@@ -501,7 +563,7 @@ export default function PHCDetailScreen() {
                           </View>
                           <View className="flex-1">
                             <Text className="text-slate-500 font-bold text-[9px] mb-0.5">Target Facility</Text>
-                            <Text className="text-brand-navy font-bold text-[11px]" numberOfLines={1}>{rec.target}</Text>
+                            <Text className="text-brand-navy font-bold text-[11px]" numberOfLines={1}>{rec.targetFacility}</Text>
                           </View>
                         </View>
                       </View>
@@ -514,38 +576,41 @@ export default function PHCDetailScreen() {
                           <Feather name="zap" size={12} color="#4F46E5" style={{ marginLeft: 4 }} />
                         </View>
                         <Text className="text-slate-700 font-semibold text-[11px] leading-relaxed pr-10" numberOfLines={2}>
-                          {rec.reason}
+                          {rec.reasoning}
                         </Text>
                       </View>
 
                       {/* Action Buttons */}
                       <View className="flex-row gap-3 relative z-10">
-                        <Pressable className="flex-1 py-3 rounded-xl border border-red-300 items-center justify-center flex-row bg-white/60">
+                        <Pressable onPress={() => handleApproveReject(rec.id)} className="flex-1 py-3 rounded-xl border border-red-300 items-center justify-center flex-row bg-white/60">
                           <Feather name="x-circle" size={14} color="#DC2626" style={{ marginRight: 6 }} />
                           <Text className="text-red-600 font-extrabold text-[12px]">Reject Request</Text>
                         </Pressable>
 
-                        <Pressable className="flex-1 py-3 rounded-xl bg-blue-600/90 border border-blue-400 items-center justify-center flex-row shadow-lg shadow-blue-500/40">
+                        <Pressable onPress={() => handleApproveReject(rec.id)} className="flex-1 py-3 rounded-xl bg-blue-600/90 border border-blue-400 items-center justify-center flex-row shadow-lg shadow-blue-500/40">
                           <Feather name="check-circle" size={14} color="white" style={{ marginRight: 6 }} />
                           <Text className="text-white font-extrabold text-[12px]">Approve Request</Text>
                         </Pressable>
                       </View>
                     </View>
-                  </LinearGradient>
+                    </LinearGradient>
+                  </View>
                 </View>
-              </View>
-            ))}
-          </ScrollView>
+              ))}
+            </ScrollView>
+          )}
 
           {/* Pagination Dots */}
-          <View className="flex-row justify-center items-center mt-3 space-x-1.5 gap-1.5">
-            {aiRecommendations.map((_, index) => (
-              <View
-                key={index}
-                className={`h-1.5 rounded-full ${index === currentAiIndex ? 'w-4 bg-indigo-500' : 'w-1.5 bg-slate-300'}`}
-              />
-            ))}
-          </View>
+          {aiRecommendations.length > 0 && (
+            <View className="flex-row justify-center items-center mt-3 space-x-1.5 gap-1.5">
+              {aiRecommendations.map((_, index) => (
+                <View
+                  key={index}
+                  className={`h-1.5 rounded-full ${index === currentAiIndex ? 'w-4 bg-indigo-500' : 'w-1.5 bg-slate-300'}`}
+                />
+              ))}
+            </View>
+          )}
         </View>
 
         {/* BOTTOM SECTION (TRENDS & ALERTS) */}
@@ -563,7 +628,7 @@ export default function PHCDetailScreen() {
                   <Text className="text-[10px] font-bold text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-full">+12%</Text>
                 </View>
                 <View className="flex-row items-baseline mt-1">
-                  <Text className="text-4xl font-black text-slate-800 tracking-tighter">1,284</Text>
+                  <Text className="text-4xl font-black text-slate-800 tracking-tighter">{totalFootfall}</Text>
                   <Text className="text-sm font-bold text-slate-400 ml-1">patients</Text>
                 </View>
               </View>
@@ -572,7 +637,7 @@ export default function PHCDetailScreen() {
             {/* Detailed Graph Area */}
             <View className="h-[180px] mt-2 relative -mx-1">
               {/* Average Line Label */}
-              <Text className="absolute top-[80px] right-2 text-[9px] font-black text-slate-400 uppercase bg-white/90 px-1 z-10">Avg: 183</Text>
+              <Text className="absolute top-[80px] right-2 text-[9px] font-black text-slate-400 uppercase bg-white/90 px-1 z-10">Avg: {avgFootfall}</Text>
 
               <Svg height="100%" width="100%" viewBox="0 0 350 180">
                 <Defs>
@@ -586,21 +651,13 @@ export default function PHCDetailScreen() {
                 <Path d="M0,100 L350,100" stroke="#CBD5E1" strokeWidth="1.5" strokeDasharray="4,4" />
                 
                 {/* Gradient Fill */}
-                <Path d="M20,120 Q45,100 70,100 T120,130 T170,60 T220,110 T270,90 T330,120 L330,180 L20,180 Z" fill="url(#footfallDetailGrad)" />
+                <Path d={areaPath} fill="url(#footfallDetailGrad)" />
                 
                 {/* Main Trend Line */}
-                <Path d="M20,120 Q45,100 70,100 T120,130 T170,60 T220,110 T270,90 T330,120" fill="none" stroke="#3B82F6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                <Path d={pathD} fill="none" stroke="#3B82F6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                 
                 {/* Data Points (Tappable) */}
-                {[
-                  { cx: 20, cy: 120, i: 0 },
-                  { cx: 70, cy: 100, i: 1 },
-                  { cx: 120, cy: 130, i: 2 },
-                  { cx: 170, cy: 60, i: 3 }, // Peak
-                  { cx: 220, cy: 110, i: 4 },
-                  { cx: 270, cy: 90, i: 5 },
-                  { cx: 330, cy: 120, i: 6 },
-                ].map((pt) => (
+                {graphPts.map((pt) => (
                   <G key={pt.i}>
                     {/* Visible Circle */}
                     <Circle 
@@ -625,14 +682,14 @@ export default function PHCDetailScreen() {
                 {/* Dynamic Tooltip inside SVG */}
                 {activeDataPoint !== null && (
                   <SvgText 
-                    x={[20, 70, 120, 170, 220, 270, 330][activeDataPoint]} 
-                    y={[120, 100, 130, 60, 110, 90, 120][activeDataPoint] - 15}
+                    x={graphPts[activeDataPoint].cx} 
+                    y={graphPts[activeDataPoint].cy - 15}
                     fill="#1E293B" 
                     fontSize="12" 
                     fontWeight="bold" 
                     textAnchor="middle"
                   >
-                    {[120, 195, 80, 250, 155, 210, 115][activeDataPoint]}
+                    {graphPts[activeDataPoint].val}
                   </SvgText>
                 )}
               </Svg>
@@ -648,52 +705,7 @@ export default function PHCDetailScreen() {
             </View>
           </View>
 
-          {/* Active Alerts */}
-          <View className="w-full bg-white rounded-[24px] p-5 shadow-sm border border-slate-100">
-            <View className="flex-row justify-between items-center mb-5">
-              <View className="flex-row items-center">
-                <View className="w-5 h-5 bg-red-100 rounded-full items-center justify-center mr-2">
-                  <Feather name="bell" size={12} color="#EF4444" />
-                </View>
-                <Text className="text-brand-navy font-bold text-sm">Active Alerts</Text>
-              </View>
-            </View>
 
-            <View>
-              <View className="flex-row items-center bg-red-50 rounded-xl p-3 border border-red-100 mb-3">
-                <View className="mr-3 bg-red-100 rounded-full p-2">
-                  <MaterialCommunityIcons name="alert-circle-outline" size={20} color="#EF4444" />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-red-600 font-bold text-xs mb-0.5">Low stock: 8 medicines</Text>
-                  <Text className="text-slate-500 text-[10px] font-medium">Reorder recommended</Text>
-                </View>
-                <Feather name="chevron-right" size={16} color="#EF4444" />
-              </View>
-
-              <View className="flex-row items-center bg-amber-50 rounded-xl p-3 border border-amber-100 mb-3">
-                <View className="mr-3 bg-amber-100 rounded-full p-1.5">
-                  <MaterialCommunityIcons name="account-group" size={20} color="#F59E0B" />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-amber-600 font-bold text-xs mb-0.5">High footfall detected</Text>
-                  <Text className="text-slate-500 text-[10px] font-medium">Monitor bed availability closely</Text>
-                </View>
-                <Feather name="chevron-right" size={16} color="#F59E0B" />
-              </View>
-
-              <View className="flex-row items-center bg-blue-50 rounded-xl p-3 border border-blue-100">
-                <View className="mr-3 bg-blue-100 rounded-full p-2">
-                  <MaterialCommunityIcons name="water-check" size={20} color="#3B82F6" />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-blue-600 font-bold text-xs mb-0.5">Water quality test due</Text>
-                  <Text className="text-slate-500 text-[10px] font-medium">Last test: 25 days ago</Text>
-                </View>
-                <Feather name="chevron-right" size={16} color="#3B82F6" />
-              </View>
-            </View>
-          </View>
 
         </View>
 

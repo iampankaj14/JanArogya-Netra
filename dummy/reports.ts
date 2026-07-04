@@ -18,7 +18,7 @@ export const dummyReports: ReportItem[] = [
   },
   {
     id: 'r3',
-    title: 'Sewapur PHC Service Delivery Report',
+    title: 'PHC Mandi Shyam Nagar Service Delivery Report',
     type: 'Performance',
     date: '2026-06-20T10:00:00Z',
     generatedBy: 'Dr. Vikram Patel',

@@ -12,6 +12,9 @@ interface PHCCardProps {
   doctorAvailable: boolean;
   stockStatus: 'adequate' | 'warning' | 'critical';
   activeAlertsCount: number;
+  staffPresent?: number;
+  staffTotal?: number;
+  weeklyFootfall?: number[];
   onPress?: () => void;
   loading?: boolean;
 }
@@ -39,6 +42,9 @@ export default function PHCCard({
   doctorAvailable,
   stockStatus,
   activeAlertsCount,
+  staffPresent = 10,
+  staffTotal = 10,
+  weeklyFootfall,
   onPress,
   loading = false,
 }: PHCCardProps) {
@@ -52,16 +58,16 @@ export default function PHCCard({
 
   // Determine colors based on overall health score
   let scoreColor = '#10B981'; // Green
-  let scoreText = 'Excellent';
+  let scoreText = 'Operational';
   let illustration = require('@/data/phc/phc illustration/green1.png');
   
-  if (healthScore < 60) {
+  if (healthScore < 70) {
     scoreColor = '#EF4444'; // Red
     scoreText = 'Critical';
     illustration = require('@/data/phc/phc illustration/red1.png');
-  } else if (healthScore < 80) {
-    scoreColor = '#F59E0B'; // Orange
-    scoreText = 'Warning';
+  } else if (healthScore < 90) {
+    scoreColor = '#F59E0B'; // Orange / Yellow
+    scoreText = 'Attention';
     illustration = require('@/data/phc/phc illustration/yellow1.png');
   }
 
@@ -99,19 +105,23 @@ export default function PHCCard({
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (healthScore / 100) * circumference;
 
-  // Dummy Sparkline Data (Varying based on id to look dynamic)
-  const stockData = [40, 50, 45, 60, 55, 70, 81];
-  const moData = [90, 92, 91, 95, 88, 90, 92];
-  const flowData = [20, 35, 30, 40, 25, 50, 45];
+  // Dynamic Sparkline Data
+  const stockHealthVal = stockStatus === 'adequate' ? 95 : stockStatus === 'warning' ? 70 : 40;
+  const stockData = [stockHealthVal - 10, stockHealthVal - 5, stockHealthVal - 2, stockHealthVal - 8, stockHealthVal + 2, stockHealthVal - 1, stockHealthVal];
   
-  if (healthScore < 60) {
-    stockData.push(30, 25, 32);
-    moData.push(50, 45, 48);
-  }
+  const moAttendanceVal = staffTotal && staffTotal > 0 ? Math.round((staffPresent / staffTotal) * 100) : 100;
+  const moData = [moAttendanceVal - 2, moAttendanceVal, moAttendanceVal - 5, moAttendanceVal + 2, moAttendanceVal - 1, moAttendanceVal + 1, moAttendanceVal];
 
-  const stockSpark = generateSparkline(stockData.slice(-7), 50, 15);
-  const moSpark = generateSparkline(moData.slice(-7), 50, 15);
-  const flowSpark = generateSparkline(flowData.slice(-7), 50, 15);
+  const flowData = weeklyFootfall && weeklyFootfall.length > 0 ? weeklyFootfall.slice(-7) : [20, 35, 30, 40, 25, 50, 45];
+  const todayFlow = flowData[flowData.length - 1];
+  const yesterdayFlow = flowData[flowData.length - 2] || todayFlow;
+  let flowText = "Normal";
+  if (todayFlow > yesterdayFlow * 1.2) flowText = "High";
+  if (todayFlow < yesterdayFlow * 0.8) flowText = "Low";
+
+  const stockSpark = generateSparkline(stockData, 50, 15);
+  const moSpark = generateSparkline(moData, 50, 15);
+  const flowSpark = generateSparkline(flowData, 50, 15);
 
   return (
     <Pressable
@@ -199,7 +209,7 @@ export default function PHCCard({
             <Svg height="15" width="50">
               <Path d={stockSpark.path} stroke={scoreColor} strokeWidth="1.5" fill="none" />
             </Svg>
-            <Text className="text-[10px] font-bold text-slate-800 ml-2">{stockData[stockData.length-1]}%</Text>
+            <Text className="text-[10px] font-bold text-slate-800 ml-2">{stockHealthVal}%</Text>
           </View>
         </View>
 
@@ -209,7 +219,7 @@ export default function PHCCard({
             <Svg height="15" width="50">
               <Path d={moSpark.path} stroke="#3B82F6" strokeWidth="1.5" fill="none" />
             </Svg>
-            <Text className="text-[10px] font-bold text-slate-800 ml-2">{moData[moData.length-1]}%</Text>
+            <Text className="text-[10px] font-bold text-slate-800 ml-2">{moAttendanceVal}%</Text>
           </View>
         </View>
 
@@ -219,7 +229,7 @@ export default function PHCCard({
             <Svg height="15" width="50">
               <Path d={flowSpark.path} stroke="#8B5CF6" strokeWidth="1.5" fill="none" />
             </Svg>
-            <Text className="text-[10px] font-bold text-slate-800 ml-2">High</Text>
+            <Text className="text-[10px] font-bold text-slate-800 ml-2">{flowText}</Text>
           </View>
         </View>
 

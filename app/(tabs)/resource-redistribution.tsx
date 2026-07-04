@@ -4,12 +4,24 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import ScreenContainer from '@/components/ui/layout/ScreenContainer';
 import { dummyPHCs } from '@/dummy/phcs';
+import { localMedicines } from '@/services/repositories/localDb';
 
 export default function ResourceRedistributionScreen() {
   const router = useRouter();
+  const { source, target, medicine, amount } = useLocalSearchParams();
   
-  const [qty, setQty] = useState('50');
+  const [qty, setQty] = useState((amount as string) || '50');
   const [submitting, setSubmitting] = useState(false);
+
+  // Dynamic values
+  const sourcePhc = dummyPHCs.find(p => p.id === source) || dummyPHCs[0];
+  const targetPhc = dummyPHCs.find(p => p.id === target) || dummyPHCs[1];
+  const medicineObj = localMedicines.find(m => m.id === medicine) || localMedicines[0];
+  
+  const sourceName = sourcePhc?.name || 'PHC Barola';
+  const targetName = targetPhc?.name || 'PHC Badalpur';
+  const medicineName = medicineObj?.name || 'Dengue NS1 Antigen Test Kit';
+  const availableStock = medicineObj?.currentStock || 120;
 
   const handleSubmit = () => {
     setSubmitting(true);
@@ -103,13 +115,13 @@ export default function ResourceRedistributionScreen() {
                    <View className="w-7 h-7 rounded-md bg-emerald-100 items-center justify-center mr-3">
                      <Feather name="activity" size={14} color="#10B981" />
                    </View>
-                   <Text className="text-brand-navy font-bold text-[13px]">Dharampur PHC</Text>
+                   <Text className="text-brand-navy font-bold text-[13px]">{sourceName}</Text>
                 </View>
                 <Feather name="chevron-down" size={16} color="#475569" />
               </View>
               <View className="flex-row items-center ml-1">
                 <Feather name="check-circle" size={10} color="#10B981" className="mr-1.5" />
-                <Text className="text-emerald-600 font-bold text-[9px]">Facility has 120 units available</Text>
+                <Text className="text-emerald-600 font-bold text-[9px]">Facility has {availableStock} units available</Text>
               </View>
             </View>
 
@@ -121,7 +133,7 @@ export default function ResourceRedistributionScreen() {
                    <View className="w-7 h-7 rounded-md bg-orange-100 items-center justify-center mr-3">
                      <Feather name="home" size={14} color="#F97316" />
                    </View>
-                   <Text className="text-brand-navy font-bold text-[13px]">Rampur Kalan PHC</Text>
+                   <Text className="text-brand-navy font-bold text-[13px]">{targetName}</Text>
                 </View>
                 <Feather name="chevron-down" size={16} color="#475569" />
               </View>
@@ -139,7 +151,7 @@ export default function ResourceRedistributionScreen() {
                    <View className="w-7 h-7 rounded-md bg-purple-100 items-center justify-center mr-3">
                      <Feather name="briefcase" size={14} color="#9333EA" />
                    </View>
-                   <Text className="text-brand-navy font-bold text-[13px]">Dengue NS1 Antigen Test Kit</Text>
+                   <Text className="text-brand-navy font-bold text-[13px]">{medicineName}</Text>
                 </View>
                 <Feather name="chevron-down" size={16} color="#475569" />
               </View>
@@ -174,7 +186,7 @@ export default function ResourceRedistributionScreen() {
                 <Feather name="info" size={10} color="#3B82F6" />
               </View>
               <Text className="text-blue-700 font-semibold text-[9px] flex-1">
-                You are transferring <Text className="font-black">{qty || '0'} units</Text> from <Text className="font-black">Dharampur PHC</Text> to <Text className="font-black">Rampur Kalan PHC</Text>.
+                You are transferring <Text className="font-black">{qty || '0'} units</Text> of <Text className="font-black">{medicineName}</Text> from <Text className="font-black">{sourceName}</Text> to <Text className="font-black">{targetName}</Text>.
               </Text>
             </View>
 

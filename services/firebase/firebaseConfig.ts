@@ -2,8 +2,7 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 // @ts-ignore
 import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
-import * as SecureStore from 'expo-secure-store';
-
+import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 import { getFunctions } from 'firebase/functions';
 
 // Firebase configuration using Expo Public environment variables
@@ -19,23 +18,17 @@ const firebaseConfig = {
 // Initialize Firebase App
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-// Configure Persistence using Expo SecureStore wrapper
-const secureStorePersistence = {
-  getItem: async (key: string) => {
-    return SecureStore.getItemAsync(key);
-  },
-  setItem: async (key: string, value: string) => {
-    return SecureStore.setItemAsync(key, value);
-  },
-  removeItem: async (key: string) => {
-    return SecureStore.deleteItemAsync(key);
-  },
-};
-
 // Initialize Firebase Auth with persistence
-const auth = initializeAuth(app, {
-  persistence: getReactNativePersistence(secureStorePersistence),
-});
+import { getAuth } from 'firebase/auth';
+
+let auth: any;
+try {
+  auth = getAuth(app);
+} catch (e) {
+  auth = initializeAuth(app, {
+    persistence: getReactNativePersistence(ReactNativeAsyncStorage),
+  });
+}
 
 // Initialize Firestore
 const db = getFirestore(app);

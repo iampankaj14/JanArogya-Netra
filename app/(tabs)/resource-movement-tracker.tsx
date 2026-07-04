@@ -3,10 +3,21 @@ import { View, Text, Pressable, ScrollView, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import ScreenContainer from '@/components/ui/layout/ScreenContainer';
+import { localLogistics } from '@/services/repositories/localDb';
 
 export default function ResourceMovementTrackerScreen() {
   const router = useRouter();
   const [trackingId, setTrackingId] = useState('');
+
+  // Fetch recent shipments from logistics that are in transit or pending
+  const recentShipments = localLogistics.filter(l => l.status === 'in_transit' || l.status === 'pending').slice(0, 3);
+
+  const handleSearch = () => {
+    // In a real app, this would route to a detail screen for the specific tracking ID
+    if (trackingId.trim()) {
+      alert(`Tracking ID ${trackingId} not found or feature in development.`);
+    }
+  };
 
   return (
     <ScreenContainer>
@@ -90,7 +101,7 @@ export default function ResourceMovementTrackerScreen() {
               placeholderTextColor="#94A3B8"
               className="flex-1 text-brand-navy font-bold text-[12px] h-10"
             />
-            <Pressable className="bg-purple-500 rounded-xl px-5 h-10 items-center justify-center active:bg-purple-600 shadow-sm shadow-purple-500/20">
+            <Pressable onPress={handleSearch} className="bg-purple-500 rounded-xl px-5 h-10 items-center justify-center active:bg-purple-600 shadow-sm shadow-purple-500/20">
               <Text className="text-white font-extrabold text-[12px]">Track Now</Text>
             </Pressable>
           </View>
@@ -263,13 +274,37 @@ export default function ResourceMovementTrackerScreen() {
         {/* Recent Shipments */}
         <View className="mb-6">
           <Text className="text-brand-navy font-black text-lg mb-4 px-1">Recent Shipments</Text>
-          <View className="bg-slate-50 border border-slate-100 rounded-3xl p-8 items-center justify-center shadow-sm">
-            <View className="w-12 h-12 rounded-full bg-white border border-slate-200 items-center justify-center mb-4 shadow-sm shadow-black/5">
-              <Feather name="package" size={20} color="#CBD5E1" />
+          
+          {recentShipments.length > 0 ? (
+            <View className="space-y-3">
+              {recentShipments.map((shipment) => (
+                <View key={shipment.id} className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex-row items-center mb-3">
+                  <View className={`w-10 h-10 rounded-full items-center justify-center mr-3 ${shipment.status === 'in_transit' ? 'bg-blue-100' : 'bg-orange-100'}`}>
+                    <Feather name={shipment.status === 'in_transit' ? 'truck' : 'clock'} size={18} color={shipment.status === 'in_transit' ? '#3B82F6' : '#F97316'} />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-brand-navy font-extrabold text-[13px] mb-0.5">{shipment.type}</Text>
+                    <Text className="text-slate-500 font-semibold text-[10px]">
+                      {shipment.from} <Feather name="arrow-right" size={10} /> {shipment.to}
+                    </Text>
+                  </View>
+                  <View className={`px-2 py-1 rounded-md ${shipment.status === 'in_transit' ? 'bg-blue-50 border border-blue-100' : 'bg-orange-50 border border-orange-100'}`}>
+                    <Text className={`font-bold text-[9px] ${shipment.status === 'in_transit' ? 'text-blue-600' : 'text-orange-600'}`}>
+                      {shipment.status === 'in_transit' ? 'In Transit' : 'Pending'}
+                    </Text>
+                  </View>
+                </View>
+              ))}
             </View>
-            <Text className="text-slate-500 font-bold text-[12px] mb-1">No recent shipments to display.</Text>
-            <Text className="text-slate-400 font-semibold text-[10px]">Enter a Tracking ID to get started.</Text>
-          </View>
+          ) : (
+            <View className="bg-slate-50 border border-slate-100 rounded-3xl p-8 items-center justify-center shadow-sm">
+              <View className="w-12 h-12 rounded-full bg-white border border-slate-200 items-center justify-center mb-4 shadow-sm shadow-black/5">
+                <Feather name="package" size={20} color="#CBD5E1" />
+              </View>
+              <Text className="text-slate-500 font-bold text-[12px] mb-1">No recent shipments to display.</Text>
+              <Text className="text-slate-400 font-semibold text-[10px]">Enter a Tracking ID to get started.</Text>
+            </View>
+          )}
         </View>
 
       </ScrollView>

@@ -21,7 +21,7 @@ export default function ProfileScreen() {
   const role = authState.role || 'DHO';
   const email = authState.email || 'rajesh.kumar@health.gov.in';
   const avatarUrl = authState.avatarUrl || 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=120&auto=format&fit=crop&q=80';
-  const location = authState.facilityId === 'phc_dharampur' ? 'Dharampur PHC, UP' : (authState.facilityId === 'f1' ? 'Dharampur Block, UP' : 'Devgarh District, UP');
+  const location = authState.facilityId === 'phc_barola' ? 'PHC Barola, UP' : (authState.facilityId === 'f1' ? 'Bisrakh Block, UP' : 'Gautam Budh Nagar, UP');
 
   return (
     <ScreenContainer>

@@ -5,7 +5,7 @@ export const dummyAttendance: AttendanceRecord[] = [
   {
     id: 'att1',
     date: '2026-06-29',
-    facilityId: 'phc_dharampur',
+    facilityId: 'phc_barola',
     staffName: 'Dr. Vikram Patel',
     role: 'PHC_MO',
     present: true,
@@ -14,7 +14,7 @@ export const dummyAttendance: AttendanceRecord[] = [
   {
     id: 'att2',
     date: '2026-06-29',
-    facilityId: 'phc_kalan',
+    facilityId: 'phc_badalpur',
     staffName: 'Dr. Sarita Varma',
     role: 'PHC_MO',
     present: false,
@@ -22,7 +22,7 @@ export const dummyAttendance: AttendanceRecord[] = [
   {
     id: 'att3',
     date: '2026-06-29',
-    facilityId: 'phc_sewapur',
+    facilityId: 'phc_mandi_shyam_nagar',
     staffName: 'Dr. Vikram Patel',
     role: 'PHC_MO',
     present: true,

@@ -2,10 +2,31 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput } from 'react-native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
+import { localMedicines } from '@/services/repositories/localDb';
+import { dummyPHCs } from '@/dummy/phcs';
 
 export default function InventoryScreen() {
   const { authState } = useAuth();
   const [activeCategory, setActiveCategory] = useState('All Items');
+
+  const assignedFacilityId = authState?.facilityId || 'phc_barola';
+  const facilityMedicines = localMedicines.filter(m => m.facilityId === assignedFacilityId);
+  const phcName = dummyPHCs.find(p => p.id === assignedFacilityId)?.name || 'PHC Main Branch';
+
+  const totalItems = facilityMedicines.length;
+  const outOfStock = facilityMedicines.filter(m => m.currentStock === 0).length;
+  const lowStockList = facilityMedicines.filter(m => m.currentStock <= m.minRequiredStock && m.currentStock > 0);
+  const lowStock = lowStockList.length;
+  const inStock = totalItems - outOfStock - lowStock;
+
+  // Filter for rendering items
+  const filteredMedicines = facilityMedicines.filter(m => {
+    if (activeCategory === 'All Items') return true;
+    if (activeCategory === 'Medicines' && ['TABLET', 'SYRUP', 'INJECTION', 'EMERGENCY'].includes(m.type)) return true;
+    if (activeCategory === 'Vaccines' && m.type === 'VACCINE') return true;
+    // For other categories, map roughly or show all for now since mock data types are limited
+    return true;
+  });
 
   const categories = [
     { id: 'all', name: 'All Items', icon: 'grid', color: '#3B82F6', bg: '#EFF6FF' },
@@ -28,7 +49,7 @@ export default function InventoryScreen() {
           </View>
           <TouchableOpacity className="bg-white px-3 py-2 rounded-xl border border-slate-200 shadow-sm flex-row items-center active:opacity-60">
             <MaterialCommunityIcons name="hospital-building" size={16} color="#3B82F6" />
-            <Text className="text-slate-700 font-bold text-[11px] mx-1.5">PHC Main Branch</Text>
+            <Text className="text-slate-700 font-bold text-[11px] mx-1.5">{phcName}</Text>
             <Feather name="chevron-down" size={14} color="#64748B" />
           </TouchableOpacity>
         </View>
@@ -42,7 +63,7 @@ export default function InventoryScreen() {
               <View className="w-12 h-12 rounded-full bg-blue-600 items-center justify-center mb-3 shadow-md shadow-blue-500/30">
                 <Feather name="box" size={20} color="white" />
               </View>
-              <Text className="text-2xl font-black text-slate-800">512</Text>
+              <Text className="text-2xl font-black text-slate-800">{totalItems}</Text>
               <Text className="text-slate-500 text-[10px] font-bold mb-4">Total Items</Text>
               <TouchableOpacity className="bg-blue-100/80 px-4 py-1.5 rounded-full border border-blue-200">
                 <Text className="text-blue-600 font-bold text-[10px]">View all</Text>
@@ -54,7 +75,7 @@ export default function InventoryScreen() {
               <View className="w-12 h-12 rounded-full bg-emerald-500 items-center justify-center mb-3 shadow-md shadow-emerald-500/30">
                 <MaterialCommunityIcons name="clipboard-check-outline" size={20} color="white" />
               </View>
-              <Text className="text-2xl font-black text-slate-800">128</Text>
+              <Text className="text-2xl font-black text-slate-800">{inStock}</Text>
               <Text className="text-slate-500 text-[10px] font-bold mb-4">In Stock</Text>
               <View className="bg-emerald-100/80 px-3 py-1.5 rounded-full border border-emerald-200">
                 <Text className="text-emerald-700 font-bold text-[10px]">Sufficient</Text>
@@ -66,7 +87,7 @@ export default function InventoryScreen() {
               <View className="w-12 h-12 rounded-full bg-orange-400 items-center justify-center mb-3 shadow-md shadow-orange-500/30">
                 <Feather name="alert-triangle" size={20} color="white" />
               </View>
-              <Text className="text-2xl font-black text-slate-800">23</Text>
+              <Text className="text-2xl font-black text-slate-800">{lowStock}</Text>
               <Text className="text-slate-500 text-[10px] font-bold mb-4">Low Stock</Text>
               <View className="bg-orange-100/80 px-3 py-1.5 rounded-full border border-orange-200">
                 <Text className="text-orange-600 font-bold text-[10px]">Reorder Soon</Text>
@@ -78,7 +99,7 @@ export default function InventoryScreen() {
               <View className="w-12 h-12 rounded-full bg-red-500 items-center justify-center mb-3 shadow-md shadow-red-500/30">
                 <MaterialCommunityIcons name="cube-off-outline" size={22} color="white" />
               </View>
-              <Text className="text-2xl font-black text-slate-800">7</Text>
+              <Text className="text-2xl font-black text-slate-800">{outOfStock}</Text>
               <Text className="text-slate-500 text-[10px] font-bold mb-4">Out of Stock</Text>
               <View className="bg-red-100/80 px-2 py-1.5 rounded-full border border-red-200">
                 <Text className="text-red-700 font-bold text-[9px] tracking-tight">Need Attention</Text>
@@ -139,7 +160,7 @@ export default function InventoryScreen() {
             <View className="flex-1 pr-2">
               <Text className="text-[#991B1B] font-extrabold text-[14px] mb-0.5">Low Stock Alert</Text>
               <Text className="text-red-900/70 text-[11px] font-medium leading-relaxed">
-                23 items are running low. Reorder now to avoid stockouts.
+                {lowStock + outOfStock} items are running low or out of stock. Reorder now to avoid stockouts.
               </Text>
             </View>
             <TouchableOpacity className="bg-white px-4 py-2 rounded-full border border-red-200 shadow-sm active:bg-slate-50">
@@ -158,83 +179,41 @@ export default function InventoryScreen() {
           </View>
 
           <View className="bg-white rounded-3xl border border-slate-100 p-2 shadow-sm shadow-slate-200/50">
-            
-            {/* Item 1: Paracetamol */}
-            <View className="flex-row items-center py-3 px-2 border-b border-slate-50">
-              <View className="w-[46px] h-[46px] rounded-[14px] bg-[#EFF6FF] items-center justify-center mr-3 border border-blue-50">
-                <MaterialCommunityIcons name="pill" size={22} color="#3B82F6" />
-              </View>
-              <View className="flex-1">
-                <Text className="text-slate-800 font-extrabold text-[14px] mb-0.5">Paracetamol 500mg</Text>
-                <Text className="text-slate-400 font-semibold text-[11px]">Tablet</Text>
-              </View>
-              <View className="items-center mr-4 w-[50px]">
-                <Text className="text-slate-800 font-black text-[14px]">250</Text>
-                <Text className="text-emerald-500 font-bold text-[9px] mt-0.5">In Stock</Text>
-              </View>
-              <View className="bg-emerald-50 border border-emerald-100 px-2 py-1 rounded-md mr-3">
-                <Text className="text-emerald-600 font-bold text-[9px]">Sufficient</Text>
-              </View>
-              <Feather name="chevron-right" size={16} color="#CBD5E1" />
-            </View>
+            {filteredMedicines.map((item, idx) => {
+              const isOOS = item.currentStock === 0;
+              const isLow = item.currentStock <= item.minRequiredStock && item.currentStock > 0;
+              
+              const iconName = item.type === 'VACCINE' ? 'needle' : item.type === 'EMERGENCY' ? 'bottle-tonic-outline' : 'pill';
+              const bgColor = isOOS ? 'bg-[#FEF2F2]' : isLow ? 'bg-[#FFFBEB]' : 'bg-[#EFF6FF]';
+              const borderColor = isOOS ? 'border-red-50' : isLow ? 'border-orange-50' : 'border-blue-50';
+              const iconColor = isOOS ? '#EF4444' : isLow ? '#F59E0B' : '#3B82F6';
+              
+              const statusBg = isOOS ? 'bg-red-50' : isLow ? 'bg-orange-50' : 'bg-emerald-50';
+              const statusBorder = isOOS ? 'border-red-100' : isLow ? 'border-orange-100' : 'border-emerald-100';
+              const statusTextCol = isOOS ? 'text-red-600' : isLow ? 'text-orange-600' : 'text-emerald-600';
+              const statusText = isOOS ? 'Out of Stock' : isLow ? 'Low Stock' : 'Sufficient';
+              const stockTextCol = isOOS ? 'text-red-500' : isLow ? 'text-orange-500' : 'text-emerald-500';
 
-            {/* Item 2: Amoxicillin */}
-            <View className="flex-row items-center py-3 px-2 border-b border-slate-50">
-              <View className="w-[46px] h-[46px] rounded-[14px] bg-[#FFFBEB] items-center justify-center mr-3 border border-orange-50">
-                <MaterialCommunityIcons name="needle" size={22} color="#F59E0B" />
-              </View>
-              <View className="flex-1">
-                <Text className="text-slate-800 font-extrabold text-[14px] mb-0.5">Amoxicillin 250mg</Text>
-                <Text className="text-slate-400 font-semibold text-[11px]">Capsule</Text>
-              </View>
-              <View className="items-center mr-4 w-[50px]">
-                <Text className="text-slate-800 font-black text-[14px]">18</Text>
-                <Text className="text-orange-500 font-bold text-[9px] mt-0.5">In Stock</Text>
-              </View>
-              <View className="bg-orange-50 border border-orange-100 px-2 py-1 rounded-md mr-3">
-                <Text className="text-orange-600 font-bold text-[9px]">Low Stock</Text>
-              </View>
-              <Feather name="chevron-right" size={16} color="#CBD5E1" />
-            </View>
-
-            {/* Item 3: ORS Sachet */}
-            <View className="flex-row items-center py-3 px-2 border-b border-slate-50">
-              <View className="w-[46px] h-[46px] rounded-[14px] bg-[#FEF2F2] items-center justify-center mr-3 border border-red-50">
-                <MaterialCommunityIcons name="bottle-tonic-outline" size={22} color="#EF4444" />
-              </View>
-              <View className="flex-1">
-                <Text className="text-slate-800 font-extrabold text-[14px] mb-0.5">ORS Sachet</Text>
-                <Text className="text-slate-400 font-semibold text-[11px]">Sachet</Text>
-              </View>
-              <View className="items-center mr-4 w-[50px]">
-                <Text className="text-slate-800 font-black text-[14px]">0</Text>
-                <Text className="text-red-500 font-bold text-[9px] mt-0.5">In Stock</Text>
-              </View>
-              <View className="bg-red-50 border border-red-100 px-2 py-1 rounded-md mr-3">
-                <Text className="text-red-600 font-bold text-[9px]">Out of Stock</Text>
-              </View>
-              <Feather name="chevron-right" size={16} color="#CBD5E1" />
-            </View>
-
-            {/* Item 4: Surgical Gloves */}
-            <View className="flex-row items-center py-3 px-2">
-              <View className="w-[46px] h-[46px] rounded-[14px] bg-[#F5F3FF] items-center justify-center mr-3 border border-purple-50">
-                <MaterialCommunityIcons name="hand-back-right-outline" size={22} color="#8B5CF6" />
-              </View>
-              <View className="flex-1">
-                <Text className="text-slate-800 font-extrabold text-[14px] mb-0.5">Surgical Gloves</Text>
-                <Text className="text-slate-400 font-semibold text-[11px]">Pack of 10</Text>
-              </View>
-              <View className="items-center mr-4 w-[50px]">
-                <Text className="text-slate-800 font-black text-[14px]">35</Text>
-                <Text className="text-emerald-500 font-bold text-[9px] mt-0.5">In Stock</Text>
-              </View>
-              <View className="bg-emerald-50 border border-emerald-100 px-2 py-1 rounded-md mr-3">
-                <Text className="text-emerald-600 font-bold text-[9px]">Sufficient</Text>
-              </View>
-              <Feather name="chevron-right" size={16} color="#CBD5E1" />
-            </View>
-
+              return (
+                <View key={item.id} className={`flex-row items-center py-3 px-2 ${idx !== filteredMedicines.length - 1 ? 'border-b border-slate-50' : ''}`}>
+                  <View className={`w-[46px] h-[46px] rounded-[14px] ${bgColor} items-center justify-center mr-3 border ${borderColor}`}>
+                    <MaterialCommunityIcons name={iconName} size={22} color={iconColor} />
+                  </View>
+                  <View className="flex-1 pr-2">
+                    <Text className="text-slate-800 font-extrabold text-[14px] mb-0.5" numberOfLines={1}>{item.name}</Text>
+                    <Text className="text-slate-400 font-semibold text-[11px]">{item.type}</Text>
+                  </View>
+                  <View className="items-center mr-4 w-[50px]">
+                    <Text className="text-slate-800 font-black text-[14px]">{item.currentStock}</Text>
+                    <Text className={`${stockTextCol} font-bold text-[9px] mt-0.5`}>In Stock</Text>
+                  </View>
+                  <View className={`${statusBg} border ${statusBorder} px-2 py-1 rounded-md mr-3`}>
+                    <Text className={`${statusTextCol} font-bold text-[9px]`}>{statusText}</Text>
+                  </View>
+                  <Feather name="chevron-right" size={16} color="#CBD5E1" />
+                </View>
+              );
+            })}
           </View>
         </View>
 

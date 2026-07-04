@@ -3,13 +3,14 @@ import { View, Text, Pressable, ScrollView, ActivityIndicator, Image } from 'rea
 import { useRouter } from 'expo-router';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import ScreenContainer from '@/components/ui/layout/ScreenContainer';
+import { localRecommendations } from '@/services/repositories/localDb';
 
 export default function ScenarioSimulatorScreen() {
   const router = useRouter();
   
   const [scenario, setScenario] = useState('Dengue Outbreak Surge');
   const [severity, setSeverity] = useState('High');
-  const [region, setRegion] = useState('Devgarh District');
+  const [region, setRegion] = useState('Gautam Budh Nagar');
   const [timeWindow, setTimeWindow] = useState('Next 7 Days');
   
   const [simulating, setSimulating] = useState(false);
@@ -228,7 +229,9 @@ export default function ScenarioSimulatorScreen() {
                 </View>
               </View>
               <Text className="text-slate-600 font-semibold text-[10px] leading-relaxed">
-                Based on regional trends, climate indices, and current case patterns, a high severity dengue scenario may cause a sharp rise in patient admissions within 72 hours. Immediate action is recommended to prevent resource strain.
+                {localRecommendations.length > 0 
+                  ? localRecommendations[0].reasoning 
+                  : "Based on regional trends, climate indices, and current case patterns, a high severity scenario may cause a sharp rise in patient admissions within 72 hours. Immediate action is recommended to prevent resource strain."}
               </Text>
             </View>
 
@@ -284,22 +287,18 @@ export default function ScenarioSimulatorScreen() {
                 </View>
 
                 <View className="space-y-2">
-                  <View className="flex-row items-start">
-                    <Feather name="check-circle" size={10} color="#3B82F6" className="mt-0.5 mr-2" />
-                    <Text className="text-brand-navy font-semibold text-[9px] leading-3 flex-1">Redistribute 50 Dengue Kits to high-risk PHCs within 24 hrs.</Text>
-                  </View>
-                  <View className="flex-row items-start">
-                    <Feather name="check-circle" size={10} color="#3B82F6" className="mt-0.5 mr-2" />
-                    <Text className="text-brand-navy font-semibold text-[9px] leading-3 flex-1">Ensure 1000+ ORS sachets available in all PHCs.</Text>
-                  </View>
-                  <View className="flex-row items-start">
-                    <Feather name="check-circle" size={10} color="#3B82F6" className="mt-0.5 mr-2" />
-                    <Text className="text-brand-navy font-semibold text-[9px] leading-3 flex-1">Increase awareness & vector control in urban hotspots.</Text>
-                  </View>
-                  <View className="flex-row items-start">
-                    <Feather name="check-circle" size={10} color="#3B82F6" className="mt-0.5 mr-2" />
-                    <Text className="text-brand-navy font-semibold text-[9px] leading-3 flex-1">Activate outbreak response team and daily monitoring.</Text>
-                  </View>
+                  {localRecommendations.slice(0, 3).map((rec, i) => (
+                    <View key={rec.id} className="flex-row items-start">
+                      <Feather name="check-circle" size={10} color="#3B82F6" className="mt-0.5 mr-2" />
+                      <Text className="text-brand-navy font-semibold text-[9px] leading-3 flex-1">{rec.title}</Text>
+                    </View>
+                  ))}
+                  {localRecommendations.length === 0 && (
+                    <View className="flex-row items-start">
+                      <Feather name="check-circle" size={10} color="#3B82F6" className="mt-0.5 mr-2" />
+                      <Text className="text-brand-navy font-semibold text-[9px] leading-3 flex-1">Ensure resources are properly stocked based on regular schedules.</Text>
+                    </View>
+                  )}
                 </View>
               </View>
 

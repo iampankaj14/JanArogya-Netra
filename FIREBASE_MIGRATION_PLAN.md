@@ -105,7 +105,7 @@ For conversational search queries (Netra AI) and Scenario Simulations:
    ```typescript
    import { GoogleGenAI } from '@google/generative-ai';
    // System prompt context:
-   const systemPrompt = "You are the Devgarh District Health Intelligence officer...";
+   const systemPrompt = "You are the Gautam Budh Nagar Health Intelligence officer...";
    ```
 3. **Structured Response output**: The Gemini model returns a structured JSON payload conforming to the `ScenarioSimulationResult` interface.
 4. **UI Update**: The Cloud Function returns this JSON. The repository updates the state, and the UI displays the results using the placeholder charts.

@@ -13,31 +13,41 @@ export default function PHCsScreen() {
   
   const [searchQuery, setSearchQuery] = useState('');
   
-  // BMOs are restricted to their specific block (Simulating 'Rampur' as the BMO's block for demo)
   const isBMO = authState?.role === 'BMO';
-  const assignedBlock = 'Rampur';
+  const isPHC = authState?.role === 'PHC';
+  const assignedFacilityId = authState?.facilityId;
+
+  // 1. Role-based Base Filtering
+  const roleFilteredPHCs = dummyPHCs.filter((phc) => {
+    if (isBMO && phc.block !== assignedFacilityId) return false;
+    if (isPHC && phc.id !== assignedFacilityId) return false;
+    return true;
+  });
+
+  // Calculate dynamic metrics
+  const totalCount = roleFilteredPHCs.length;
+  const operationalCount = roleFilteredPHCs.filter(p => p.healthScore >= 90).length;
+  const attentionCount = roleFilteredPHCs.filter(p => p.healthScore >= 70 && p.healthScore < 90).length;
+  const criticalCount = roleFilteredPHCs.filter(p => p.healthScore < 70).length;
 
   type MetricFilter = 'total' | 'operational' | 'attention' | 'critical';
   const [activeMetricFilter, setActiveMetricFilter] = useState<MetricFilter>('total');
 
-  // Filtering Logic
-  const filteredPHCs = dummyPHCs.filter((phc) => {
-    // 1. Role-based Block filtering
-    if (isBMO && phc.block !== assignedBlock) return false;
-    
-    // 2. Text Search Filtering
-    const matchesSearch =
-      phc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      phc.block.toLowerCase().includes(searchQuery.toLowerCase());
+  // Filtering Logic for List
+  const filteredPHCs = roleFilteredPHCs.filter((phc) => {
+    // 2. Text Search Filtering (Robust multi-word search)
+    const searchTerms = searchQuery.toLowerCase().trim().split(/\\s+/);
+    const targetString = `${phc.name} ${phc.block}`.toLowerCase();
+    const matchesSearch = searchTerms.every(term => targetString.includes(term));
 
     // 3. Metric Card Filtering
     let matchesMetric = true;
     if (activeMetricFilter === 'operational') {
-      matchesMetric = phc.stockStatus === 'adequate';
+      matchesMetric = phc.healthScore >= 90;
     } else if (activeMetricFilter === 'attention') {
-      matchesMetric = phc.stockStatus === 'warning';
+      matchesMetric = phc.healthScore >= 70 && phc.healthScore < 90;
     } else if (activeMetricFilter === 'critical') {
-      matchesMetric = phc.stockStatus === 'critical';
+      matchesMetric = phc.healthScore < 70;
     }
 
     return matchesSearch && matchesMetric;
@@ -99,9 +109,9 @@ export default function PHCsScreen() {
             >
               <Image source={require('@/data/phc/metric icon/total_phc.png')} className="w-10 h-10 mr-3" resizeMode="contain" />
               <View>
-                <Text className="text-2xl font-black text-slate-800 leading-none">128</Text>
+                <Text className="text-2xl font-black text-slate-800 leading-none">{totalCount}</Text>
                 <Text className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">Total PHCs</Text>
-                <Text className="text-[8px] text-slate-400">All Blocks</Text>
+                <Text className="text-[8px] text-slate-400">{isBMO ? 'Your Block' : isPHC ? 'Your Facility' : 'All Blocks'}</Text>
               </View>
             </TouchableOpacity>
 
@@ -113,9 +123,9 @@ export default function PHCsScreen() {
             >
               <Image source={require('@/data/phc/metric icon/fine.png')} className="w-10 h-10 mr-3" resizeMode="contain" />
               <View>
-                <Text className="text-2xl font-black text-slate-800 leading-none">92</Text>
+                <Text className="text-2xl font-black text-slate-800 leading-none">{operationalCount}</Text>
                 <Text className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">Operational</Text>
-                <Text className="text-[8px] text-slate-400">72% of total</Text>
+                <Text className="text-[8px] text-slate-400">{totalCount > 0 ? Math.round((operationalCount/totalCount)*100) : 0}% of total</Text>
               </View>
             </TouchableOpacity>
 
@@ -127,9 +137,9 @@ export default function PHCsScreen() {
             >
               <Image source={require('@/data/phc/metric icon/need.png')} className="w-10 h-10 mr-3" resizeMode="contain" />
               <View>
-                <Text className="text-2xl font-black text-slate-800 leading-none">24</Text>
+                <Text className="text-2xl font-black text-slate-800 leading-none">{attentionCount}</Text>
                 <Text className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">Need Attention</Text>
-                <Text className="text-[8px] text-slate-400">19% of total</Text>
+                <Text className="text-[8px] text-slate-400">{totalCount > 0 ? Math.round((attentionCount/totalCount)*100) : 0}% of total</Text>
               </View>
             </TouchableOpacity>
 
@@ -141,9 +151,9 @@ export default function PHCsScreen() {
             >
               <Image source={require('@/data/phc/metric icon/critical.png')} className="w-10 h-10 mr-3" resizeMode="contain" />
               <View>
-                <Text className="text-2xl font-black text-slate-800 leading-none">12</Text>
+                <Text className="text-2xl font-black text-slate-800 leading-none">{criticalCount}</Text>
                 <Text className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">Critical</Text>
-                <Text className="text-[8px] text-slate-400">9% of total</Text>
+                <Text className="text-[8px] text-slate-400">{totalCount > 0 ? Math.round((criticalCount/totalCount)*100) : 0}% of total</Text>
               </View>
             </TouchableOpacity>
 
@@ -165,6 +175,9 @@ export default function PHCsScreen() {
                   doctorAvailable={item.doctorAvailable}
                   stockStatus={item.stockStatus}
                   activeAlertsCount={item.activeAlertsCount}
+                  staffPresent={item.staffPresent}
+                  staffTotal={item.staffTotal}
+                  weeklyFootfall={item.weeklyFootfall}
                   onPress={() => handlePHCPress(item.id)}
                 />
               </View>
