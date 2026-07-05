@@ -5,11 +5,13 @@ import { Feather } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
 import PHCCard from '@/components/ui/cards/PHCCard';
 import EmptyState from '@/components/ui/feedback/EmptyState';
-import { dummyPHCs } from '@/dummy/phcs';
+import { localPHCs } from '@/services/repositories/localDb';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function PHCsScreen() {
   const router = useRouter();
   const { authState } = useAuth();
+  const { t } = useTranslation();
   
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -18,7 +20,7 @@ export default function PHCsScreen() {
   const assignedFacilityId = authState?.facilityId;
 
   // 1. Role-based Base Filtering
-  const roleFilteredPHCs = dummyPHCs.filter((phc) => {
+  const roleFilteredPHCs = localPHCs.filter((phc) => {
     if (isBMO && phc.block !== assignedFacilityId) return false;
     if (isPHC && phc.id !== assignedFacilityId) return false;
     return true;
@@ -36,7 +38,7 @@ export default function PHCsScreen() {
   // Filtering Logic for List
   const filteredPHCs = roleFilteredPHCs.filter((phc) => {
     // 2. Text Search Filtering (Robust multi-word search)
-    const searchTerms = searchQuery.toLowerCase().trim().split(/\\s+/);
+    const searchTerms = searchQuery.toLowerCase().trim().split(/\s+/);
     const targetString = `${phc.name} ${phc.block}`.toLowerCase();
     const matchesSearch = searchTerms.every(term => targetString.includes(term));
 
@@ -70,8 +72,8 @@ export default function PHCsScreen() {
           <View className="flex-row items-center justify-between z-10 mt-2">
             {/* Left Header */}
             <View className="flex-1 pr-32">
-              <Text className="text-2xl font-black text-brand-navy leading-tight tracking-tight">Primary Health Centers</Text>
-              <Text className="text-slate-500 text-xs mt-1 leading-relaxed">Operational directories and real-time score registries</Text>
+              <Text className="text-2xl font-black text-brand-navy leading-tight tracking-tight">{t('phcsListTitle')}</Text>
+              <Text className="text-slate-500 text-xs mt-1 leading-relaxed">{t('phcsListSubtitle')}</Text>
             </View>
           </View>
 
@@ -80,6 +82,7 @@ export default function PHCsScreen() {
             <Image 
               source={require('@/data/phc/phc illustration/green1.png')} 
               className="w-36 h-28"
+              style={{ width: 144, height: 112 }}
               resizeMode="contain"
             />
           </View>
@@ -89,7 +92,7 @@ export default function PHCsScreen() {
             <Feather name="search" size={18} color="#94A3B8" />
             <TextInput
               className="flex-1 ml-3 text-slate-800 font-medium text-sm"
-              placeholder="Search by center name or block..."
+              placeholder={t('phcsSearchPlaceholder')}
               placeholderTextColor="#94A3B8"
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -107,11 +110,11 @@ export default function PHCsScreen() {
               onPress={() => setActiveMetricFilter('total')}
               className={`w-[48%] rounded-2xl p-3 shadow-sm border flex-row items-center ${activeMetricFilter === 'total' ? 'border-[#153488] bg-[#EFF6FF]' : 'border-slate-100 bg-white'}`}
             >
-              <Image source={require('@/data/phc/metric icon/total_phc.png')} className="w-10 h-10 mr-3" resizeMode="contain" />
+              <Image source={require('@/data/phc/metric icon/total_phc.png')} className="w-10 h-10 mr-3" style={{ width: 40, height: 40 }} resizeMode="contain" />
               <View>
                 <Text className="text-2xl font-black text-slate-800 leading-none">{totalCount}</Text>
-                <Text className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">Total PHCs</Text>
-                <Text className="text-[8px] text-slate-400">{isBMO ? 'Your Block' : isPHC ? 'Your Facility' : 'All Blocks'}</Text>
+                <Text className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">{t('phcsMetricTotalLabel')}</Text>
+                <Text className="text-[8px] text-slate-400">{isBMO ? t('phcsMetricYourBlock') : isPHC ? t('phcsMetricYourFacility') : t('phcsMetricAllBlocks')}</Text>
               </View>
             </TouchableOpacity>
 
@@ -121,11 +124,11 @@ export default function PHCsScreen() {
               onPress={() => setActiveMetricFilter('operational')}
               className={`w-[48%] rounded-2xl p-3 shadow-sm border flex-row items-center ${activeMetricFilter === 'operational' ? 'border-emerald-500 bg-[#ECFDF5]' : 'border-slate-100 bg-white'}`}
             >
-              <Image source={require('@/data/phc/metric icon/fine.png')} className="w-10 h-10 mr-3" resizeMode="contain" />
+              <Image source={require('@/data/phc/metric icon/fine.png')} className="w-10 h-10 mr-3" style={{ width: 40, height: 40 }} resizeMode="contain" />
               <View>
                 <Text className="text-2xl font-black text-slate-800 leading-none">{operationalCount}</Text>
-                <Text className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">Operational</Text>
-                <Text className="text-[8px] text-slate-400">{totalCount > 0 ? Math.round((operationalCount/totalCount)*100) : 0}% of total</Text>
+                <Text className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">{t('phcsMetricOperationalLabel')}</Text>
+                <Text className="text-[8px] text-slate-400">{`${totalCount > 0 ? Math.round((operationalCount/totalCount)*100) : 0}${t('phcsMetricOfTotalSuffix')}`}</Text>
               </View>
             </TouchableOpacity>
 
@@ -135,11 +138,11 @@ export default function PHCsScreen() {
               onPress={() => setActiveMetricFilter('attention')}
               className={`w-[48%] rounded-2xl p-3 shadow-sm border flex-row items-center ${activeMetricFilter === 'attention' ? 'border-amber-500 bg-[#FFFBEB]' : 'border-slate-100 bg-white'}`}
             >
-              <Image source={require('@/data/phc/metric icon/need.png')} className="w-10 h-10 mr-3" resizeMode="contain" />
+              <Image source={require('@/data/phc/metric icon/need.png')} className="w-10 h-10 mr-3" style={{ width: 40, height: 40 }} resizeMode="contain" />
               <View>
                 <Text className="text-2xl font-black text-slate-800 leading-none">{attentionCount}</Text>
-                <Text className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">Need Attention</Text>
-                <Text className="text-[8px] text-slate-400">{totalCount > 0 ? Math.round((attentionCount/totalCount)*100) : 0}% of total</Text>
+                <Text className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">{t('phcsMetricAttentionLabel')}</Text>
+                <Text className="text-[8px] text-slate-400">{`${totalCount > 0 ? Math.round((attentionCount/totalCount)*100) : 0}${t('phcsMetricOfTotalSuffix')}`}</Text>
               </View>
             </TouchableOpacity>
 
@@ -149,11 +152,11 @@ export default function PHCsScreen() {
               onPress={() => setActiveMetricFilter('critical')}
               className={`w-[48%] rounded-2xl p-3 shadow-sm border flex-row items-center ${activeMetricFilter === 'critical' ? 'border-red-500 bg-[#FEF2F2]' : 'border-slate-100 bg-white'}`}
             >
-              <Image source={require('@/data/phc/metric icon/critical.png')} className="w-10 h-10 mr-3" resizeMode="contain" />
+              <Image source={require('@/data/phc/metric icon/critical.png')} className="w-10 h-10 mr-3" style={{ width: 40, height: 40 }} resizeMode="contain" />
               <View>
                 <Text className="text-2xl font-black text-slate-800 leading-none">{criticalCount}</Text>
-                <Text className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">Critical</Text>
-                <Text className="text-[8px] text-slate-400">{totalCount > 0 ? Math.round((criticalCount/totalCount)*100) : 0}% of total</Text>
+                <Text className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">{t('phcsMetricCriticalLabel')}</Text>
+                <Text className="text-[8px] text-slate-400">{`${totalCount > 0 ? Math.round((criticalCount/totalCount)*100) : 0}${t('phcsMetricOfTotalSuffix')}`}</Text>
               </View>
             </TouchableOpacity>
 
@@ -163,7 +166,7 @@ export default function PHCsScreen() {
         {/* LIST */}
         <View className="px-4 mt-2">
           {filteredPHCs.length === 0 ? (
-            <EmptyState title="No Facilities Found" description="No health centers matched your selected filters." />
+            <EmptyState title={t('phcsEmptyTitle')} description={t('phcsEmptyDescription')} />
           ) : (
             filteredPHCs.map((item) => (
               <View key={item.id} className="mb-4">

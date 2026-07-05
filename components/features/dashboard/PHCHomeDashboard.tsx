@@ -1,11 +1,13 @@
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Dimensions, ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import React, { useState } from 'react';
+import { Dimensions, ScrollView, Text, TouchableOpacity, View, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { useInventory } from '../../../hooks/useInventory';
 import dummyAlerts from '../../../dummy/alerts';
 import { localTasks, updateLocalTask } from '../../../services/repositories/localDb';
+import { dummyPHCs } from '../../../dummy/phcs';
+import { useTranslation } from '@/hooks/useTranslation';
 
 const { width } = Dimensions.get('window');
 const isTablet = width >= 768;
@@ -13,6 +15,7 @@ const isTablet = width >= 768;
 export default function PHCHomeDashboard() {
   const { authState } = useAuth();
   const router = useRouter();
+  const { t } = useTranslation();
 
   const facilityId = authState?.facilityId || 'phc_barola';
   const { stocks } = useInventory(facilityId);
@@ -40,6 +43,56 @@ export default function PHCHomeDashboard() {
     'phc_mandi_shyam_nagar': 'PHC Mandi Shyam Nagar',
   };
   const facilityName = facilityNames[facilityId] || 'PHC Barola';
+  const phc = dummyPHCs.find(p => p.id === facilityId) || dummyPHCs[0];
+
+  const todayFootfall = phc.weeklyFootfall ? phc.weeklyFootfall[phc.weeklyFootfall.length - 1] : 142;
+  const yesterdayFootfall = phc.weeklyFootfall ? phc.weeklyFootfall[phc.weeklyFootfall.length - 2] : 130;
+  const footfallPct = yesterdayFootfall ? Math.round(((todayFootfall - yesterdayFootfall) / yesterdayFootfall) * 100) : 12;
+
+  const ipdOccupancy = Math.round((phc.bedsOccupied / Math.max(1, phc.bedsTotal)) * 100);
+  const pendingTests = Math.round(todayFootfall * 0.25);
+
+  const newPatients = Math.round(todayFootfall * 0.6);
+  const referrals = Math.round(todayFootfall * 0.05);
+  const labTests = Math.round(todayFootfall * 0.2);
+  const followUps = Math.round(todayFootfall * 0.15);
+  const discharges = Math.round(phc.bedsOccupied * 0.15);
+
+  const currentDate = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+
+  const [weatherData, setWeatherData] = useState<{temp: number, humidity: number, code: number} | null>(null);
+
+  useEffect(() => {
+    if (phc.latitude && phc.longitude) {
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${phc.latitude}&longitude=${phc.longitude}&current=temperature_2m,relative_humidity_2m,weather_code`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.current) {
+            setWeatherData({
+              temp: Math.round(data.current.temperature_2m),
+              humidity: Math.round(data.current.relative_humidity_2m),
+              code: data.current.weather_code
+            });
+          }
+        })
+        .catch(err => console.log('Weather fetch error:', err));
+    }
+  }, [phc.latitude, phc.longitude]);
+
+  const getWeatherInfo = (code: number) => {
+    if (code === 0) return { label: 'Clear Sky', icon: 'weather-sunny', color: '#FBBF24' };
+    if (code >= 1 && code <= 3) return { label: 'Partly Cloudy', icon: 'weather-partly-cloudy', color: '#FBBF24' };
+    if (code >= 45 && code <= 48) return { label: 'Fog', icon: 'weather-fog', color: '#94A3B8' };
+    if (code >= 51 && code <= 67) return { label: 'Rain', icon: 'weather-rainy', color: '#3B82F6' };
+    if (code >= 71 && code <= 77) return { label: 'Snow', icon: 'weather-snowy', color: '#93C5FD' };
+    if (code >= 80 && code <= 82) return { label: 'Showers', icon: 'weather-pouring', color: '#2563EB' };
+    if (code >= 95 && code <= 99) return { label: 'Thunderstorm', icon: 'weather-lightning', color: '#7C3AED' };
+    return { label: t('dashboardWeatherPartlyCloudy'), icon: 'weather-partly-cloudy', color: '#FBBF24' };
+  };
+
+  const wInfo = weatherData ? getWeatherInfo(weatherData.code) : { label: t('dashboardWeatherPartlyCloudy'), icon: 'weather-partly-cloudy', color: '#FBBF24' };
+  const displayTemp = weatherData ? `${weatherData.temp}°C` : '--°C';
+  const displayHum = weatherData ? `${weatherData.humidity}%` : '--%';
 
   return (
     <ScrollView className="flex-1 bg-[#F8FAFC]" contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
@@ -47,17 +100,17 @@ export default function PHCHomeDashboard() {
       {/* Header & Weather */}
       <View className="px-4 mt-6 flex-row justify-between items-start">
         <View className="flex-1 pr-2">
-          <Text className="text-3xl font-black text-[#1E3A8A] tracking-tight">Welcome, Staff 👋</Text>
-          <Text className="text-slate-500 text-[13px] font-semibold mt-1">{facilityName} • Today, 20 May 2025</Text>
+          <Text className="text-3xl font-black text-[#1E3A8A] tracking-tight">{t('dashboardWelcomeStaff')}</Text>
+          <Text className="text-slate-500 text-[13px] font-semibold mt-1">{facilityName} • {t('dashboardTodayLabel')} {currentDate}</Text>
         </View>
         <View className="bg-white rounded-[20px] p-3 shadow-sm border border-slate-100 flex-row items-center w-36">
-          <MaterialCommunityIcons name="weather-partly-cloudy" size={28} color="#FBBF24" />
-          <View className="ml-2">
+          <MaterialCommunityIcons name={wInfo.icon as any} size={28} color={wInfo.color} />
+          <View className="ml-2 flex-1">
             <View className="flex-row items-baseline">
-              <Text className="text-lg font-black text-slate-800">32°C</Text>
+              <Text className="text-lg font-black text-slate-800">{displayTemp}</Text>
             </View>
-            <Text className="text-[9px] font-bold text-slate-500">Partly Cloudy</Text>
-            <Text className="text-[9px] font-bold text-slate-400 mt-0.5"><Feather name="droplet" size={8} color="#3B82F6" /> 62%</Text>
+            <Text className="text-[9px] font-bold text-slate-500" numberOfLines={1}>{wInfo.label}</Text>
+            <Text className="text-[9px] font-bold text-slate-400 mt-0.5"><Feather name="droplet" size={8} color="#3B82F6" /> {displayHum}</Text>
           </View>
         </View>
       </View>
@@ -72,14 +125,14 @@ export default function PHCHomeDashboard() {
               <View className="w-8 h-8 rounded-full bg-blue-50 items-center justify-center mr-2 border border-blue-100/50">
                 <Feather name="users" size={14} color="#3B82F6" />
               </View>
-              <Text className="text-[10px] font-bold text-blue-600 tracking-widest uppercase">Today's OPD</Text>
+              <Text className="text-[10px] font-bold text-blue-600 tracking-widest uppercase">{t('dashboardCardTodaysOpd')}</Text>
             </View>
-            <Text className="text-4xl font-black text-[#1E3A8A]">142</Text>
-            <Text className="text-[11px] font-semibold text-slate-500 mb-4">Patients Served</Text>
+            <Text className="text-4xl font-black text-[#1E3A8A]">{todayFootfall}</Text>
+            <Text className="text-[11px] font-semibold text-slate-500 mb-4">{t('dashboardPatientsServed')}</Text>
             <View className="flex-row items-center mt-auto border-t border-slate-50 pt-3">
-              <Feather name="trending-up" size={12} color="#10B981" />
-              <Text className="text-[10px] font-bold text-emerald-500 mx-1">+12%</Text>
-              <Text className="text-[10px] text-slate-400 font-semibold">vs yesterday</Text>
+              <Feather name={footfallPct >= 0 ? "trending-up" : "trending-down"} size={12} color={footfallPct >= 0 ? "#10B981" : "#EF4444"} />
+              <Text className={`text-[10px] font-bold mx-1 ${footfallPct >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>{footfallPct >= 0 ? '+' : ''}{footfallPct}%</Text>
+              <Text className="text-[10px] text-slate-400 font-semibold">{t('dashboardVsYesterday')}</Text>
             </View>
           </View>
 
@@ -89,12 +142,12 @@ export default function PHCHomeDashboard() {
               <View className="w-8 h-8 rounded-full bg-red-50 items-center justify-center mr-2 border border-red-100/50">
                 <MaterialCommunityIcons name="pill" size={14} color="#EF4444" />
               </View>
-              <Text className="text-[10px] font-bold text-red-500 tracking-widest uppercase">Low Stock Items</Text>
+              <Text className="text-[10px] font-bold text-red-500 tracking-widest uppercase">{t('dashboardCardLowStockItems')}</Text>
             </View>
             <Text className="text-4xl font-black text-[#1E3A8A]">{lowStockCount}</Text>
-            <Text className="text-[11px] font-semibold text-slate-500 mb-4">Need Attention</Text>
+            <Text className="text-[11px] font-semibold text-slate-500 mb-4">{t('dashboardNeedAttention')}</Text>
             <TouchableOpacity className="flex-row items-center justify-between mt-auto border-t border-slate-50 pt-3 active:opacity-60" onPress={() => router.push('/(tabs)/inventory')}>
-              <Text className="text-[11px] font-bold text-red-500">View Stock</Text>
+              <Text className="text-[11px] font-bold text-red-500">{t('dashboardViewStock')}</Text>
               <Feather name="chevron-right" size={14} color="#EF4444" />
             </TouchableOpacity>
           </View>
@@ -105,12 +158,12 @@ export default function PHCHomeDashboard() {
               <View className="w-8 h-8 rounded-full bg-emerald-50 items-center justify-center mr-2 border border-emerald-100/50">
                 <MaterialCommunityIcons name="bed-outline" size={14} color="#10B981" />
               </View>
-              <Text className="text-[10px] font-bold text-emerald-500 tracking-widest uppercase">IPD Occupancy</Text>
+              <Text className="text-[10px] font-bold text-emerald-500 tracking-widest uppercase">{t('dashboardCardIpdOccupancy')}</Text>
             </View>
-            <Text className="text-4xl font-black text-[#1E3A8A]">68%</Text>
-            <Text className="text-[11px] font-semibold text-slate-500 mb-4">12 / 18 Beds Occupied</Text>
+            <Text className="text-4xl font-black text-[#1E3A8A]">{ipdOccupancy}%</Text>
+            <Text className="text-[11px] font-semibold text-slate-500 mb-4">{phc.bedsOccupied} / {phc.bedsTotal} {t('dashboardBedsOccupiedSuffix')}</Text>
             <TouchableOpacity onPress={() => router.push('/(tabs)/reports')} className="flex-row items-center justify-between mt-auto border-t border-slate-50 pt-3 active:opacity-60">
-              <Text className="text-[11px] font-bold text-emerald-500">View Details</Text>
+              <Text className="text-[11px] font-bold text-emerald-500">{t('dashboardViewDetails')}</Text>
               <Feather name="chevron-right" size={14} color="#10B981" />
             </TouchableOpacity>
           </View>
@@ -121,12 +174,12 @@ export default function PHCHomeDashboard() {
               <View className="w-8 h-8 rounded-full bg-purple-50 items-center justify-center mr-2 border border-purple-100/50">
                 <MaterialCommunityIcons name="flask-outline" size={14} color="#8B5CF6" />
               </View>
-              <Text className="text-[10px] font-bold text-purple-500 tracking-widest uppercase">Pending Tests</Text>
+              <Text className="text-[10px] font-bold text-purple-500 tracking-widest uppercase">{t('dashboardCardPendingTests')}</Text>
             </View>
-            <Text className="text-4xl font-black text-[#1E3A8A]">24</Text>
-            <Text className="text-[11px] font-semibold text-slate-500 mb-4">Awaiting Results</Text>
+            <Text className="text-4xl font-black text-[#1E3A8A]">{pendingTests}</Text>
+            <Text className="text-[11px] font-semibold text-slate-500 mb-4">{t('dashboardAwaitingResults')}</Text>
             <TouchableOpacity onPress={() => router.push('/(tabs)/reports')} className="flex-row items-center justify-between mt-auto border-t border-slate-50 pt-3 active:opacity-60">
-              <Text className="text-[11px] font-bold text-purple-500">View All</Text>
+              <Text className="text-[11px] font-bold text-purple-500">{t('dashboardViewAll')}</Text>
               <Feather name="chevron-right" size={14} color="#8B5CF6" />
             </TouchableOpacity>
           </View>
@@ -145,15 +198,18 @@ export default function PHCHomeDashboard() {
               <View className="flex-row items-center mb-1">
                 <Text className="text-[#991B1B] font-extrabold text-[15px] mr-2">{activeOutbreak.title}</Text>
                 <View className="bg-red-200/60 px-2 py-0.5 rounded-full border border-red-300">
-                  <Text className="text-red-700 font-bold text-[8px] tracking-wider uppercase">High Alert</Text>
+                  <Text className="text-red-700 font-bold text-[8px] tracking-wider uppercase">{t('dashboardHighAlertBadge')}</Text>
                 </View>
               </View>
               <Text className="text-red-900/80 text-[11px] font-medium leading-relaxed pr-8">
                 {activeOutbreak.description}
               </Text>
             </View>
-            <TouchableOpacity className="absolute right-4 top-4 bg-white px-2 py-1.5 rounded-full border border-red-200 flex-row items-center shadow-sm active:bg-slate-50">
-              <Text className="text-red-600 font-bold text-[9px] mr-0.5">View</Text>
+            <TouchableOpacity 
+              onPress={() => router.push('/emergency')}
+              className="absolute right-4 top-4 bg-white px-2 py-1.5 rounded-full border border-red-200 flex-row items-center shadow-sm active:bg-slate-50"
+            >
+              <Text className="text-red-600 font-bold text-[9px] mr-0.5">{t('dashboardAlertView')}</Text>
               <Feather name="chevron-right" size={10} color="#EF4444" />
             </TouchableOpacity>
           </View>
@@ -163,10 +219,10 @@ export default function PHCHomeDashboard() {
       {/* Today's Summary */}
       <View className="mt-8">
         <View className="px-4 flex-row justify-between items-center mb-4">
-          <Text className="text-slate-500 font-extrabold text-[12px] tracking-widest uppercase">Today's Summary</Text>
+          <Text className="text-slate-500 font-extrabold text-[12px] tracking-widest uppercase">{t('dashboardTodaysSummary')}</Text>
           <TouchableOpacity onPress={() => router.push('/(tabs)/reports')} className="flex-row items-center">
             <Feather name="pie-chart" size={12} color="#3B82F6" />
-            <Text className="text-blue-600 font-bold text-[12px] ml-1 mr-0.5">View Full Dashboard</Text>
+            <Text className="text-blue-600 font-bold text-[12px] ml-1 mr-0.5">{t('dashboardViewFullDashboard')}</Text>
             <Feather name="chevron-right" size={14} color="#3B82F6" />
           </TouchableOpacity>
         </View>
@@ -178,9 +234,8 @@ export default function PHCHomeDashboard() {
               <Feather name="user-plus" size={14} color="#3B82F6" />
             </View>
             <View>
-              <Text className="text-[#1E3A8A] font-black text-lg">82</Text>
-              <Text className="text-slate-500 text-[10px] font-semibold mb-0.5">New Patients</Text>
-              <Text className="text-emerald-500 text-[10px] font-bold">+8%</Text>
+              <Text className="text-[#1E3A8A] font-black text-lg">{newPatients}</Text>
+              <Text className="text-slate-500 text-[10px] font-semibold mb-0.5">{t('dashboardNewPatients')}</Text>
             </View>
           </View>
 
@@ -189,9 +244,8 @@ export default function PHCHomeDashboard() {
               <MaterialCommunityIcons name="hospital-building" size={14} color="#10B981" />
             </View>
             <View>
-              <Text className="text-[#1E3A8A] font-black text-lg">5</Text>
-              <Text className="text-slate-500 text-[10px] font-semibold mb-0.5">Referrals</Text>
-              <Text className="text-emerald-500 text-[10px] font-bold">+1</Text>
+              <Text className="text-[#1E3A8A] font-black text-lg">{referrals}</Text>
+              <Text className="text-slate-500 text-[10px] font-semibold mb-0.5">{t('dashboardReferrals')}</Text>
             </View>
           </View>
 
@@ -200,9 +254,8 @@ export default function PHCHomeDashboard() {
               <Feather name="user-check" size={14} color="#F97316" />
             </View>
             <View>
-              <Text className="text-[#1E3A8A] font-black text-lg">18</Text>
-              <Text className="text-slate-500 text-[10px] font-semibold mb-0.5">Lab Tests</Text>
-              <Text className="text-emerald-500 text-[10px] font-bold">+3</Text>
+              <Text className="text-[#1E3A8A] font-black text-lg">{labTests}</Text>
+              <Text className="text-slate-500 text-[10px] font-semibold mb-0.5">{t('dashboardLabTests')}</Text>
             </View>
           </View>
 
@@ -211,9 +264,8 @@ export default function PHCHomeDashboard() {
               <Feather name="users" size={14} color="#8B5CF6" />
             </View>
             <View>
-              <Text className="text-[#1E3A8A] font-black text-lg">3</Text>
-              <Text className="text-slate-500 text-[10px] font-semibold mb-0.5">Follow Ups</Text>
-              <Text className="text-slate-400 text-[10px] font-bold">+0</Text>
+              <Text className="text-[#1E3A8A] font-black text-lg">{followUps}</Text>
+              <Text className="text-slate-500 text-[10px] font-semibold mb-0.5">{t('dashboardFollowUps')}</Text>
             </View>
           </View>
 
@@ -222,9 +274,8 @@ export default function PHCHomeDashboard() {
               <MaterialCommunityIcons name="bed-empty" size={14} color="#14B8A6" />
             </View>
             <View>
-              <Text className="text-[#1E3A8A] font-black text-lg">2</Text>
-              <Text className="text-slate-500 text-[10px] font-semibold mb-0.5">Discharges</Text>
-              <Text className="text-emerald-500 text-[10px] font-bold">+1</Text>
+              <Text className="text-[#1E3A8A] font-black text-lg">{discharges}</Text>
+              <Text className="text-slate-500 text-[10px] font-semibold mb-0.5">{t('dashboardDischarges')}</Text>
             </View>
           </View>
 
@@ -235,7 +286,7 @@ export default function PHCHomeDashboard() {
 
         {/* Today's Tasks */}
         <View className="w-full">
-          <Text className="text-slate-500 font-extrabold text-[12px] tracking-widest uppercase mb-4">Today's Tasks</Text>
+          <Text className="text-slate-500 font-extrabold text-[12px] tracking-widest uppercase mb-4">{t('dashboardTodaysTasks')}</Text>
           <View className="bg-white rounded-[24px] border border-slate-100 shadow-sm shadow-slate-200/50 p-4 relative overflow-hidden">
             {/* Faint clipboard icon background */}
             <MaterialCommunityIcons name="clipboard-check-outline" size={120} color="#F1F5F9" style={{ position: 'absolute', top: -10, right: -20, opacity: 0.5, transform: [{ rotate: '15deg' }] }} />
@@ -263,8 +314,11 @@ export default function PHCHomeDashboard() {
 
             </View>
 
-            <TouchableOpacity className="mt-5 bg-[#F8FAFC] py-3 rounded-xl flex-row items-center justify-center border border-slate-100">
-              <Text className="text-blue-600 font-bold text-[11px] mr-1">View All Tasks</Text>
+            <TouchableOpacity 
+              onPress={() => Alert.alert(t('dashboardTasksAlertTitle'), t('dashboardTasksAlertMessage'))}
+              className="mt-5 bg-[#F8FAFC] py-3 rounded-xl flex-row items-center justify-center border border-slate-100"
+            >
+              <Text className="text-blue-600 font-bold text-[11px] mr-1">{t('dashboardViewAllTasks')}</Text>
               <Feather name="chevron-right" size={14} color="#3B82F6" />
             </TouchableOpacity>
 
@@ -282,9 +336,9 @@ export default function PHCHomeDashboard() {
                 <Feather name="shield" size={18} color="white" />
               </View>
               <View>
-                <Text className="text-emerald-800 font-black text-[15px] mb-0.5 tracking-tight">Facility Status: Operational</Text>
+                <Text className="text-emerald-800 font-black text-[15px] mb-0.5 tracking-tight">{t('dashboardFacilityStatusOperational')}</Text>
                 <View className="bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-200 self-start">
-                  <Text className="text-emerald-700 font-bold text-[9px]">All Systems Normal</Text>
+                  <Text className="text-emerald-700 font-bold text-[9px]">{t('dashboardAllSystemsNormal')}</Text>
                 </View>
               </View>
             </View>
@@ -297,8 +351,8 @@ export default function PHCHomeDashboard() {
                 <Feather name="wifi" size={10} color="#059669" />
               </View>
               <View>
-                <Text className="text-slate-500 font-semibold text-[9px]">Internet</Text>
-                <Text className="text-emerald-700 font-bold text-[10px]">Connected</Text>
+                <Text className="text-slate-500 font-semibold text-[9px]">{t('dashboardStatusInternet')}</Text>
+                <Text className="text-emerald-700 font-bold text-[10px]">{t('dashboardStatusConnected')}</Text>
               </View>
             </View>
 
@@ -307,8 +361,8 @@ export default function PHCHomeDashboard() {
                 <Feather name="cloud" size={10} color="#059669" />
               </View>
               <View>
-                <Text className="text-slate-500 font-semibold text-[9px]">EMR Sync</Text>
-                <Text className="text-emerald-700 font-bold text-[10px]">Synced</Text>
+                <Text className="text-slate-500 font-semibold text-[9px]">{t('dashboardStatusEmrSync')}</Text>
+                <Text className="text-emerald-700 font-bold text-[10px]">{t('dashboardStatusSynced')}</Text>
               </View>
             </View>
 
@@ -317,8 +371,8 @@ export default function PHCHomeDashboard() {
                 <Feather name="refresh-cw" size={10} color="#059669" />
               </View>
               <View>
-                <Text className="text-slate-500 font-semibold text-[9px]">Last Sync</Text>
-                <Text className="text-emerald-700 font-bold text-[10px]">5 min ago</Text>
+                <Text className="text-slate-500 font-semibold text-[9px]">{t('dashboardStatusLastSync')}</Text>
+                <Text className="text-emerald-700 font-bold text-[10px]">{t('dashboardStatusLastSyncValue')}</Text>
               </View>
             </View>
 
@@ -327,8 +381,8 @@ export default function PHCHomeDashboard() {
                 <Feather name="lock" size={10} color="#059669" />
               </View>
               <View>
-                <Text className="text-slate-500 font-semibold text-[9px]">Data Security</Text>
-                <Text className="text-emerald-700 font-bold text-[10px]">Secure</Text>
+                <Text className="text-slate-500 font-semibold text-[9px]">{t('dashboardStatusDataSecurity')}</Text>
+                <Text className="text-emerald-700 font-bold text-[10px]">{t('dashboardStatusSecure')}</Text>
               </View>
             </View>
 

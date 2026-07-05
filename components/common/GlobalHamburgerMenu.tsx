@@ -1,5 +1,6 @@
 import { useAuth } from '@/context/AuthContext';
-import { Feather } from '@expo/vector-icons';
+import { useTranslation } from '@/hooks/useTranslation';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { Animated, Dimensions, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -17,10 +18,11 @@ export function GlobalHamburgerMenu({ visible, onClose }: GlobalHamburgerMenuPro
   const router = useRouter();
   const slideAnim = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
-  const { authState } = useAuth();
+  const { authState, logout } = useAuth();
+  const { t } = useTranslation();
 
-  const name = authState?.name || 'Dr. Rajesh Kumar';
-  const roleDisplay = authState?.role === 'DHO' ? 'District Health Officer' : authState?.role === 'BMO' ? 'Block Medical Officer' : 'PHC Officer';
+  const name = authState?.name || t('menuDefaultName');
+  const roleDisplay = authState?.role === 'DHO' ? t('menuRoleDhoFallback') : authState?.role === 'BMO' ? t('menuRoleBmoFallback') : t('menuRolePhcFallback');
   const avatarUrl = authState?.avatarUrl || 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80';
 
   useEffect(() => {
@@ -68,8 +70,11 @@ export function GlobalHamburgerMenu({ visible, onClose }: GlobalHamburgerMenuPro
     >
       {/* Backdrop */}
       <Animated.View
-        style={{ opacity: backdropOpacity }}
-        className="absolute inset-0 bg-black/60"
+        style={{ 
+          opacity: backdropOpacity,
+          backgroundColor: 'rgba(0,0,0,0.6)'
+        }}
+        className="absolute inset-0"
       >
         <Pressable className="flex-1" onPress={onClose} />
       </Animated.View>
@@ -79,8 +84,9 @@ export function GlobalHamburgerMenu({ visible, onClose }: GlobalHamburgerMenuPro
         style={{
           transform: [{ translateX: slideAnim }],
           width: DRAWER_WIDTH,
+          backgroundColor: '#FFFFFF'
         }}
-        className="h-full bg-white rounded-r-[32px] shadow-2xl overflow-hidden"
+        className="h-full rounded-r-[32px] shadow-2xl overflow-hidden"
       >
         <SafeAreaView className="flex-1" edges={['top', 'bottom']}>
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 24, paddingBottom: 40 }}>
@@ -98,7 +104,7 @@ export function GlobalHamburgerMenu({ visible, onClose }: GlobalHamburgerMenuPro
                 <Feather name="shield" size={22} color="#3B82F6" />
               </View>
               <View className="flex-1 pr-2">
-                <Text className="text-blue-100 text-[9px] font-bold mb-0.5 tracking-wide">Welcome Back!</Text>
+                <Text className="text-blue-100 text-[9px] font-bold mb-0.5 tracking-wide">{t('menuWelcomeBack')}</Text>
                 <Text className="text-white font-black text-[15px] mb-0.5" numberOfLines={1}>{name}</Text>
                 <Text className="text-blue-200 text-[9px] font-medium" numberOfLines={1}>{roleDisplay}</Text>
               </View>
@@ -108,54 +114,55 @@ export function GlobalHamburgerMenu({ visible, onClose }: GlobalHamburgerMenuPro
             <View className="flex-row items-center justify-center mb-6">
               <View className="w-2 h-2 rounded-sm rotate-45 border border-slate-300" />
               <View className="h-[1px] w-6 bg-slate-200 mx-2" />
-              <Text className="text-slate-400 text-[10px] uppercase font-bold tracking-[2px]">Systems Commands</Text>
+              <Text className="text-slate-400 text-[10px] uppercase font-bold tracking-[2px]">{t('menuSystemsCommands')}</Text>
               <View className="h-[1px] w-6 bg-slate-200 mx-2" />
               <View className="w-2 h-2 rounded-sm rotate-45 border border-slate-300" />
             </View>
 
             {/* Menu Items */}
-            <View className="mb-8">
+            <View className="mb-8 relative">
+              <MaterialCommunityIcons name="hexagram-outline" size={180} color="rgba(59,130,246,0.03)" style={{position: 'absolute', top: 20, right: -40, zIndex: -1}} />
+              <MaterialCommunityIcons name="chart-bubble" size={140} color="rgba(16,185,129,0.03)" style={{position: 'absolute', bottom: -20, left: -20, zIndex: -1}} />
+                  <Pressable onPress={() => handleNavigate('/scenario-simulator')} className="bg-white rounded-2xl p-3 flex-row items-center border border-slate-100 shadow-sm shadow-black/5 active:bg-slate-50 mb-4">
+                    <View className="w-10 h-10 rounded-xl bg-blue-50 items-center justify-center mr-3">
+                      <Feather name="sliders" size={18} color="#3B82F6" />
+                    </View>
+                    <View className="flex-1 pr-2">
+                      <Text className="text-brand-navy font-extrabold text-[13px] mb-0.5">{t('menuScenarioSimulatorTitle')}</Text>
+                      <Text className="text-slate-500 text-[9px] font-semibold">{t('menuScenarioSimulatorDesc')}</Text>
+                    </View>
+                    <Feather name="chevron-right" size={16} color="#94A3B8" />
+                  </Pressable>
 
-              <Pressable onPress={() => handleNavigate('/scenario-simulator')} className="bg-white rounded-2xl p-3 flex-row items-center border border-slate-100 shadow-sm shadow-black/5 active:bg-slate-50 mb-4">
-                <View className="w-10 h-10 rounded-xl bg-blue-50 items-center justify-center mr-3">
-                  <Feather name="sliders" size={18} color="#3B82F6" />
-                </View>
-                <View className="flex-1 pr-2">
-                  <Text className="text-brand-navy font-extrabold text-[13px] mb-0.5">Scenario Simulator</Text>
-                  <Text className="text-slate-500 text-[9px] font-semibold">Run simulations & predict outcomes</Text>
-                </View>
-                <Feather name="chevron-right" size={16} color="#94A3B8" />
-              </Pressable>
+                  <Pressable onPress={() => handleNavigate('/resource-redistribution')} className="bg-white rounded-2xl p-3 flex-row items-center border border-slate-100 shadow-sm shadow-black/5 active:bg-slate-50 mb-4">
+                    <View className="w-10 h-10 rounded-xl bg-emerald-50 items-center justify-center mr-3">
+                      <Feather name="refresh-cw" size={18} color="#10B981" />
+                    </View>
+                    <View className="flex-1 pr-2">
+                      <Text className="text-brand-navy font-extrabold text-[13px] mb-0.5">{t('menuStockTransferTitle')}</Text>
+                      <Text className="text-slate-500 text-[9px] font-semibold">{t('menuStockTransferDesc')}</Text>
+                    </View>
+                    <Feather name="chevron-right" size={16} color="#94A3B8" />
+                  </Pressable>
 
-              <Pressable onPress={() => handleNavigate('/resource-redistribution')} className="bg-white rounded-2xl p-3 flex-row items-center border border-slate-100 shadow-sm shadow-black/5 active:bg-slate-50 mb-4">
-                <View className="w-10 h-10 rounded-xl bg-emerald-50 items-center justify-center mr-3">
-                  <Feather name="refresh-cw" size={18} color="#10B981" />
-                </View>
-                <View className="flex-1 pr-2">
-                  <Text className="text-brand-navy font-extrabold text-[13px] mb-0.5">Stock Transfer</Text>
-                  <Text className="text-slate-500 text-[9px] font-semibold">Transfer medicines & supplies</Text>
-                </View>
-                <Feather name="chevron-right" size={16} color="#94A3B8" />
-              </Pressable>
-
-              <Pressable onPress={() => handleNavigate('/resource-movement-tracker')} className="bg-white rounded-2xl p-3 flex-row items-center border border-slate-100 shadow-sm shadow-black/5 active:bg-slate-50 mb-4">
-                <View className="w-10 h-10 rounded-xl bg-orange-50 items-center justify-center mr-3">
-                  <Feather name="truck" size={18} color="#F59E0B" />
-                </View>
-                <View className="flex-1 pr-2">
-                  <Text className="text-brand-navy font-extrabold text-[13px] mb-0.5">Logistics Tracker</Text>
-                  <Text className="text-slate-500 text-[9px] font-semibold">Track deliveries & shipments</Text>
-                </View>
-                <Feather name="chevron-right" size={16} color="#94A3B8" />
-              </Pressable>
+                  <Pressable onPress={() => handleNavigate('/resource-movement-tracker')} className="bg-white rounded-2xl p-3 flex-row items-center border border-slate-100 shadow-sm shadow-black/5 active:bg-slate-50 mb-4">
+                    <View className="w-10 h-10 rounded-xl bg-orange-50 items-center justify-center mr-3">
+                      <Feather name="truck" size={18} color="#F59E0B" />
+                    </View>
+                    <View className="flex-1 pr-2">
+                      <Text className="text-brand-navy font-extrabold text-[13px] mb-0.5">{t('menuLogisticsTrackerTitle')}</Text>
+                      <Text className="text-slate-500 text-[9px] font-semibold">{t('menuLogisticsTrackerDesc')}</Text>
+                    </View>
+                    <Feather name="chevron-right" size={16} color="#94A3B8" />
+                  </Pressable>
 
               <Pressable onPress={() => handleNavigate('/settings')} className="bg-white rounded-2xl p-3 flex-row items-center border border-slate-100 shadow-sm shadow-black/5 active:bg-slate-50">
                 <View className="w-10 h-10 rounded-xl bg-pink-50 items-center justify-center mr-3">
                   <Feather name="settings" size={18} color="#EC4899" />
                 </View>
                 <View className="flex-1 pr-2">
-                  <Text className="text-brand-navy font-extrabold text-[13px] mb-0.5">Console Settings</Text>
-                  <Text className="text-slate-500 text-[9px] font-semibold">Manage console preferences</Text>
+                  <Text className="text-brand-navy font-extrabold text-[13px] mb-0.5">{t('menuConsoleSettingsTitle')}</Text>
+                  <Text className="text-slate-500 text-[9px] font-semibold">{t('menuConsoleSettingsDesc')}</Text>
                 </View>
                 <Feather name="chevron-right" size={16} color="#94A3B8" />
               </Pressable>
@@ -168,8 +175,8 @@ export function GlobalHamburgerMenu({ visible, onClose }: GlobalHamburgerMenuPro
                 <View className="w-5 h-5 rounded-full bg-blue-500 items-center justify-center mb-2">
                   <Feather name="star" size={10} color="#FFF" />
                 </View>
-                <Text className="text-brand-navy font-black text-[12px] mb-1">Smart Health. Better Decisions.</Text>
-                <Text className="text-slate-500 text-[9px] font-semibold leading-4">Data-driven insights for a healthier tomorrow.</Text>
+                <Text className="text-brand-navy font-black text-[12px] mb-1">{t('menuSmartHealthBannerTitle')}</Text>
+                <Text className="text-slate-500 text-[9px] font-semibold leading-4">{t('menuSmartHealthBannerDesc')}</Text>
               </View>
               {/* Fake illustration using views and icons */}
               <View className="w-14 h-16 bg-blue-400 rounded-lg justify-center items-center opacity-80 z-10 relative mr-1 border-2 border-white shadow-sm">
@@ -195,7 +202,7 @@ export function GlobalHamburgerMenu({ visible, onClose }: GlobalHamburgerMenuPro
                 <Text className="text-slate-500 text-[8px] font-extrabold uppercase tracking-widest">{roleDisplay}</Text>
               </View>
             </View>
-            <Pressable onPress={() => { onClose(); router.replace('/login'); }} className="p-2 bg-slate-50 rounded-xl border border-slate-200 active:bg-slate-100">
+            <Pressable onPress={async () => { await logout(); onClose(); router.replace('/login'); }} className="p-2 bg-slate-50 rounded-xl border border-slate-200 active:bg-slate-100">
               <Feather name="log-out" size={18} color="#64748B" />
             </Pressable>
           </View>

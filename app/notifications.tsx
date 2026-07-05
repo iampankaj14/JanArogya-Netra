@@ -5,12 +5,54 @@ import { Feather } from '@expo/vector-icons';
 import ScreenContainer from '@/components/ui/layout/ScreenContainer';
 import NotificationCard from '@/components/ui/cards/NotificationCard';
 import EmptyState from '@/components/ui/feedback/EmptyState';
-import { dummyNotifications } from '@/dummy/notifications';
+import { localNotifications } from '@/services/repositories/localDb';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function NotificationsScreen() {
   const router = useRouter();
-  const [notifications, setNotifications] = useState(dummyNotifications);
+  const { t, language } = useTranslation();
+  const [notifications, setNotifications] = useState(localNotifications);
   const [activeFilter, setActiveFilter] = useState('all');
+
+  const translateDynamic = (text: string) => {
+    if (language !== 'hi' || !text) return text;
+    
+    const map: Record<string, string> = {
+      'Notifications Inbox': 'नोटिफिकेशन्स इनबॉक्स',
+      'Stay updated with important alerts and updates': 'महत्वपूर्ण अलर्ट और अपडेट्स के साथ जुड़े रहें',
+      'Mark all as read': 'सभी को पढ़ा हुआ मानें',
+      'Clear all unread notifications': 'सभी अनरीड नोटिफिकेशन्स हटाएँ',
+      'Clear all': 'सभी साफ़ करें',
+      'Remove all notifications': 'सभी नोटिफिकेशन्स हटाएँ',
+      'All': 'सभी',
+      'Alerts': 'अलर्ट्स',
+      'Updates': 'अपडेट्स',
+      'Reports': 'रिपोर्ट्स',
+      'Inbox is Clear': 'इनबॉक्स खाली है',
+      'You have no unread notifications or outbreak warnings.': 'आपके पास कोई नया नोटिफिकेशन या चेतावनी नहीं है।',
+      'Transfer Dispatched': 'ट्रांसफर भेजा गया',
+      'Redistribution Approved': 'पुनर्वितरण स्वीकृत',
+      'New Epidemic Alert': 'नया महामारी अलर्ट',
+      'Monthly Summary Ready': 'मासिक सारांश तैयार',
+      'Dengue Surge Warning triggered for PHC Badalpur.': 'पीएचसी बादलपुर के लिए डेंगू वृद्धि चेतावनी जारी की गई है।',
+      'The AI-generated health briefing for Gautam Budh Nagar is now available.': 'गौतम बुद्ध नगर के लिए AI-जनित स्वास्थ्य ब्रीफिंग अब उपलब्ध है।',
+      'Low Stock Alert': 'लो स्टॉक अलर्ट',
+      '8 medicines are running low in stock across 3 PHCs.': '3 पीएचसी में 8 दवाओं का स्टॉक कम हो रहा है।',
+      'System Update Completed': 'सिस्टम अपडेट पूरा हुआ',
+      'System maintenance completed successfully at 10:00 AM.': 'सिस्टम मेंटेनेंस सुबह 10:00 बजे सफलतापूर्वक पूरा हुआ।'
+    };
+    
+    if (map[text]) return map[text];
+
+    let result = text;
+    result = result.replace(/Transfer of /g, 'का ट्रांसफर ');
+    result = result.replace(/ units of /g, ' यूनिट ');
+    result = result.replace(/ has been initialized\./g, ' शुरू कर दिया गया है।');
+    result = result.replace(/approved transfer of /g, 'ने ट्रांसफर को मंजूरी दी ');
+    result = result.replace(/ to /g, ' को ');
+    result = result.replace(/Dengue Kits/g, 'डेंगू किट्स');
+    return result;
+  };
 
   const handleMarkAllRead = () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
@@ -24,12 +66,17 @@ export default function NotificationsScreen() {
     if (activeFilter === 'all') return true;
     return n.type === activeFilter;
   });
+  
+  const allCount = notifications.length;
+  const alertCount = notifications.filter(n => n.type === 'alert').length;
+  const updateCount = notifications.filter(n => n.type === 'update').length;
+  const reportCount = notifications.filter(n => n.type === 'report').length;
 
   const filters = [
-    { id: 'all', label: 'All', icon: 'inbox', badge: 12, bgClass: 'bg-blue-50', iconColor: '#3B82F6', badgeBg: 'bg-blue-600' },
-    { id: 'alert', label: 'Alerts', icon: 'alert-triangle', badge: 4, bgClass: 'bg-red-50', iconColor: '#EF4444', badgeBg: 'bg-red-500' },
-    { id: 'update', label: 'Updates', icon: 'volume-2', badge: 5, bgClass: 'bg-emerald-50', iconColor: '#10B981', badgeBg: 'bg-emerald-500' },
-    { id: 'report', label: 'Reports', icon: 'file-text', badge: 3, bgClass: 'bg-purple-50', iconColor: '#8B5CF6', badgeBg: 'bg-purple-500' },
+    { id: 'all', label: 'All', icon: 'inbox', badge: allCount, bgClass: 'bg-blue-50', iconColor: '#3B82F6', badgeBg: 'bg-blue-600' },
+    { id: 'alert', label: 'Alerts', icon: 'alert-triangle', badge: alertCount, bgClass: 'bg-red-50', iconColor: '#EF4444', badgeBg: 'bg-red-500' },
+    { id: 'update', label: 'Updates', icon: 'volume-2', badge: updateCount, bgClass: 'bg-emerald-50', iconColor: '#10B981', badgeBg: 'bg-emerald-500' },
+    { id: 'report', label: 'Reports', icon: 'file-text', badge: reportCount, bgClass: 'bg-purple-50', iconColor: '#8B5CF6', badgeBg: 'bg-purple-500' },
   ];
 
   return (
@@ -51,8 +98,8 @@ export default function NotificationsScreen() {
             <Feather name="arrow-left" size={22} color="#000" />
           </Pressable>
           <View className="flex-1 pr-2">
-            <Text className="text-brand-navy font-black text-[22px] tracking-tight mb-1">Notifications Inbox</Text>
-            <Text className="text-slate-500 text-[11px] font-semibold">Stay updated with important alerts and updates</Text>
+            <Text className="text-brand-navy font-black text-[22px] tracking-tight mb-1">{translateDynamic('Notifications Inbox')}</Text>
+            <Text className="text-slate-500 text-[11px] font-semibold">{translateDynamic('Stay updated with important alerts and updates')}</Text>
           </View>
         </View>
       </View>
@@ -69,8 +116,8 @@ export default function NotificationsScreen() {
             <Feather name="check" size={16} color="#2563EB" />
           </View>
           <View className="flex-1">
-            <Text className="text-white font-extrabold text-[13px] mb-0.5">Mark all as read</Text>
-            <Text className="text-blue-100 text-[8px] font-bold">Clear all unread notifications</Text>
+            <Text className="text-white font-extrabold text-[13px] mb-0.5">{translateDynamic('Mark all as read')}</Text>
+            <Text className="text-blue-100 text-[8px] font-bold">{translateDynamic('Clear all unread notifications')}</Text>
           </View>
         </Pressable>
 
@@ -84,64 +131,62 @@ export default function NotificationsScreen() {
             <Feather name="trash-2" size={14} color="#EF4444" />
           </View>
           <View className="flex-1">
-            <Text className="text-red-600 font-extrabold text-[13px] mb-0.5">Clear all</Text>
-            <Text className="text-slate-500 text-[8px] font-bold">Remove all notifications</Text>
+            <Text className="text-red-600 font-extrabold text-[13px] mb-0.5">{translateDynamic('Clear all')}</Text>
+            <Text className="text-slate-500 text-[8px] font-bold">{translateDynamic('Remove all notifications')}</Text>
           </View>
         </Pressable>
       </View>
 
-      {/* Filter Pills */}
-      <View className="mb-6 -mx-4">
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16 }}>
-          {filters.map((filter) => {
-            const isActive = activeFilter === filter.id;
-            return (
-              <Pressable
-                key={filter.id}
-                onPress={() => setActiveFilter(filter.id)}
-                className={`flex-row items-center px-4 py-2.5 rounded-2xl mr-3 border ${
-                  isActive ? 'bg-white border-blue-200 shadow-sm shadow-blue-900/5' : 'bg-white/60 border-slate-100'
-                }`}
-              >
-                <Feather name={filter.icon as any} size={14} color={isActive ? filter.iconColor : '#94A3B8'} className="mr-2" />
-                <Text className={`font-bold text-[13px] mr-2 ${isActive ? 'text-black' : 'text-slate-500'}`}>
-                  {filter.label}
-                </Text>
-                <View className={`${isActive ? filter.badgeBg : 'bg-slate-300'} px-1.5 py-0.5 rounded-full`}>
-                  <Text className="text-white font-black text-[9px]">{filter.badge}</Text>
-                </View>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
+      {/* Filter Pills (Flex Wrap instead of Horizontal Scroll) */}
+      <View className="mb-6 flex-row flex-wrap gap-2">
+        {filters.map((filter) => {
+          const isActive = activeFilter === filter.id;
+          return (
+            <Pressable
+              key={filter.id}
+              onPress={() => setActiveFilter(filter.id)}
+              className={`flex-row items-center px-3 py-2 rounded-xl border ${
+                isActive ? 'bg-white border-blue-200 shadow-sm shadow-blue-900/5' : 'bg-slate-50 border-slate-200/60'
+              }`}
+            >
+              <Feather name={filter.icon as any} size={14} color={isActive ? filter.iconColor : '#94A3B8'} className="mr-2" />
+              <Text className={`font-bold text-[12px] mr-2 ${isActive ? 'text-slate-800' : 'text-slate-500'}`}>
+                {translateDynamic(filter.label)}
+              </Text>
+              <View className={`${isActive ? filter.badgeBg : 'bg-slate-300'} px-1.5 py-0.5 rounded-full`}>
+                <Text className="text-white font-black text-[9px]">{filter.badge}</Text>
+              </View>
+            </Pressable>
+          );
+        })}
       </View>
 
-      {/* Notification List */}
-      <View className="flex-1">
-        <FlatList
-          data={filteredNotifications}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={{ paddingBottom: 40 }}
-          showsVerticalScrollIndicator={false}
-          renderItem={({ item }) => (
-            <NotificationCard
-              title={item.title}
-              message={item.message}
-              timestamp={item.timestamp}
-              read={item.read}
-              category={item.category}
-              isNew={item.isNew}
-              onPress={() => {}}
-            />
-          )}
-          ListEmptyComponent={
-            <EmptyState
-              title="Inbox is Clear"
-              description="You have no unread notifications or outbreak warnings."
-              icon="bell"
-            />
-          }
-        />
+      {/* Notification List (Standard map instead of FlatList to prevent freeze) */}
+      <View className="flex-1 pb-10">
+        {filteredNotifications.length === 0 ? (
+          <EmptyState
+            title={translateDynamic('Inbox is Clear')}
+            description={translateDynamic('You have no unread notifications or outbreak warnings.')}
+            icon="bell"
+          />
+        ) : (
+          filteredNotifications.map((item) => (
+            <View key={item.id} className="mb-3">
+              <NotificationCard
+                title={translateDynamic(item.title)}
+                message={translateDynamic(item.message)}
+                timestamp={item.timestamp}
+                read={item.read}
+                category={item.category}
+                isNew={item.isNew}
+                onPress={() => {
+                  if (item.type === 'alert') router.push('/emergency');
+                  else router.push('/reports');
+                }}
+              />
+            </View>
+          ))
+        )}
       </View>
 
     </ScreenContainer>

@@ -6,6 +6,8 @@ export const medicineTypes = {
   VACCINES: 'Vaccines',
   CHRONIC_CARE: 'Chronic Care (Insulin, BP, etc.)',
   EMERGENCY: 'Emergency Medicines',
+  EQUIPMENT: 'Medical Equipment',
+  CONSUMABLES: 'Consumables & Disposables',
 } as const;
 
 export type MedicineType = keyof typeof medicineTypes;

@@ -1,11 +1,13 @@
 import { Feather } from '@expo/vector-icons';
-import { Tabs, useRouter } from 'expo-router';
+import { Tabs, useRouter, useSegments } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Dimensions, LayoutAnimation, PanResponder, Platform, Pressable, StyleSheet, Text, UIManager, View } from 'react-native';
+import { Animated, Dimensions, LayoutAnimation, PanResponder, Platform, Pressable, StyleSheet, Text, UIManager, View, Image } from 'react-native';
 import GlobalHamburgerMenu from '../../components/common/GlobalHamburgerMenu';
 import { NetraAIAssistant } from '../../components/common/NetraAIAssistant';
 import TopAppBar from '../../components/ui/navigation/TopAppBar';
 import { useAuth } from '../../context/AuthContext';
+import { useTranslation } from '@/hooks/useTranslation';
+import { localAlerts } from '@/services/repositories/localDb';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -13,13 +15,57 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 export default function TabLayout() {
   const { authState } = useAuth();
+  const { t } = useTranslation();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [emergencyMode, setEmergencyMode] = useState(false);
   const [showNetra, setShowNetra] = useState(false);
   const router = useRouter();
+  const segments = useSegments();
+
+  const unreadCount = localAlerts.filter(a => {
+    if (a.resolved) return false;
+    if (authState?.role === 'PHC' && a.facilityId !== authState.facilityId) return false;
+    if (authState?.role === 'BMO') {
+      const phc = require('@/dummy/phcs').dummyPHCs.find((p: any) => p.id === a.facilityId);
+      const userPhc = require('@/dummy/phcs').dummyPHCs.find((p: any) => p.id === authState.facilityId);
+      if (phc && userPhc && phc.block !== userPhc.block) return false;
+    }
+    return true;
+  }).length;
+
+  // Strict Route Guarding
+  useEffect(() => {
+    if (!authState) return;
+    
+    const currentRoute = segments[segments.length - 1];
+    
+    // As per user request, PHC staff now has access to all hamburger menu advanced tools
+    if (authState.role === 'PHC') {
+      const restrictedForPHC = [
+        'district-map', 
+        'phcs'
+      ];
+      if (restrictedForPHC.includes(currentRoute)) {
+        router.replace('/(tabs)/situation-room');
+      }
+    } else if (authState.role === 'BMO') {
+      // BMO restrictions (if any remain)
+    }
+  }, [segments, authState?.role, router]);
 
   // Dragging logic for the AI button
   const pan = useRef(new Animated.ValueXY()).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.15, duration: 1000, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 1000, useNativeDriver: true })
+      ])
+    ).start();
+  }, []);
+
   const { width: SCREEN_WIDTH } = Dimensions.get('window');
   // Initial position is at right: 16, width is 52.
   const MAX_LEFT = -(SCREEN_WIDTH - 16 - 52 - 16);
@@ -102,7 +148,7 @@ export default function TabLayout() {
                     outputRange: ['0%', '100%', '200%', '300%'] // Moves by its own width
                   })
                 }],
-                backgroundColor: 'rgba(14, 98, 204, 0.1)',
+                backgroundColor: 'rgba(26, 99, 198, 0.18)', // Brand blue with stronger opacity
                 borderRadius: 9999,
               }}
             />
@@ -126,16 +172,16 @@ export default function TabLayout() {
               };
 
               let iconName: any = 'activity';
-              let label = 'Home';
+              let label = t('tabHome');
               if (route.name === 'situation-room') {
                 iconName = 'activity';
-                label = authState?.role === 'PHC' ? 'Facility' : 'Home';
+                label = authState?.role === 'PHC' ? t('tabFacility') : t('tabHome');
               }
-              else if (route.name === 'district-map') { iconName = 'map'; label = 'Map'; }
-              else if (route.name === 'phcs') { iconName = 'heart'; label = 'PHCs'; }
-              else if (route.name === 'inventory') { iconName = 'box'; label = 'Inventory'; }
-              else if (route.name === 'reports') { iconName = 'bar-chart-2'; label = 'Reports'; }
-              else if (route.name === 'emergency') { iconName = 'shield'; label = 'Alert'; }
+              else if (route.name === 'district-map') { iconName = 'map'; label = t('tabMap'); }
+              else if (route.name === 'phcs') { iconName = 'heart'; label = t('tabPhcs'); }
+              else if (route.name === 'inventory') { iconName = 'box'; label = t('tabInventory'); }
+              else if (route.name === 'reports') { iconName = 'bar-chart-2'; label = t('tabReports'); }
+              else if (route.name === 'emergency') { iconName = 'shield'; label = t('tabAlert'); }
 
               // For Emergency tab, we might want a different active color, but blue overlay is standard
               const activeColor = route.name === 'emergency' ? '#EF4444' : '#0E62CC';
@@ -175,7 +221,7 @@ export default function TabLayout() {
       {/* Shared Header */}
       <TopAppBar
         onHamburgerPress={() => setDrawerOpen(true)}
-        unreadNotificationsCount={3}
+        unreadNotificationsCount={unreadCount}
         onNotificationsPress={() => router.push('/notifications')}
         onProfilePress={() => router.push('/profile')}
       />
@@ -218,12 +264,22 @@ export default function TabLayout() {
           { transform: pan.getTranslateTransform() }
         ]}
       >
+        <Animated.View
+          style={{
+            position: 'absolute',
+            top: 0, bottom: 0, left: 0, right: 0,
+            backgroundColor: '#4F46E5',
+            borderRadius: 30,
+            transform: [{ scale: pulseAnim }],
+            opacity: pulseAnim.interpolate({ inputRange: [1, 1.15], outputRange: [0.6, 0] })
+          }}
+        />
         <Pressable
           onPress={() => setShowNetra(true)}
-          className="w-[52px] h-[52px] rounded-full bg-[#0E62CC] items-center justify-center shadow-2xl active:bg-blue-700 border-4 border-white"
-          style={{ elevation: 12, shadowColor: '#0E62CC', shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } }}
+          className="w-[56px] h-[56px] rounded-full bg-white items-center justify-center shadow-2xl active:scale-95 border border-slate-200 overflow-hidden"
+          style={{ elevation: 12, shadowColor: '#4F46E5', shadowOpacity: 0.3, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } }}
         >
-          <Feather name="eye" size={22} color="white" />
+          <Image source={require('../../data/netra.png')} style={{width: 36, height: 36}} resizeMode="contain" />
         </Pressable>
       </Animated.View>
 

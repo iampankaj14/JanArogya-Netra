@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable, ScrollView, Switch } from 'react-native';
+import { View, Text, Pressable, ScrollView, Switch, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import ScreenContainer from '@/components/ui/layout/ScreenContainer';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function SettingsScreen() {
   const router = useRouter();
-  
+  const { t } = useTranslation();
+
   const [backgroundSync, setBackgroundSync] = useState(true);
   const [criticalAlerts, setCriticalAlerts] = useState(true);
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -24,23 +26,21 @@ export default function SettingsScreen() {
             <Feather name="arrow-left" size={22} color="#0F172A" />
           </Pressable>
           <View className="flex-1 pr-2">
-            <Text className="text-brand-navy font-black text-[22px] tracking-tight mb-1">Console Settings</Text>
-            <Text className="text-slate-500 text-[11px] font-semibold">Manage your console preferences</Text>
+            <Text className="text-brand-navy font-black text-[22px] tracking-tight mb-1">{t('settingsTitle')}</Text>
+            <Text className="text-slate-500 text-[11px] font-semibold">{t('settingsSubtitle')}</Text>
           </View>
         </View>
-        <Pressable className="w-11 h-11 rounded-full bg-white border border-slate-100 items-center justify-center active:bg-slate-50 shadow-sm">
-          <Feather name="settings" size={18} color="#3B82F6" />
-        </Pressable>
       </View>
+
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 60 }}>
         
         {/* Promotional Banner */}
         <View className="bg-[#E0E7FF] rounded-[24px] p-5 mb-6 flex-row items-center justify-between overflow-hidden relative border border-indigo-100 shadow-sm">
           <View className="flex-1 z-10 mr-2 ml-16">
-            <Text className="text-brand-navy font-black text-[15px] mb-2 leading-tight">Optimize. Monitor.{'\n'}Protect.</Text>
+            <Text className="text-brand-navy font-black text-[15px] mb-2 leading-tight">{t('settingsBannerTitle')}</Text>
             <Text className="text-slate-500 text-[9px] font-semibold leading-3">
-              Configure console behavior, alerts and performance to keep your health system running at its best.
+              {t('settingsBannerDesc')}
             </Text>
           </View>
 
@@ -97,8 +97,8 @@ export default function SettingsScreen() {
                 <Feather name="refresh-cw" size={18} color="#2563EB" />
               </View>
               <View className="flex-1">
-                <Text className="text-brand-navy font-bold text-[13px] mb-0.5">Background Sync</Text>
-                <Text className="text-slate-500 text-[9px] font-semibold leading-3">Sync data in background for real-time updates.</Text>
+                <Text className="text-brand-navy font-bold text-[13px] mb-0.5">{t('settingsBackgroundSyncTitle')}</Text>
+                <Text className="text-slate-500 text-[9px] font-semibold leading-3">{t('settingsBackgroundSyncDesc')}</Text>
               </View>
             </View>
             <Switch
@@ -116,8 +116,8 @@ export default function SettingsScreen() {
                 <Feather name="bell" size={18} color="#EF4444" />
               </View>
               <View className="flex-1">
-                <Text className="text-brand-navy font-bold text-[13px] mb-0.5">Critical Outbreak Alerts</Text>
-                <Text className="text-slate-500 text-[9px] font-semibold leading-3">Get notified instantly for critical outbreaks.</Text>
+                <Text className="text-brand-navy font-bold text-[13px] mb-0.5">{t('settingsCriticalAlertsTitle')}</Text>
+                <Text className="text-slate-500 text-[9px] font-semibold leading-3">{t('settingsCriticalAlertsDesc')}</Text>
               </View>
             </View>
             <Switch
@@ -135,8 +135,8 @@ export default function SettingsScreen() {
                 <MaterialCommunityIcons name="robot-outline" size={20} color="#8B5CF6" />
               </View>
               <View className="flex-1">
-                <Text className="text-brand-navy font-bold text-[13px] mb-0.5">AI Recommendation Auto Refresh</Text>
-                <Text className="text-slate-500 text-[9px] font-semibold leading-3">Automatically refresh AI insights and recommendations.</Text>
+                <Text className="text-brand-navy font-bold text-[13px] mb-0.5">{t('settingsAutoRefreshTitle')}</Text>
+                <Text className="text-slate-500 text-[9px] font-semibold leading-3">{t('settingsAutoRefreshDesc')}</Text>
               </View>
             </View>
             <Switch
@@ -154,8 +154,8 @@ export default function SettingsScreen() {
                 <Feather name="download-cloud" size={18} color="#10B981" />
               </View>
               <View className="flex-1">
-                <Text className="text-brand-navy font-bold text-[13px] mb-0.5">Offline Mode</Text>
-                <Text className="text-slate-500 text-[9px] font-semibold leading-3">Cache latest PHC & medicine data for offline access.</Text>
+                <Text className="text-brand-navy font-bold text-[13px] mb-0.5">{t('settingsOfflineModeTitle')}</Text>
+                <Text className="text-slate-500 text-[9px] font-semibold leading-3">{t('settingsOfflineModeDesc')}</Text>
               </View>
             </View>
             <Switch
@@ -178,7 +178,7 @@ export default function SettingsScreen() {
 
           {/* Status Grid */}
           <View className="flex-1">
-            <Text className="text-emerald-700 font-black text-[13px] mb-3">Console Status</Text>
+            <Text className="text-emerald-700 font-black text-[13px] mb-3">{t('settingsStatusTitle')}</Text>
             
             <View className="flex-row justify-between mb-3">
               <View className="flex-row items-start flex-1">
@@ -186,9 +186,9 @@ export default function SettingsScreen() {
                   <Feather name="cloud" size={12} color="#10B981" />
                 </View>
                 <View>
-                  <Text className="text-brand-navy font-bold text-[9px] mb-0.5">AI Engine</Text>
+                  <Text className="text-brand-navy font-bold text-[9px] mb-0.5">{t('settingsStatusAiEngineLabel')}</Text>
                   <View className="flex-row items-center">
-                    <Text className="text-emerald-600 font-extrabold text-[10px] mr-1">Connected</Text>
+                    <Text className="text-emerald-600 font-extrabold text-[10px] mr-1">{t('settingsStatusConnected')}</Text>
                     <Feather name="check-circle" size={10} color="#10B981" />
                   </View>
                 </View>
@@ -198,9 +198,9 @@ export default function SettingsScreen() {
                   <Feather name="aperture" size={12} color="#10B981" />
                 </View>
                 <View>
-                  <Text className="text-brand-navy font-bold text-[9px] mb-0.5">Gemini API</Text>
+                  <Text className="text-brand-navy font-bold text-[9px] mb-0.5">{t('settingsStatusGeminiLabel')}</Text>
                   <View className="flex-row items-center">
-                    <Text className="text-emerald-600 font-extrabold text-[10px] mr-1">Active</Text>
+                    <Text className="text-emerald-600 font-extrabold text-[10px] mr-1">{t('settingsStatusActive')}</Text>
                     <Feather name="check-circle" size={10} color="#10B981" />
                   </View>
                 </View>
@@ -213,9 +213,9 @@ export default function SettingsScreen() {
                   <Feather name="database" size={12} color="#10B981" />
                 </View>
                 <View>
-                  <Text className="text-brand-navy font-bold text-[9px] mb-0.5">Firebase</Text>
+                  <Text className="text-brand-navy font-bold text-[9px] mb-0.5">{t('settingsStatusFirebaseLabel')}</Text>
                   <View className="flex-row items-center">
-                    <Text className="text-emerald-600 font-extrabold text-[10px] mr-1">Synced</Text>
+                    <Text className="text-emerald-600 font-extrabold text-[10px] mr-1">{t('settingsStatusSynced')}</Text>
                     <Feather name="check-circle" size={10} color="#10B981" />
                   </View>
                 </View>
@@ -225,8 +225,8 @@ export default function SettingsScreen() {
                   <Feather name="clock" size={12} color="#10B981" />
                 </View>
                 <View>
-                  <Text className="text-brand-navy font-bold text-[9px] mb-0.5">Last Sync</Text>
-                  <Text className="text-emerald-600 font-extrabold text-[10px]">2 min ago</Text>
+                  <Text className="text-brand-navy font-bold text-[9px] mb-0.5">{t('settingsStatusLastSyncLabel')}</Text>
+                  <Text className="text-emerald-600 font-extrabold text-[10px]">{t('settingsStatusLastSyncValue')}</Text>
                 </View>
               </View>
             </View>
@@ -234,20 +234,22 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        {/* Action Button */}
         <Pressable 
-          onPress={() => router.back()}
+          onPress={() => {
+            Alert.alert(t('settingsSaveAlertTitle'), t('settingsSaveAlertMessage'));
+            router.back();
+          }}
           className="w-full rounded-2xl py-4 flex-row justify-center items-center bg-[#7C3AED] shadow-md shadow-purple-500/30 mb-3"
           style={{ elevation: 3 }}
         >
           <Feather name="save" size={16} color="#FFF" className="mr-2" />
-          <Text className="text-white font-extrabold text-[14px]">Save Console Configuration</Text>
+          <Text className="text-white font-extrabold text-[14px]">{t('settingsSaveButton')}</Text>
         </Pressable>
         
         {/* Helper Footer text */}
         <View className="flex-row justify-center items-center">
           <Feather name="shield" size={10} color="#64748B" className="mr-1.5" />
-          <Text className="text-slate-500 font-bold text-[10px]">Changes will be applied immediately</Text>
+          <Text className="text-slate-500 font-bold text-[10px]">{t('settingsFooterText')}</Text>
         </View>
 
       </ScrollView>

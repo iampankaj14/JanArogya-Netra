@@ -1,7 +1,9 @@
 export interface PHC {
   id: string;
   name: string;
+  nameHi?: string;
   block: string;
+  blockHi?: string;
   healthScore: number;
   doctorAvailable: boolean;
   stockStatus: 'adequate' | 'warning' | 'critical';

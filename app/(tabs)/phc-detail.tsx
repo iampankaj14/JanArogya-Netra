@@ -4,6 +4,7 @@ import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { Dimensions, Image, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import Svg, { Circle, Defs, Path, Stop, LinearGradient as SvgLinearGradient, Text as SvgText, G } from 'react-native-svg';
 
@@ -36,8 +37,44 @@ const MetricCard = ({ title, value, icon, iconBg, trend, trendVal, subtitle, bor
 export default function PHCDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
+  const { t, language } = useTranslation();
   const [showAllMedicines, setShowAllMedicines] = useState(false);
   const [currentAiIndex, setCurrentAiIndex] = useState(0);
+
+  const translateDynamic = (text: string) => {
+    if (language !== 'hi' || !text) return text;
+    
+    const map: Record<string, string> = {
+      'Paracetamol 650mg': 'पैरासिटामोल 650mg',
+      'ORS (Oral Rehydration Salt)': 'ओआरएस (ओरल रिहाइड्रेशन साल्ट)',
+      'Amoxicillin 250mg': 'अमोक्सिसिलिन 250mg',
+      'Dengue RDT Kit': 'डेंगू आरडीटी किट',
+      'Malaria RDT Kit': 'मलेरिया आरडीटी किट',
+      'Typhoid Antigen Test': 'टाइफाइड एंटीजन टेस्ट',
+      'IV Fluids (RL 500ml)': 'आईवी फ्लूइड्स (आरएल 500ml)',
+      'Vitamin C + Zinc': 'विटामिन सी + जिंक',
+      'Azithromycin 500mg': 'एज़िथ्रोमाइसिन 500mg',
+      'Oxygen Cylinder (B Type)': 'ऑक्सीजन सिलेंडर (बी टाइप)',
+      'Transfer 50 Dengue Kits': '50 डेंगू किट्स ट्रांसफर करें',
+      'Move 20 Malaria RDTs': '20 मलेरिया RDTs ट्रांसफर करें',
+      'Urgent Paracetamol Restock': 'पैरासिटामोल की तुरंत जरूरत',
+      'High incidence of Dengue cases reported in Badalpur. Transferring surplus kits from Bisrakh is recommended to prevent shortages.': 'बादलपुर में डेंगू के मामले बढ़ रहे हैं। कमी से बचने के लिए बिसरख से एक्स्ट्रा किट भेजना सही रहेगा।',
+      'Malaria cases rising slightly in Khoda. Proactive redistribution will maintain adequate buffer stock.': 'खोड़ा में मलेरिया के केस हल्के बढ़ रहे हैं। पहले से ही स्टॉक भेजना सही रहेगा ताकि कमी न हो।',
+      'Critical shortage expected due to viral fever surge. Immediate restock required.': 'वायरल बुखार बढ़ने से स्टॉक की भारी कमी हो सकती है। तुरंत नया स्टॉक चाहिए।',
+      'PHC Bisrakh': 'पीएचसी बिसरख',
+      'PHC Badalpur': 'पीएचसी बादलपुर',
+      'PHC Khoda': 'पीएचसी खोड़ा',
+      'CHC Dadri': 'सीएचसी दादरी',
+      'chc_bisrakh': 'सीएचसी बिसरख',
+      'uphc_harola': 'यूपीएचसी हरौला',
+      'Azithromycin Re-stocking': 'एज़िथ्रोमाइसिन रीस्टॉकिंग',
+      'UPHC Harola is running low on broad-spectrum antibiotics. Transfer from Bisrakh recommended.': 'यूपीएचसी हरौला में ब्रॉड-स्पेक्ट्रम एंटीबायोटिक्स की कमी हो रही है। बिसरख से ट्रांसफर करने की सिफारिश की जाती है।'
+    };
+    
+    if (map[text]) return map[text];
+    return text;
+  };
+
   const [activeDataPoint, setActiveDataPoint] = useState<number | null>(3); // Default to Peak (Thursday)
   const infraScrollRef = useRef<ScrollView>(null);
 
@@ -83,7 +120,8 @@ export default function PHCDetailScreen() {
   const bedsAvailable = Math.max(0, phc.bedsTotal - phc.bedsOccupied);
   const bedsOccupiedPct = Math.round((phc.bedsOccupied / Math.max(1, phc.bedsTotal)) * 100);
 
-  const avgWaitTime = Math.max(5, Math.round(100 - phc.healthScore)); // higher score = lower wait time
+  const doctorsAvailable = phc.doctorAvailable ? Math.max(1, Math.floor(phc.staffPresent / 4)) : 0;
+  const avgWaitTime = doctorsAvailable > 0 ? Math.round((todayFootfall / doctorsAvailable) * 0.5) : 120;
 
   const lastSyncTime = new Date(Date.now() - 15 * 60000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -106,36 +144,43 @@ export default function PHCDetailScreen() {
     illustrationSrc = require('@/data/phc/phc illustration/yellow1.png');
   }
 
+  const translatedName = language === 'hi' && phc.nameHi ? phc.nameHi : phc.name;
+  const translatedBlock = language === 'hi' && phc.blockHi ? phc.blockHi : phc.block;
+
   return (
     <View className="flex-1 bg-[#F8FAFC]">
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
 
         {/* HERO SECTION */}
         <View className="bg-white px-4 py-6 shadow-sm border-b border-slate-100 mb-4 rounded-b-3xl mt-2">
+          {/* Back button */}
+          <Pressable onPress={() => router.back()} className="w-10 h-10 bg-slate-50 rounded-full items-center justify-center mb-4 border border-slate-200 active:bg-slate-100">
+            <Feather name="arrow-left" size={20} color="#64748B" />
+          </Pressable>
           <View className="flex-row">
             <View className="w-32 h-28 bg-[#E6F3FF] rounded-2xl mr-4 items-center justify-center overflow-hidden border border-blue-50">
               <Image source={illustrationSrc} className="w-full h-full" resizeMode="cover" />
             </View>
             <View className="flex-1 justify-center">
               <View className="flex-row items-center mb-1">
-                <Text className="text-xl font-black text-brand-navy mr-2">{phc.name}</Text>
+                <Text className="text-xl font-black text-brand-navy mr-2">{translatedName}</Text>
                 <MaterialCommunityIcons name="check-decagram" size={18} color="#10B981" />
               </View>
               <Text className="text-xs text-slate-500 mb-3 leading-relaxed">
-                {phc.block} Block • Gautam Buddh Nagar, Uttar Pradesh
+                {translatedBlock} {t('phcDetailBlockLine')}
               </Text>
 
               {/* Pills */}
               <View className="flex-row flex-wrap gap-2">
                 <View className="bg-emerald-50 px-2 py-1 rounded-full border border-emerald-100 flex-row items-center">
                   <MaterialCommunityIcons name="map-marker" size={10} color="#10B981" className="mr-1" />
-                  <Text className="text-[9px] font-bold text-emerald-700">Uttar Pradesh</Text>
+                  <Text className="text-[9px] font-bold text-emerald-700">{t('phcDetailPillUttarPradesh')}</Text>
                 </View>
                 <View className="bg-blue-50 px-2 py-1 rounded-full border border-blue-100">
-                  <Text className="text-[9px] font-bold text-blue-700">Established {phc.establishedYear}</Text>
+                  <Text className="text-[9px] font-bold text-blue-700">{t('phcDetailPillEstablished')} {phc.establishedYear}</Text>
                 </View>
                 <View className="bg-purple-50 px-2 py-1 rounded-full border border-purple-100">
-                  <Text className="text-[9px] font-bold text-purple-700">PHC Code: {phc.phcCode}</Text>
+                  <Text className="text-[9px] font-bold text-purple-700">{t('phcDetailPillPhcCode')} {phc.phcCode}</Text>
                 </View>
               </View>
             </View>
@@ -148,8 +193,8 @@ export default function PHCDetailScreen() {
                 <MaterialCommunityIcons name="hospital-building" size={14} color="#10B981" />
               </View>
               <View>
-                <Text className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Facility Type</Text>
-                <Text className="text-xs font-bold text-brand-navy">PHC</Text>
+                <Text className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{t('phcDetailFacilityTypeLabel')}</Text>
+                <Text className="text-xs font-bold text-brand-navy">{t('phcDetailFacilityTypeValue')}</Text>
               </View>
             </View>
             <View className="flex-row items-center">
@@ -157,8 +202,8 @@ export default function PHCDetailScreen() {
                 <MaterialCommunityIcons name="bank" size={14} color="#3B82F6" />
               </View>
               <View>
-                <Text className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Managed By</Text>
-                <Text className="text-xs font-bold text-brand-navy">Govt. Health Dept.</Text>
+                <Text className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{t('phcDetailManagedByLabel')}</Text>
+                <Text className="text-xs font-bold text-brand-navy">{t('phcDetailManagedByValue')}</Text>
               </View>
             </View>
             <View className="flex-row items-center">
@@ -166,8 +211,8 @@ export default function PHCDetailScreen() {
                 <MaterialCommunityIcons name="sync" size={14} color="#F59E0B" />
               </View>
               <View>
-                <Text className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Last Sync</Text>
-                <Text className="text-xs font-bold text-brand-navy">Today, {lastSyncTime}</Text>
+                <Text className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{t('phcDetailLastSyncLabel')}</Text>
+                <Text className="text-xs font-bold text-brand-navy">{t('phcDetailLastSyncPrefix')} {lastSyncTime}</Text>
               </View>
             </View>
           </View>
@@ -195,7 +240,7 @@ export default function PHCDetailScreen() {
             className="shadow-sm relative"
           >
             <View className="flex-row items-center mb-5">
-              <Text className="text-slate-600 font-black text-[11px] tracking-widest uppercase mr-2">Netra Health Index</Text>
+              <Text className="text-slate-600 font-black text-[11px] tracking-widest uppercase mr-2">{t('phcDetailHealthIndexTitle')}</Text>
               <Feather name="info" size={14} color="#94A3B8" />
             </View>
 
@@ -230,10 +275,10 @@ export default function PHCDetailScreen() {
                   className="font-bold text-[9px] mb-1"
                   style={{ color: phc.healthScore >= 90 ? '#059669' : phc.healthScore >= 70 ? '#D97706' : '#DC2626' }}
                 >
-                  {phc.healthScore >= 90 ? 'OPERATIONAL' : phc.healthScore >= 70 ? 'ATTENTION' : 'CRITICAL'}
+                  {phc.healthScore >= 90 ? t('phcDetailStatusOperational') : phc.healthScore >= 70 ? t('phcDetailStatusAttention') : t('phcDetailStatusCritical')}
                 </Text>
                 <Text className="text-slate-600 text-xs leading-relaxed">
-                  Netra AI is monitoring this facility. Based on upcoming data, we will recommend specific actions here to improve the score.
+                  {t('phcDetailHealthIndexDesc')}
                 </Text>
               </View>
             </View>
@@ -243,42 +288,42 @@ export default function PHCDetailScreen() {
         {/* KEY METRICS GRID */}
         <View className="px-4 mb-4 flex-row flex-wrap justify-between">
           <MetricCard
-            title="Footfall (Today)"
+            title={t('phcDetailMetricFootfallToday')}
             value={todayFootfall.toString()}
             icon="account-group" iconBg="bg-purple-500"
-            trend={footfallTrend} trendVal={`${footfallPct}%`} subtitle="vs yesterday"
+            trend={footfallTrend} trendVal={`${footfallPct}%`} subtitle={t('phcDetailMetricSubtitleVsYesterday')}
             borderColor="border-purple-200"
           />
           <MetricCard
-            title="OPD (This Month)"
+            title={t('phcDetailMetricOpdThisMonth')}
             value={opdThisMonth.toLocaleString()}
             icon="calendar-text" iconBg="bg-blue-500"
-            trend="up" trendVal="12%" subtitle="vs last month"
+            trend="up" trendVal="12%" subtitle={t('phcDetailMetricSubtitleVsLastMonth')}
             borderColor="border-blue-200"
           />
           <MetricCard
-            title="Beds Available"
+            title={t('phcDetailMetricBedsAvailable')}
             value={`${bedsAvailable} / ${phc.bedsTotal}`}
             icon="bed-empty" iconBg="bg-emerald-500"
-            subtitle={`${bedsOccupiedPct}% Occupied`}
+            subtitle={`${bedsOccupiedPct}${t('phcDetailMetricOccupiedSuffix')}`}
             borderColor="border-emerald-200"
           />
           <MetricCard
-            title="Avg. Wait Time"
-            value={`${avgWaitTime} mins`}
+            title={t('phcDetailMetricAvgWaitTime')}
+            value={`${avgWaitTime} ${t('phcDetailMetricMinsSuffix')}`}
             icon="clock-outline" iconBg="bg-amber-500"
-            trend="down" trendVal="8 mins" subtitle="vs last week"
+            trend="down" trendVal={`8 ${t('phcDetailMetricMinsSuffix')}`} subtitle={t('phcDetailMetricSubtitleVsLastWeek')}
             borderColor="border-amber-200"
           />
           <MetricCard
-            title="Consultation Rooms"
+            title={t('phcDetailMetricConsultRooms')}
             value={phc.consultRooms.toString()}
             icon="doctor" iconBg="bg-purple-400"
             borderColor="border-purple-200"
           />
           <MetricCard
-            title="Lab Services"
-            value="Available"
+            title={t('phcDetailMetricLabServices')}
+            value={t('phcDetailMetricLabServicesValue')}
             icon="flask" iconBg="bg-blue-400"
             borderColor="border-blue-200"
           />
@@ -292,10 +337,10 @@ export default function PHCDetailScreen() {
                 <View className="w-6 h-6 rounded-full bg-emerald-100 items-center justify-center mr-2">
                   <MaterialCommunityIcons name="pill" size={14} color="#10B981" />
                 </View>
-                <Text className="text-brand-navy font-bold text-sm">Medicine Stock Overview</Text>
+                <Text className="text-brand-navy font-bold text-sm">{t('phcDetailMedicineStockTitle')}</Text>
               </View>
               <TouchableOpacity onPress={() => setShowAllMedicines(!showAllMedicines)}>
-                <Text className="text-blue-600 font-bold text-xs">{showAllMedicines ? 'View Less' : 'View All'}</Text>
+                <Text className="text-blue-600 font-bold text-xs">{showAllMedicines ? t('phcDetailViewLess') : t('phcDetailViewAll')}</Text>
               </TouchableOpacity>
             </View>
 
@@ -309,12 +354,12 @@ export default function PHCDetailScreen() {
                     <View className="flex-row justify-between items-center mb-2">
                       <View className="flex-row items-center flex-1 pr-2">
                         <MaterialCommunityIcons name={item.type === 'EMERGENCY' ? 'water' : 'pill'} size={14} color={isShortage ? "#EF4444" : "#10B981"} className="mr-2" />
-                        <Text className="text-slate-800 font-bold text-[13px]" numberOfLines={1}>{item.name}</Text>
+                        <Text className="text-slate-800 font-bold text-[13px]" numberOfLines={1}>{translateDynamic(item.name)}</Text>
                       </View>
                       <View className="flex-row items-center">
                         <Text className="text-slate-800 font-black text-xs mr-2">{pct}%</Text>
                         <View className={`px-2 py-0.5 rounded-full ${isShortage ? 'bg-red-50' : 'bg-emerald-50'}`}>
-                          <Text className={`${isShortage ? 'text-red-600' : 'text-emerald-600'} font-bold text-[9px] uppercase tracking-wider`}>{isShortage ? 'Low' : 'Adequate'}</Text>
+                          <Text className={`${isShortage ? 'text-red-600' : 'text-emerald-600'} font-bold text-[9px] uppercase tracking-wider`}>{isShortage ? t('phcDetailStockLow') : t('phcDetailStockAdequate')}</Text>
                         </View>
                       </View>
                     </View>
@@ -335,7 +380,7 @@ export default function PHCDetailScreen() {
             {/* Low Stock Alert Banner */}
             <View className="mt-5 bg-red-50 rounded-xl p-3 flex-row items-center border border-red-100">
               <MaterialCommunityIcons name="alert-circle" size={16} color="#EF4444" className="mr-2" />
-              <Text className="flex-1 text-red-600 font-bold text-xs">Several items are low in stock</Text>
+              <Text className="flex-1 text-red-600 font-bold text-xs">{t('phcDetailLowStockBanner')}</Text>
               <Feather name="chevron-right" size={16} color="#EF4444" />
             </View>
           </View>
@@ -349,7 +394,7 @@ export default function PHCDetailScreen() {
                 <View className="w-5 h-5 bg-red-100 rounded-full items-center justify-center mr-2">
                   <Feather name="bell" size={12} color="#EF4444" />
                 </View>
-                <Text className="text-brand-navy font-bold text-sm">Active Alerts</Text>
+                <Text className="text-brand-navy font-bold text-sm">{t('phcDetailActiveAlertsTitle')}</Text>
               </View>
             </View>
 
@@ -372,7 +417,7 @@ export default function PHCDetailScreen() {
               )) : (
                 <View className="items-center py-6">
                   <Feather name="check-circle" size={32} color="#10B981" />
-                  <Text className="text-slate-500 font-bold mt-2">No active alerts</Text>
+                  <Text className="text-slate-500 font-bold mt-2">{t('phcDetailNoActiveAlerts')}</Text>
                 </View>
               )}
             </View>
@@ -387,7 +432,7 @@ export default function PHCDetailScreen() {
                 <View className="w-6 h-6 rounded-full bg-blue-100 items-center justify-center mr-2">
                   <MaterialCommunityIcons name="office-building" size={14} color="#3B82F6" />
                 </View>
-                <Text className="text-brand-navy font-bold text-sm">Infrastructure Snapshot</Text>
+                <Text className="text-brand-navy font-bold text-sm">{t('phcDetailInfrastructureTitle')}</Text>
               </View>
             </View>
 
@@ -401,35 +446,35 @@ export default function PHCDetailScreen() {
                 <View className="bg-blue-50/50 rounded-2xl p-4 w-32 border border-blue-50">
                   <View className="flex-row items-center mb-3">
                     <MaterialCommunityIcons name="bed-empty" size={18} color="#3B82F6" className="mr-2" />
-                    <Text className="text-slate-500 font-bold text-[10px]">Total Beds</Text>
+                    <Text className="text-slate-500 font-bold text-[10px]">{t('phcDetailTotalBeds')}</Text>
                   </View>
                   <Text className="text-brand-navy font-black text-2xl">{phc.bedsTotal}</Text>
                 </View>
                 <View className="bg-emerald-50/50 rounded-2xl p-4 w-32 border border-emerald-50">
                   <View className="flex-row items-center mb-3">
                     <MaterialCommunityIcons name="bed-outline" size={18} color="#10B981" className="mr-2" />
-                    <Text className="text-slate-500 font-bold text-[10px]">Available</Text>
+                    <Text className="text-slate-500 font-bold text-[10px]">{t('phcDetailAvailable')}</Text>
                   </View>
                   <Text className="text-brand-navy font-black text-2xl">{phc.bedsTotal - phc.bedsOccupied}</Text>
                 </View>
                 <View className="bg-purple-50/50 rounded-2xl p-4 w-32 border border-purple-50">
                   <View className="flex-row items-center mb-3">
                     <MaterialCommunityIcons name="doctor" size={18} color="#8B5CF6" className="mr-2" />
-                    <Text className="text-slate-500 font-bold text-[10px]">Consult Rooms</Text>
+                    <Text className="text-slate-500 font-bold text-[10px]">{t('phcDetailConsultRoomsShort')}</Text>
                   </View>
                   <Text className="text-brand-navy font-black text-2xl">{phc.consultRooms}</Text>
                 </View>
                 <View className="bg-amber-50/50 rounded-2xl p-4 w-32 border border-amber-50">
                   <View className="flex-row items-center mb-3">
                     <MaterialCommunityIcons name="ambulance" size={18} color="#F59E0B" className="mr-2" />
-                    <Text className="text-slate-500 font-bold text-[10px]">Ambulances</Text>
+                    <Text className="text-slate-500 font-bold text-[10px]">{t('phcDetailAmbulances')}</Text>
                   </View>
                   <Text className="text-brand-navy font-black text-2xl">{phc.ambulances}</Text>
                 </View>
                 <View className="bg-red-50/50 rounded-2xl p-4 w-32 border border-red-50">
                   <View className="flex-row items-center mb-3">
                     <MaterialCommunityIcons name="gas-cylinder" size={18} color="#EF4444" className="mr-2" />
-                    <Text className="text-slate-500 font-bold text-[10px]">O2 Cylinders</Text>
+                    <Text className="text-slate-500 font-bold text-[10px]">{t('phcDetailO2Cylinders')}</Text>
                   </View>
                   <Text className="text-brand-navy font-black text-2xl">{phc.o2Cylinders}</Text>
                 </View>
@@ -446,7 +491,7 @@ export default function PHCDetailScreen() {
                 <View className="w-6 h-6 rounded-full bg-purple-100 items-center justify-center mr-2">
                   <MaterialCommunityIcons name="account-group" size={14} color="#8B5CF6" />
                 </View>
-                <Text className="text-brand-navy font-bold text-sm">Staff & Duty Roster</Text>
+                <Text className="text-brand-navy font-bold text-sm">{t('phcDetailStaffRosterTitle')}</Text>
               </View>
             </View>
 
@@ -464,23 +509,23 @@ export default function PHCDetailScreen() {
 
               <View className="flex-1">
                 <View className="flex-row justify-between items-center mb-1">
-                  <Text className="text-brand-navy font-bold text-sm">Medical Officers</Text>
+                  <Text className="text-brand-navy font-bold text-sm">{t('phcDetailMedicalOfficers')}</Text>
                   <Text className="text-emerald-600 font-black text-3xl leading-none relative top-1">{Math.round((phc.staffPresent / phc.staffTotal) * 100)}%</Text>
                 </View>
-                <Text className="text-emerald-500 font-bold text-xs mb-4">{phc.staffTotal - phc.staffPresent} absent today</Text>
+                <Text className="text-emerald-500 font-bold text-xs mb-4">{phc.staffTotal - phc.staffPresent} {t('phcDetailAbsentTodaySuffix')}</Text>
 
                 <View className="flex-row justify-between border-t border-slate-100 pt-4 mt-2">
                   <View>
                     <View className="flex-row items-center mb-1.5">
                       <MaterialCommunityIcons name="account-check-outline" size={14} color="#94A3B8" className="mr-1" />
-                      <Text className="text-slate-500 font-bold text-[10px]">Staff Present</Text>
+                      <Text className="text-slate-500 font-bold text-[10px]">{t('phcDetailStaffPresentLabel')}</Text>
                     </View>
                     <Text className="text-brand-navy font-black text-lg">{phc.staffPresent}</Text>
                   </View>
                   <View>
                     <View className="flex-row items-center mb-1.5">
                       <MaterialCommunityIcons name="account-multiple-outline" size={14} color="#94A3B8" className="mr-1" />
-                      <Text className="text-slate-500 font-bold text-[10px]">Total Staff</Text>
+                      <Text className="text-slate-500 font-bold text-[10px]">{t('phcDetailTotalStaffLabel')}</Text>
                     </View>
                     <Text className="text-brand-navy font-black text-lg">{phc.staffTotal}</Text>
                   </View>
@@ -497,8 +542,8 @@ export default function PHCDetailScreen() {
               <View className="w-14 h-14 rounded-full bg-green-100 items-center justify-center mb-3">
                 <Feather name="check-circle" size={24} color="#16A34A" />
               </View>
-              <Text className="text-green-800 font-extrabold text-[15px] mb-1">All Clear!</Text>
-              <Text className="text-green-600 font-semibold text-center text-[12px]">No active recommendations. Everything is fine.</Text>
+              <Text className="text-green-800 font-extrabold text-[15px] mb-1">{t('phcDetailAllClearTitle')}</Text>
+              <Text className="text-green-600 font-semibold text-center text-[12px]">{t('phcDetailAllClearDesc')}</Text>
             </View>
           ) : (
             <ScrollView
@@ -527,13 +572,13 @@ export default function PHCDetailScreen() {
                         {/* Header Row */}
                         <View className="flex-row justify-between items-center mb-4 relative z-10">
                           <View className="flex-row items-center">
-                            {/* Glass Icon */}
-                            <View className="w-10 h-10 rounded-[12px] bg-white/70 border border-white items-center justify-center mr-3">
-                              <Feather name="cpu" size={18} color="#4F46E5" />
+                            {/* Netra Logo */}
+                            <View className="w-10 h-10 rounded-[12px] bg-white/70 border border-white items-center justify-center mr-3 overflow-hidden">
+                              <Image source={require('../../data/netra.png')} style={{width: 24, height: 24}} resizeMode="contain" />
                             </View>
                             <View>
-                              <Text className="text-slate-600 font-bold text-[11px] mb-0.5">Netra Recommendation</Text>
-                              <Text className="text-brand-navy font-black text-[15px]">{rec.title}</Text>
+                              <Text className="text-slate-600 font-bold text-[11px] mb-0.5">{t('phcDetailNetraRecommendationLabel')}</Text>
+                              <Text className="text-brand-navy font-black text-[15px]">{translateDynamic(rec.title)}</Text>
                             </View>
                           </View>
                         </View>
@@ -546,8 +591,8 @@ export default function PHCDetailScreen() {
                             <Feather name="home" size={14} color="#2563EB" />
                           </View>
                           <View className="flex-1">
-                            <Text className="text-slate-500 font-bold text-[9px] mb-0.5">Source Facility</Text>
-                            <Text className="text-brand-navy font-bold text-[11px]" numberOfLines={1}>{rec.sourceFacility}</Text>
+                            <Text className="text-slate-500 font-bold text-[9px] mb-0.5">{t('phcDetailSourceFacilityLabel')}</Text>
+                            <Text className="text-brand-navy font-bold text-[11px]" numberOfLines={1}>{translateDynamic(rec.sourceFacility)}</Text>
                           </View>
                         </View>
 
@@ -562,8 +607,8 @@ export default function PHCDetailScreen() {
                             <Feather name="home" size={14} color="#16A34A" />
                           </View>
                           <View className="flex-1">
-                            <Text className="text-slate-500 font-bold text-[9px] mb-0.5">Target Facility</Text>
-                            <Text className="text-brand-navy font-bold text-[11px]" numberOfLines={1}>{rec.targetFacility}</Text>
+                            <Text className="text-slate-500 font-bold text-[9px] mb-0.5">{t('phcDetailTargetFacilityLabel')}</Text>
+                            <Text className="text-brand-navy font-bold text-[11px]" numberOfLines={1}>{translateDynamic(rec.targetFacility)}</Text>
                           </View>
                         </View>
                       </View>
@@ -572,11 +617,11 @@ export default function PHCDetailScreen() {
                       <View className="mb-4 relative z-10">
                         <View className="flex-row items-center mb-1">
                           <Feather name="zap" size={12} color="#4F46E5" style={{ marginRight: 4 }} />
-                          <Text className="text-indigo-600 font-black text-[10px] tracking-widest uppercase">REASONING</Text>
+                          <Text className="text-indigo-600 font-black text-[10px] tracking-widest uppercase">{t('phcDetailReasoningLabel')}</Text>
                           <Feather name="zap" size={12} color="#4F46E5" style={{ marginLeft: 4 }} />
                         </View>
                         <Text className="text-slate-700 font-semibold text-[11px] leading-relaxed pr-10" numberOfLines={2}>
-                          {rec.reasoning}
+                          {translateDynamic(rec.reasoning)}
                         </Text>
                       </View>
 
@@ -584,12 +629,12 @@ export default function PHCDetailScreen() {
                       <View className="flex-row gap-3 relative z-10">
                         <Pressable onPress={() => handleApproveReject(rec.id)} className="flex-1 py-3 rounded-xl border border-red-300 items-center justify-center flex-row bg-white/60">
                           <Feather name="x-circle" size={14} color="#DC2626" style={{ marginRight: 6 }} />
-                          <Text className="text-red-600 font-extrabold text-[12px]">Reject Request</Text>
+                          <Text className="text-red-600 font-extrabold text-[12px]">{t('phcDetailRejectButton')}</Text>
                         </Pressable>
 
                         <Pressable onPress={() => handleApproveReject(rec.id)} className="flex-1 py-3 rounded-xl bg-blue-600/90 border border-blue-400 items-center justify-center flex-row shadow-lg shadow-blue-500/40">
                           <Feather name="check-circle" size={14} color="white" style={{ marginRight: 6 }} />
-                          <Text className="text-white font-extrabold text-[12px]">Approve Request</Text>
+                          <Text className="text-white font-extrabold text-[12px]">{t('phcDetailApproveButton')}</Text>
                         </Pressable>
                       </View>
                     </View>
@@ -624,12 +669,12 @@ export default function PHCDetailScreen() {
               </View>
               <View className="flex-1 ml-4 pt-0.5">
                 <View className="flex-row justify-between items-center">
-                  <Text className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Weekly Footfall</Text>
+                  <Text className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('phcDetailWeeklyFootfallLabel')}</Text>
                   <Text className="text-[10px] font-bold text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-full">+12%</Text>
                 </View>
                 <View className="flex-row items-baseline mt-1">
                   <Text className="text-4xl font-black text-slate-800 tracking-tighter">{totalFootfall}</Text>
-                  <Text className="text-sm font-bold text-slate-400 ml-1">patients</Text>
+                  <Text className="text-sm font-bold text-slate-400 ml-1">{t('phcDetailPatientsSuffix')}</Text>
                 </View>
               </View>
             </View>
@@ -637,7 +682,7 @@ export default function PHCDetailScreen() {
             {/* Detailed Graph Area */}
             <View className="h-[180px] mt-2 relative -mx-1">
               {/* Average Line Label */}
-              <Text className="absolute top-[80px] right-2 text-[9px] font-black text-slate-400 uppercase bg-white/90 px-1 z-10">Avg: {avgFootfall}</Text>
+              <Text className="absolute top-[80px] right-2 text-[9px] font-black text-slate-400 uppercase bg-white/90 px-1 z-10">{t('phcDetailAvgFootfallPrefix')} {avgFootfall}</Text>
 
               <Svg height="100%" width="100%" viewBox="0 0 350 180">
                 <Defs>
@@ -661,6 +706,7 @@ export default function PHCDetailScreen() {
                   <G key={pt.i}>
                     {/* Visible Circle */}
                     <Circle 
+                      key={`vis-${pt.i}`}
                       cx={pt.cx} 
                       cy={pt.cy} 
                       r={activeDataPoint === pt.i ? 6 : 4.5} 
@@ -670,6 +716,7 @@ export default function PHCDetailScreen() {
                     />
                     {/* Invisible Touch Target (Larger Hit Area) */}
                     <Circle 
+                      key={`inv-${pt.i}`}
                       cx={pt.cx} 
                       cy={pt.cy} 
                       r="25" 
@@ -697,7 +744,7 @@ export default function PHCDetailScreen() {
 
             {/* X-Axis Labels */}
             <View className="flex-row justify-between px-2 mt-2 pt-1 border-t border-slate-100">
-              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, i) => (
+              {[t('phcDetailDayMon'), t('phcDetailDayTue'), t('phcDetailDayWed'), t('phcDetailDayThu'), t('phcDetailDayFri'), t('phcDetailDaySat'), t('phcDetailDaySun')].map((day, i) => (
                 <Text key={i} className={`text-[10px] ${activeDataPoint === i ? 'font-black text-blue-600' : 'font-bold text-slate-400'}`}>
                   {day}
                 </Text>

@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { localPHCs, localMedicines } from '../repositories/localDb';
+import { localPHCs, localMedicines, localDiseaseTrends } from '../repositories/localDb';
 import { ScenarioSimulationResult } from '@/shared/types/ai';
 
 const apiKey = process.env.EXPO_PUBLIC_GEMINI_API_KEY || '';
@@ -61,7 +61,8 @@ export const geminiService = {
   // Ask Netra Chat assistant
   askNetra: async (
     queryText: string,
-    chatHistory: Array<{ role: 'user' | 'model'; parts: string }>
+    chatHistory: Array<{ role: 'user' | 'model'; parts: string }>,
+    language: string = 'en'
   ): Promise<string> => {
     if (!apiKey) {
       return "I'm sorry, my AI connection is not configured yet. Please provide a valid Gemini API key.";
@@ -92,6 +93,7 @@ CRITICAL RULES FOR RESPONDING:
 2. Use bullet points whenever possible to make the information scannable.
 3. Do NOT write long paragraphs. 
 4. Base your answers strictly on the provided real-time data if the user asks about specific PHCs, stocks, or conditions.
+5. MANDATORY: You MUST reply entirely in ${language === 'hi' ? 'Hindi' : 'English'}, regardless of the language the user typed their message in. If the language is 'hi', your entire response MUST be in Hindi. If the language is 'en', your entire response MUST be in English.
       `;
 
       const result = await model.generateContent(contextPrompt);
@@ -100,6 +102,56 @@ CRITICAL RULES FOR RESPONDING:
     } catch (e) {
       console.error('Gemini askNetra error', e);
       return "I encountered an error connecting to my intelligence network. Please verify your API key or try again later.";
+    }
+  },
+
+  // Multimodal Vision (Medicine Label Extraction)
+  extractMedicineFromImage: async (base64Image: string): Promise<{name: string, category: string, quantity: string, unit: string} | null> => {
+    if (!apiKey) return null;
+
+    try {
+      const prompt = `
+You are Netra, an advanced Health Intelligence AI.
+The user has provided an image of a medicine box, bottle, or label.
+
+Extract the following details from the image:
+1. "name": The commercial name or generic name of the medicine.
+2. "category": Choose the closest fit from these exactly: ANTIBIOTICS, ANALGESICS, ANTIVIRALS, VACCINES, IV_FLUIDS, EMERGENCY. If none fit, pick the closest one based on the medicine type.
+3. "quantity": An estimated quantity integer (e.g. 100). If you see "100 tablets" or similar, just output "100".
+4. "unit": The unit of measurement (e.g. "tablets", "mg", "ml", "strips").
+
+Return ONLY a strictly formatted JSON object:
+{
+  "name": "Extracted Name",
+  "category": "ANTIBIOTICS",
+  "quantity": "100",
+  "unit": "tablets"
+}
+      `;
+
+      const result = await model.generateContent([
+        prompt,
+        {
+          inlineData: {
+            data: base64Image,
+            mimeType: "image/jpeg"
+          }
+        }
+      ]);
+
+      const text = await result.response.text();
+      const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+      const parsedData = JSON.parse(cleanedText);
+
+      return {
+        name: parsedData.name || '',
+        category: parsedData.category || 'ANALGESICS',
+        quantity: parsedData.quantity ? String(parsedData.quantity) : '',
+        unit: parsedData.unit || ''
+      };
+    } catch (e) {
+      console.error('Gemini extractMedicineFromImage error', e);
+      return null;
     }
   },
 
@@ -168,19 +220,47 @@ Output ONLY valid JSON without any markdown formatting blocks like \`\`\`json.
     }
   },
 
-  // Forecast Service (Leaving as mock)
+  // Forecast Service using Gemini 2.5 Flash
   generateForecast: async (
     targetId: string,
     type: 'PHC_HEALTH' | 'MEDICINE_DEMAND'
   ): Promise<number[]> => {
-    await new Promise((resolve) => setTimeout(resolve, 400));
-    if (type === 'PHC_HEALTH') {
-      const baseScore = targetId === 'phc_badalpur' ? 48 : 72;
-      return [baseScore, baseScore - 2, baseScore + 3, baseScore + 8, baseScore + 12, baseScore + 15, baseScore + 18].map(
-        (s) => Math.min(100, Math.max(0, s))
-      );
-    } else {
-      return [100, 140, 220, 290, 310, 260, 180];
+    if (!apiKey) {
+      console.warn("API key missing, falling back to mock forecast.");
+      return type === 'PHC_HEALTH' ? [72, 70, 75, 80, 84, 87, 90] : [100, 140, 220, 290, 310, 260, 180];
+    }
+
+    try {
+      // Find the trend data if the targetId maps to a disease (for MEDICINE_DEMAND / Outbreak forecasting)
+      // or if it's a PHC, just pass the general trends.
+      const prompt = `
+You are Netra, an advanced Health Intelligence AI.
+You are tasked with forecasting 7 data points (representing the next 7 days) based on the following historical time-series data.
+
+Historical Disease Trends (11 days of data):
+${JSON.stringify(localDiseaseTrends)}
+
+Task: Forecast the next 7 days for the parameter: ${type} targeting ID: ${targetId}.
+If type is 'PHC_HEALTH', output an array of 7 integers between 0 and 100 representing the projected health index of the PHC.
+If type is 'MEDICINE_DEMAND', output an array of 7 integers representing projected daily demand/cases.
+
+Output ONLY a JSON array of 7 integers. No markdown blocks, no text, just the array. Example: [10, 20, 30, 40, 50, 60, 70]
+      `;
+
+      const result = await model.generateContent(prompt);
+      const text = await result.response.text();
+      
+      const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+      const parsedData = JSON.parse(cleanedText);
+
+      if (Array.isArray(parsedData) && parsedData.length > 0) {
+        return parsedData;
+      }
+      throw new Error("Invalid format from Gemini");
+    } catch (error) {
+      console.error('Gemini generateForecast error:', error);
+      console.warn('Falling back to mock forecast.');
+      return type === 'PHC_HEALTH' ? [72, 70, 75, 80, 84, 87, 90] : [100, 140, 220, 290, 310, 260, 180];
     }
   },
 };

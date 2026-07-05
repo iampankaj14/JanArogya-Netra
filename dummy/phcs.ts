@@ -5,7 +5,9 @@ export const dummyPHCs: PHC[] = [
   {
     id: 'chc_bisrakh',
     name: 'CHC Bisrakh',
+    nameHi: 'सी.एच.सी. बिसरख',
     block: 'Bisrakh',
+    blockHi: 'बिसरख',
     healthScore: 85,
     doctorAvailable: true,
     stockStatus: 'adequate',
@@ -27,7 +29,9 @@ export const dummyPHCs: PHC[] = [
   {
     id: 'chc_bhangel',
     name: 'CHC Bhangel',
+    nameHi: 'सी.एच.सी. भंगेल',
     block: 'Bisrakh',
+    blockHi: 'बिसरख',
     healthScore: 78,
     doctorAvailable: true,
     stockStatus: 'warning',
@@ -49,7 +53,9 @@ export const dummyPHCs: PHC[] = [
   {
     id: 'phc_barola',
     name: 'PHC Barola',
+    nameHi: 'पी.एच.सी. बरौला',
     block: 'Bisrakh',
+    blockHi: 'बिसरख',
     healthScore: 65,
     doctorAvailable: true,
     stockStatus: 'critical',
@@ -71,7 +77,9 @@ export const dummyPHCs: PHC[] = [
   {
     id: 'uphc_surajpur',
     name: 'UPHC Surajpur',
+    nameHi: 'यू.पी.एच.सी. सूरजपुर',
     block: 'Bisrakh',
+    blockHi: 'बिसरख',
     healthScore: 92,
     doctorAvailable: true,
     stockStatus: 'adequate',
@@ -94,7 +102,9 @@ export const dummyPHCs: PHC[] = [
   {
     id: 'chc_dadri',
     name: 'CHC Dadri',
+    nameHi: 'सी.एच.सी. दादरी',
     block: 'Dadri',
+    blockHi: 'दादरी',
     healthScore: 74,
     doctorAvailable: true,
     stockStatus: 'adequate',
@@ -116,7 +126,9 @@ export const dummyPHCs: PHC[] = [
   {
     id: 'phc_badalpur',
     name: 'PHC Badalpur',
+    nameHi: 'पी.एच.सी. बादलपुर',
     block: 'Dadri',
+    blockHi: 'दादरी',
     healthScore: 58,
     doctorAvailable: false,
     stockStatus: 'warning',
@@ -138,7 +150,9 @@ export const dummyPHCs: PHC[] = [
   {
     id: 'uphc_harola',
     name: 'UPHC Harola',
+    nameHi: 'यू.पी.एच.सी. हरौला',
     block: 'Dadri',
+    blockHi: 'दादरी',
     healthScore: 81,
     doctorAvailable: true,
     stockStatus: 'adequate',
@@ -161,7 +175,9 @@ export const dummyPHCs: PHC[] = [
   {
     id: 'chc_dara_kasna',
     name: 'CHC Dara Kasna',
+    nameHi: 'सी.एच.सी. दारा कासना',
     block: 'Dankaur',
+    blockHi: 'दनकौर',
     healthScore: 88,
     doctorAvailable: true,
     stockStatus: 'adequate',
@@ -183,7 +199,9 @@ export const dummyPHCs: PHC[] = [
   {
     id: 'phc_mandi_shyam_nagar',
     name: 'PHC Mandi Shyam Nagar',
+    nameHi: 'पी.एच.सी. मंडी श्याम नगर',
     block: 'Dankaur',
+    blockHi: 'दनकौर',
     healthScore: 45,
     doctorAvailable: false,
     stockStatus: 'critical',
@@ -206,7 +224,9 @@ export const dummyPHCs: PHC[] = [
   {
     id: 'chc_jewar',
     name: 'CHC Jewar',
+    nameHi: 'सी.एच.सी. जेवर',
     block: 'Jewar',
+    blockHi: 'जेवर',
     healthScore: 70,
     doctorAvailable: true,
     stockStatus: 'warning',
@@ -228,7 +248,9 @@ export const dummyPHCs: PHC[] = [
   {
     id: 'phc_jahagirpur',
     name: 'PHC Jahagirpur',
+    nameHi: 'पी.एच.सी. जहांगीरपुर',
     block: 'Jewar',
+    blockHi: 'जेवर',
     healthScore: 95,
     doctorAvailable: true,
     stockStatus: 'adequate',
@@ -250,7 +272,9 @@ export const dummyPHCs: PHC[] = [
   {
     id: 'phc_rabupura',
     name: 'PHC Rabupura',
+    nameHi: 'पी.एच.सी. रबुपुरा',
     block: 'Jewar',
+    blockHi: 'जेवर',
     healthScore: 61,
     doctorAvailable: true,
     stockStatus: 'warning',

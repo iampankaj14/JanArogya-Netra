@@ -3,7 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { useState } from 'react';
-import { Image, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { LoginRole, useAuth } from '../context/AuthContext';
 import { useTranslation } from '../hooks/useTranslation';
 import { auth, isFirebaseConfigured } from '../services/firebase/firebaseConfig';
@@ -53,9 +53,9 @@ export default function LoginScreen() {
     try {
       if (isFirebaseConfigured) {
         await sendPasswordResetEmail(auth, email);
-        alert('Password reset link sent to your email.');
+        Alert.alert('Success', 'Password reset link sent to your email.');
       } else {
-        alert('In offline/mock mode: To reset password, please contact admin@janarogya.gov.in');
+        Alert.alert('Notice', 'In offline/mock mode: To reset password, please contact admin@janarogya.gov.in');
       }
     } catch (e: any) {
       setError(e.message || 'Failed to send password reset email.');
@@ -71,12 +71,23 @@ export default function LoginScreen() {
       className="flex-1 bg-white"
     >
       {/* Header Section */}
-      <View className="flex-row justify-between items-center px-2 pt-4 pb-2 bg-white z-10">
+      <View className="flex-row justify-between items-center px-4 pt-4 pb-2 bg-white z-10">
         <Image
           source={require('@/data/login/govt.png')}
           style={{ width: 140, height: 45, marginLeft: -15 }}
           resizeMode="contain"
         />
+        
+        {/* Language Switcher Toggle */}
+        <TouchableOpacity 
+          onPress={() => setLanguage(language === 'en' ? 'hi' : 'en')}
+          className="flex-row items-center bg-[#F8FAFC] border border-slate-200 rounded-full px-3 py-1.5 shadow-sm"
+        >
+          <Feather name="globe" size={14} color="#0E62CC" />
+          <Text className="text-[#0E62CC] font-bold text-xs ml-1.5 uppercase">
+            {language === 'en' ? 'HI' : 'EN'}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="flex-grow-1" keyboardShouldPersistTaps="handled">

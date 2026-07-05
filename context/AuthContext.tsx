@@ -1,9 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { Platform } from 'react-native';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import * as SecureStore from 'expo-secure-store';
 import { auth, db, isFirebaseConfigured } from '../services/firebase/firebaseConfig';
 import { authRepository } from '../services/repositories/authRepository';
+import { clearLocalDb } from '../services/repositories/localDb';
 
 export type LoginRole = 'DHO' | 'BMO' | 'PHC';
 
@@ -60,8 +62,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setLoading(false);
           });
         } else {
-          // Offline auto-login via SecureStore
-          const savedSession = await SecureStore.getItemAsync(SECURE_STORE_KEY);
+          // Offline auto-login via SecureStore (or localStorage on web)
+          let savedSession = null;
+          if (Platform.OS === 'web') {
+            savedSession = localStorage.getItem(SECURE_STORE_KEY);
+          } else {
+            savedSession = await SecureStore.getItemAsync(SECURE_STORE_KEY);
+          }
           if (savedSession) {
             const session = JSON.parse(savedSession);
             const mappedRole = session.role === 'PHC_MO' ? 'PHC' : (session.role as LoginRole);
@@ -105,9 +112,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAuthState(session);
 
       if (rememberMe) {
-        await SecureStore.setItemAsync(SECURE_STORE_KEY, JSON.stringify(session));
+        if (Platform.OS === 'web') {
+          localStorage.setItem(SECURE_STORE_KEY, JSON.stringify(session));
+        } else {
+          await SecureStore.setItemAsync(SECURE_STORE_KEY, JSON.stringify(session));
+        }
       } else {
-        await SecureStore.deleteItemAsync(SECURE_STORE_KEY);
+        if (Platform.OS === 'web') {
+          localStorage.removeItem(SECURE_STORE_KEY);
+        } else {
+          await SecureStore.deleteItemAsync(SECURE_STORE_KEY);
+        }
       }
     } catch (error) {
       throw error;
@@ -120,8 +135,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     try {
       await authRepository.logout();
+      await clearLocalDb();
       setAuthState({ role: null, email: null, uid: null });
-      await SecureStore.deleteItemAsync(SECURE_STORE_KEY);
+      if (Platform.OS === 'web') {
+        localStorage.removeItem(SECURE_STORE_KEY);
+      } else {
+        await SecureStore.deleteItemAsync(SECURE_STORE_KEY);
+      }
     } catch (error) {
       console.error('Logout failed:', error);
     } finally {

@@ -1,10 +1,12 @@
-import React, { useState, useMemo } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { View, Text, TextInput, Pressable, StyleSheet, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
+import { useTranslation } from '@/hooks/useTranslation';
 import ScreenContainer from '@/components/ui/layout/ScreenContainer';
 import { dummyPHCs } from '@/dummy/phcs';
+import { localPHCs } from '@/services/repositories/localDb';
 import { PHC } from '@/shared/types/phc';
 import { WebView } from 'react-native-webview';
 
@@ -32,16 +34,19 @@ function getStatusColor(status: FacilityStatus) {
 export default function DistrictMapScreen() {
   const router = useRouter();
   const { authState } = useAuth();
-  const isBMO = authState?.role === 'BMO';
-  const assignedBlock = 'Dadri';
+  const { t, language } = useTranslation();
+  
+  const currentBlock = authState?.role === 'BMO' 
+    ? (localPHCs.find(p => p.id === authState.facilityId)?.block || 'Bisrakh')
+    : null;
 
   const [search, setSearch] = useState('');
   const [isLegendExpanded, setIsLegendExpanded] = useState(true);
 
   // Filtered PHC markers
   const filteredPHCs = useMemo(() => {
-    return dummyPHCs.filter(phc => {
-      if (isBMO && phc.block !== assignedBlock) return false;
+    return localPHCs.filter(phc => {
+      if (currentBlock && phc.block !== currentBlock) return false;
       return phc.name.toLowerCase().includes(search.toLowerCase()) ||
              phc.block.toLowerCase().includes(search.toLowerCase());
     }).map(phc => {
@@ -49,9 +54,9 @@ export default function DistrictMapScreen() {
        const colors = getStatusColor(status);
        return { ...phc, status, colors };
     });
-  }, [isBMO, assignedBlock, search]);
+  }, [currentBlock, search]);
 
-  const leafletHTML = `
+  const getMapHtml = () => `
     <!DOCTYPE html>
     <html>
     <head>
@@ -95,27 +100,38 @@ export default function DistrictMapScreen() {
 
         var phcs = ${JSON.stringify(filteredPHCs)};
         
-        function createIcon(phc) {
-          var html = '<div class="custom-marker" style="background-color: ' + phc.colors.bg + '; width: 48px; height: 48px;">' +
+        function createIcon(phc, displayName) {
+          var html = '<div style="display:flex; flex-direction:column; align-items:center;">' +
+                     '<div class="custom-marker" style="background-color: ' + phc.colors.bg + '; width: 48px; height: 48px;">' +
                      '<div class="custom-marker-inner" style="background-color: ' + phc.colors.core + ';">' + phc.colors.sign + '</div>' +
+                     '</div>' +
+                     '<div style="background-color: rgba(255, 255, 255, 0.95); padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 800; margin-top: 4px; color: #1E293B; box-shadow: 0 2px 4px rgba(0,0,0,0.1); white-space: nowrap; border: 1px solid rgba(0,0,0,0.05);">' + displayName + '</div>' +
                      '</div>';
 
           return L.divIcon({
             html: html,
             className: '',
-            iconSize: [48, 48],
+            iconSize: [48, 70],
             iconAnchor: [24, 24],
             popupAnchor: [0, -24]
           });
         }
 
         phcs.forEach(function(phc) {
-          var marker = L.marker([phc.latitude, phc.longitude], {icon: createIcon(phc)}).addTo(map);
-          marker.bindPopup("<div style='font-family:sans-serif;text-align:center;'><b>" + phc.name + "</b><br><span style='color:#64748B;font-size:11px;'>" + phc.status + "</span></div>");
+          var displayName = phc.name;
+          if ('${language}' === 'hi' && phc.nameHi) {
+             displayName = phc.nameHi;
+          }
+          var marker = L.marker([phc.latitude, phc.longitude], {icon: createIcon(phc, displayName)}).addTo(map);
+          marker.bindPopup("<div style='font-family:sans-serif;text-align:center;'><b>" + displayName + "</b><br><span style='color:#64748B;font-size:11px;'>" + phc.status + "</span></div>");
           
           marker.on('click', function() {
              setTimeout(function() {
-                window.ReactNativeWebView.postMessage(phc.id);
+                if (window.ReactNativeWebView) {
+                  window.ReactNativeWebView.postMessage(phc.id);
+                } else {
+                  window.parent.postMessage({ type: 'PHC_CLICK', id: phc.id }, '*');
+                }
              }, 300); // slight delay to allow popup to show before routing
           });
         });
@@ -124,30 +140,69 @@ export default function DistrictMapScreen() {
         window.zoomIn = function() { map.zoomIn(); }
         window.zoomOut = function() { map.zoomOut(); }
         window.recenter = function() { map.setView([${USER_LOCATION.latitude}, ${USER_LOCATION.longitude}], 11); }
+        
+        window.addEventListener('message', function(event) {
+          if (event.data && event.data.type === 'ZOOM_IN') map.zoomIn();
+          if (event.data && event.data.type === 'ZOOM_OUT') map.zoomOut();
+          if (event.data && event.data.type === 'RECENTER') map.setView([${USER_LOCATION.latitude}, ${USER_LOCATION.longitude}], 11);
+        });
       </script>
     </body>
     </html>
   `;
 
   let webviewRef: any = null;
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      const handleMessage = (event: MessageEvent) => {
+        if (event.data && event.data.type === 'PHC_CLICK' && event.data.id) {
+          router.push({ pathname: '/(tabs)/phc-detail', params: { id: event.data.id } });
+        }
+      };
+      window.addEventListener('message', handleMessage as any);
+      return () => window.removeEventListener('message', handleMessage as any);
+    }
+  }, [router]);
+
+  const sendMapCommand = (command: string) => {
+    if (Platform.OS === 'web' && iframeRef.current) {
+      iframeRef.current.contentWindow?.postMessage({ type: command }, '*');
+    } else if (webviewRef) {
+      if (command === 'ZOOM_IN') webviewRef.injectJavaScript('window.zoomIn(); true;');
+      else if (command === 'ZOOM_OUT') webviewRef.injectJavaScript('window.zoomOut(); true;');
+      else if (command === 'RECENTER') webviewRef.injectJavaScript('window.recenter(); true;');
+    }
+  };
 
   return (
     <ScreenContainer scrollable={false} padding={false}>
       <View className="flex-1 relative bg-[#F1EFE9]">
         
-        <WebView
-          ref={(ref) => (webviewRef = ref)}
-          source={{ html: leafletHTML }}
-          style={{ flex: 1, width: '100%', height: '100%', position: 'absolute' }}
-          javaScriptEnabled={true}
-          domStorageEnabled={true}
-          bounces={false}
-          scrollEnabled={false}
-          onMessage={(event) => {
-             const phcId = event.nativeEvent.data;
-             router.push({ pathname: '/(tabs)/phc-detail', params: { id: phcId } });
-          }}
-        />
+        {Platform.OS === 'web' ? (
+          <iframe 
+            ref={iframeRef as any}
+            srcDoc={getMapHtml()} 
+            style={{ width: '100%', height: '100%', border: 'none', position: 'absolute' }}
+            title="map"
+            sandbox="allow-scripts allow-same-origin allow-popups"
+          />
+        ) : (
+          <WebView
+            ref={(ref) => { webviewRef = ref; }}
+            source={{ html: getMapHtml() }}
+            style={{ flex: 1, width: '100%', height: '100%', position: 'absolute' }}
+            javaScriptEnabled={true}
+            domStorageEnabled={true}
+            bounces={false}
+            scrollEnabled={false}
+            onMessage={(event) => {
+               const phcId = event.nativeEvent.data;
+               router.push({ pathname: '/(tabs)/phc-detail', params: { id: phcId } });
+            }}
+          />
+        )}
 
         {/* Top Search Bar */}
         <View className="absolute top-4 left-4 right-4 z-50 flex-row items-center space-x-3 pointer-events-none">
@@ -155,7 +210,7 @@ export default function DistrictMapScreen() {
             <Feather name="search" size={18} color="#94A3B8" className="mr-3" />
             <TextInput
               className="flex-1 text-slate-800 text-[15px] font-medium"
-              placeholder="Search health centers, blocks..."
+              placeholder={t('districtMapSearchPlaceholder')}
               placeholderTextColor="#94A3B8"
               value={search}
               onChangeText={setSearch}
@@ -169,7 +224,7 @@ export default function DistrictMapScreen() {
             onPress={() => setIsLegendExpanded(!isLegendExpanded)}
             className="flex-row items-center justify-between"
           >
-            <Text className="text-slate-900 font-bold text-sm">Legend</Text>
+            <Text className="text-slate-900 font-bold text-sm">{t('districtMapLegendTitle')}</Text>
             <Feather name={isLegendExpanded ? "chevron-up" : "chevron-down"} size={18} color="#64748B" />
           </Pressable>
           
@@ -177,61 +232,72 @@ export default function DistrictMapScreen() {
             <View>
               <View className="space-y-3 mt-4 mb-5">
                 <View className="flex-row items-center gap-3">
-                  <View className="w-5 h-6 bg-[#10B981] rounded-l-full rounded-tr-full" />
-                  <Text className="text-slate-600 font-medium text-xs">PHC (Operational)</Text>
+                  <View className="w-8 h-8 rounded-full items-center justify-center" style={{ backgroundColor: 'rgba(16,185,129,0.2)' }}>
+                    <View className="w-[14px] h-[14px] rounded-full items-center justify-center border-[1.5px] border-white" style={{ backgroundColor: '#10B981' }}>
+                      <Text className="text-white font-bold" style={{ fontSize: 9, lineHeight: 10 }}>+</Text>
+                    </View>
+                  </View>
+                  <Text className="text-slate-600 font-medium text-xs">{t('districtMapLegendOperational')}</Text>
                 </View>
                 <View className="flex-row items-center gap-3">
-                  <View className="w-5 h-6 bg-[#3B82F6] rounded-l-full rounded-tr-full" />
-                  <Text className="text-slate-600 font-medium text-xs">PHC (Limited Services)</Text>
+                  <View className="w-8 h-8 rounded-full items-center justify-center" style={{ backgroundColor: 'rgba(59,130,246,0.2)' }}>
+                    <View className="w-[14px] h-[14px] rounded-full items-center justify-center border-[1.5px] border-white" style={{ backgroundColor: '#3B82F6' }}>
+                      <Text className="text-white font-bold" style={{ fontSize: 9, lineHeight: 10 }}>+</Text>
+                    </View>
+                  </View>
+                  <Text className="text-slate-600 font-medium text-xs">{t('districtMapLegendLimited')}</Text>
                 </View>
                 <View className="flex-row items-center gap-3">
-                  <View className="w-5 h-6 bg-[#F59E0B] rounded-l-full rounded-tr-full" />
-                  <Text className="text-slate-600 font-medium text-xs">Sub Center</Text>
+                  <View className="w-8 h-8 rounded-full items-center justify-center" style={{ backgroundColor: 'rgba(245,158,11,0.2)' }}>
+                    <View className="w-[14px] h-[14px] rounded-full items-center justify-center border-[1.5px] border-white" style={{ backgroundColor: '#F59E0B' }}>
+                      <Text className="text-white font-bold" style={{ fontSize: 9, lineHeight: 10 }}>+</Text>
+                    </View>
+                  </View>
+                  <Text className="text-slate-600 font-medium text-xs">{t('districtMapLegendSubCenter')}</Text>
                 </View>
                 <View className="flex-row items-center gap-3">
-                  <View className="w-5 h-6 bg-[#EF4444] rounded-l-full rounded-tr-full" />
-                  <Text className="text-slate-600 font-medium text-xs">PHC (Closed)</Text>
+                  <View className="w-8 h-8 rounded-full items-center justify-center" style={{ backgroundColor: 'rgba(239,68,68,0.2)' }}>
+                    <View className="w-[14px] h-[14px] rounded-full items-center justify-center border-[1.5px] border-white" style={{ backgroundColor: '#EF4444' }}>
+                      <Text className="text-white font-bold" style={{ fontSize: 9, lineHeight: 10 }}>×</Text>
+                    </View>
+                  </View>
+                  <Text className="text-slate-600 font-medium text-xs">{t('districtMapLegendClosed')}</Text>
                 </View>
               </View>
 
               <View className="h-[1px] w-full bg-slate-100 mb-3" />
               
-              <Text className="text-slate-500 font-medium text-xs mb-1">Total Facilities</Text>
+              <Text className="text-slate-500 font-medium text-xs mb-1">{t('districtMapTotalFacilitiesLabel')}</Text>
               <Text className="text-[#208AEF] font-bold text-2xl">{filteredPHCs.length}</Text>
             </View>
           )}
         </View>
 
         {/* Map Controls */}
-        <View className="absolute top-24 right-4 space-y-3 z-40">
+        <View className="absolute top-24 right-4 space-y-4 items-center z-40 mt-1">
           <Pressable 
-            onPress={() => webviewRef?.injectJavaScript('window.recenter(); true;')}
+            onPress={() => sendMapCommand('RECENTER')}
             className="w-[52px] h-[52px] bg-white rounded-full items-center justify-center shadow-md border border-slate-50"
           >
             <MaterialCommunityIcons name="crosshairs-gps" size={24} color="#208AEF" />
           </Pressable>
-          <View className="bg-white rounded-full shadow-md border border-slate-50 overflow-hidden">
+          <View className="bg-white rounded-full shadow-md border border-slate-50 overflow-hidden w-10">
             <Pressable 
-              onPress={() => webviewRef?.injectJavaScript('window.zoomIn(); true;')}
-              className="w-12 h-12 items-center justify-center border-b border-slate-100 active:bg-slate-50"
+              onPress={() => sendMapCommand('ZOOM_IN')}
+              className="w-10 h-10 items-center justify-center border-b border-slate-100 active:bg-slate-50"
             >
-              <Feather name="plus" size={22} color="#64748B" />
+              <Feather name="plus" size={18} color="#64748B" />
             </Pressable>
             <Pressable 
-              onPress={() => webviewRef?.injectJavaScript('window.zoomOut(); true;')}
-              className="w-12 h-12 items-center justify-center active:bg-slate-50"
+              onPress={() => sendMapCommand('ZOOM_OUT')}
+              className="w-10 h-10 items-center justify-center active:bg-slate-50"
             >
-              <Feather name="minus" size={22} color="#64748B" />
+              <Feather name="minus" size={18} color="#64748B" />
             </Pressable>
           </View>
         </View>
 
-        {/* Navigation Arrow */}
-        <View className="absolute bottom-6 right-4 z-40">
-           <Pressable className="w-[52px] h-[52px] bg-white rounded-full items-center justify-center shadow-md border border-slate-50">
-             <Feather name="navigation" size={24} color="#208AEF" style={{ transform: [{ rotate: '45deg' }], marginLeft: -2, marginTop: 2 }} />
-           </Pressable>
-        </View>
+
 
       </View>
     </ScreenContainer>

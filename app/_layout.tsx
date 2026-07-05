@@ -1,4 +1,6 @@
 import { AuthProvider } from '@/context/AuthContext';
+import { hydrateLocalDb } from '@/services/repositories/localDb';
+import '@/services/i18n';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
 import { Slot } from 'expo-router';
@@ -7,6 +9,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { LogBox, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { configureReanimatedLogger, ReanimatedLogLevel } from 'react-native-reanimated';
 import '../global.css';
 
 // Ignore all log notifications on the device screen (warnings will still appear in the terminal)
@@ -19,7 +22,6 @@ SplashScreen.preventAutoHideAsync();
 const queryClient = new QueryClient();
 
 // Configure Reanimated Logger to suppress strict mode warnings
-import { configureReanimatedLogger, ReanimatedLogLevel } from 'react-native-reanimated';
 configureReanimatedLogger({
   level: ReanimatedLogLevel.warn,
   strict: false,
@@ -34,9 +36,13 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    if (loaded || fontError) {
-      SplashScreen.hideAsync();
+    async function prepare() {
+      await hydrateLocalDb();
+      if (loaded || fontError) {
+        SplashScreen.hideAsync();
+      }
     }
+    prepare();
   }, [loaded, fontError]);
 
   if (!loaded && !fontError) {

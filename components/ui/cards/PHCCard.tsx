@@ -3,6 +3,7 @@ import { View, Text, Pressable, Image, ActivityIndicator } from 'react-native';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
 import Svg, { Circle, Path, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
 import { getHealthScoreColor } from '../../../utils/formatters';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface PHCCardProps {
   id?: string;
@@ -56,33 +57,35 @@ export default function PHCCard({
     );
   }
 
+  const { t } = useTranslation();
+
   // Determine colors based on overall health score
   let scoreColor = '#10B981'; // Green
-  let scoreText = 'Operational';
+  let scoreText = t('phcCardOperational');
   let illustration = require('@/data/phc/phc illustration/green1.png');
   
   if (healthScore < 70) {
     scoreColor = '#EF4444'; // Red
-    scoreText = 'Critical';
+    scoreText = t('phcCardCritical');
     illustration = require('@/data/phc/phc illustration/red1.png');
   } else if (healthScore < 90) {
     scoreColor = '#F59E0B'; // Orange / Yellow
-    scoreText = 'Attention';
+    scoreText = t('phcCardAttention');
     illustration = require('@/data/phc/phc illustration/yellow1.png');
   }
 
   // Determine stock badge config
   let stockIcon = require('@/data/phc/status icon/green_s.png');
   let stockTextColor = 'text-emerald-600';
-  let stockText = 'Adequate Stock';
+  let stockText = t('phcCardAdequateStock');
   if (stockStatus === 'warning') {
     stockIcon = require('@/data/phc/status icon/yellow_s.png');
     stockTextColor = 'text-amber-600';
-    stockText = 'Warning Stock';
+    stockText = t('phcCardWarningStock');
   } else if (stockStatus === 'critical') {
     stockIcon = require('@/data/phc/status icon/red_s.png');
     stockTextColor = 'text-red-600';
-    stockText = 'Critical Stock';
+    stockText = t('phcCardCriticalStock');
   }
 
   // Determine alerts config
@@ -90,14 +93,14 @@ export default function PHCCard({
     ? require('@/data/phc/status icon/fine.png') 
     : require('@/data/phc/status icon/critical.png'); // use critical icon or need icon
   const alertTextColor = activeAlertsCount === 0 ? 'text-emerald-600' : 'text-red-600';
-  const alertText = activeAlertsCount === 0 ? 'No Active Alerts' : `${activeAlertsCount} Active Alert${activeAlertsCount > 1 ? 's' : ''}`;
+  const alertText = activeAlertsCount === 0 ? t('phcCardNoActiveAlerts') : `${activeAlertsCount} ${activeAlertsCount > 1 ? t('phcCardActiveAlerts') : t('phcCardActiveAlert')}`;
 
   // Doctor config
   const docIcon = doctorAvailable 
     ? require('@/data/phc/status icon/mo_p.png') 
     : require('@/data/phc/status icon/mo_a.png');
   const docTextColor = doctorAvailable ? 'text-emerald-600' : 'text-red-600';
-  const docText = doctorAvailable ? 'MO Present' : 'MO Absent';
+  const docText = doctorAvailable ? t('phcCardMoPresent') : t('phcCardMoAbsent');
 
   // Circular Progress calculations
   const radius = 24;
@@ -115,9 +118,9 @@ export default function PHCCard({
   const flowData = weeklyFootfall && weeklyFootfall.length > 0 ? weeklyFootfall.slice(-7) : [20, 35, 30, 40, 25, 50, 45];
   const todayFlow = flowData[flowData.length - 1];
   const yesterdayFlow = flowData[flowData.length - 2] || todayFlow;
-  let flowText = "Normal";
-  if (todayFlow > yesterdayFlow * 1.2) flowText = "High";
-  if (todayFlow < yesterdayFlow * 0.8) flowText = "Low";
+  let flowText = t('phcCardFlowNormal');
+  if (todayFlow > yesterdayFlow * 1.2) flowText = t('phcCardFlowHigh');
+  if (todayFlow < yesterdayFlow * 0.8) flowText = t('phcCardFlowLow');
 
   const stockSpark = generateSparkline(stockData, 50, 15);
   const moSpark = generateSparkline(moData, 50, 15);
@@ -134,7 +137,7 @@ export default function PHCCard({
       <View className="p-4 flex-row">
         {/* Left Illustration */}
         <View className="w-24 h-24 rounded-2xl bg-slate-50 mr-4 items-center justify-center overflow-hidden">
-          <Image source={illustration} className="w-full h-full" resizeMode="cover" />
+          <Image source={illustration} className="w-full h-full" style={{ width: 96, height: 96 }} resizeMode="cover" />
         </View>
 
         {/* Center Details */}
@@ -149,19 +152,19 @@ export default function PHCCard({
           <View className="flex-row flex-wrap gap-1.5 mt-1">
             {/* MO Badge */}
             <View className={`flex-row items-center px-2 py-1 rounded-full ${doctorAvailable ? 'bg-emerald-50' : 'bg-red-50'}`}>
-              <Image source={docIcon} className="w-4 h-4 mr-1" resizeMode="contain" />
+              <Image source={docIcon} className="w-4 h-4 mr-1" style={{ width: 16, height: 16 }} resizeMode="contain" />
               <Text className={`text-[10px] font-bold ${docTextColor}`}>{docText}</Text>
             </View>
             
             {/* Stock Badge */}
             <View className={`flex-row items-center px-2 py-1 rounded-full ${stockStatus === 'adequate' ? 'bg-emerald-50' : stockStatus === 'warning' ? 'bg-amber-50' : 'bg-red-50'}`}>
-              <Image source={stockIcon} className="w-4 h-4 mr-1" resizeMode="contain" />
+              <Image source={stockIcon} className="w-4 h-4 mr-1" style={{ width: 16, height: 16 }} resizeMode="contain" />
               <Text className={`text-[10px] font-bold ${stockTextColor}`}>{stockText}</Text>
             </View>
 
             {/* Alerts Badge */}
             <View className={`flex-row items-center px-2 py-1 rounded-full ${activeAlertsCount === 0 ? 'bg-emerald-50' : 'bg-red-50'}`}>
-              <Image source={alertIcon} className="w-4 h-4 mr-1" resizeMode="contain" />
+              <Image source={alertIcon} className="w-4 h-4 mr-1" style={{ width: 16, height: 16 }} resizeMode="contain" />
               <Text className={`text-[10px] font-bold ${alertTextColor}`}>{alertText}</Text>
             </View>
           </View>
@@ -204,7 +207,7 @@ export default function PHCCard({
       <View className="px-4 pb-4 flex-row justify-between">
         
         <View className="w-1/3">
-          <Text className="text-[9px] font-bold text-slate-500 uppercase">Stock Health</Text>
+          <Text className="text-[9px] font-bold text-slate-500 uppercase">{t('phcCardStockHealth')}</Text>
           <View className="flex-row items-end mt-1">
             <Svg height="15" width="50">
               <Path d={stockSpark.path} stroke={scoreColor} strokeWidth="1.5" fill="none" />
@@ -214,7 +217,7 @@ export default function PHCCard({
         </View>
 
         <View className="w-1/3">
-          <Text className="text-[9px] font-bold text-slate-500 uppercase">MO Attendance</Text>
+          <Text className="text-[9px] font-bold text-slate-500 uppercase">{t('phcCardMoAttendance')}</Text>
           <View className="flex-row items-end mt-1">
             <Svg height="15" width="50">
               <Path d={moSpark.path} stroke="#3B82F6" strokeWidth="1.5" fill="none" />
@@ -224,7 +227,7 @@ export default function PHCCard({
         </View>
 
         <View className="w-1/3">
-          <Text className="text-[9px] font-bold text-slate-500 uppercase">Patient Flow</Text>
+          <Text className="text-[9px] font-bold text-slate-500 uppercase">{t('phcCardPatientFlow')}</Text>
           <View className="flex-row items-end mt-1">
             <Svg height="15" width="50">
               <Path d={flowSpark.path} stroke="#8B5CF6" strokeWidth="1.5" fill="none" />
@@ -237,7 +240,7 @@ export default function PHCCard({
 
       {/* Footer Action */}
       <View className="flex-row items-center justify-between px-4 py-3 border-t border-slate-50">
-        <Text className="text-xs font-bold text-[#0E62CC]">View Facility Profile</Text>
+        <Text className="text-xs font-bold text-[#0E62CC]">{t('phcCardViewProfile')}</Text>
         <Feather name="arrow-right" size={14} color="#0E62CC" />
       </View>
 

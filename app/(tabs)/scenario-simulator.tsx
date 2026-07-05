@@ -4,11 +4,14 @@ import { useRouter } from 'expo-router';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import ScreenContainer from '@/components/ui/layout/ScreenContainer';
 import { Dropdown } from '@/components/ui/inputs/Dropdown';
-import geminiService from '@/services/ai/geminiService';
+import { useTranslation } from '@/hooks/useTranslation';
 import { ScenarioSimulationResult } from '@/shared/types/ai';
+import { localPHCs, localMedicines } from '@/services/repositories/localDb';
+import geminiService from '@/services/ai/geminiService';
 
 export default function ScenarioSimulatorScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   
   const [scenario, setScenario] = useState('Dengue Outbreak Surge');
   const [severity, setSeverity] = useState('High');
@@ -27,7 +30,7 @@ export default function ScenarioSimulatorScreen() {
       setResult(simResult);
     } catch (error) {
       console.error('Simulation failed', error);
-      alert('Failed to run simulation. Please try again.');
+      alert(t('scenarioSimulatorSimulationFailedAlert'));
     } finally {
       setSimulating(false);
     }
@@ -45,8 +48,8 @@ export default function ScenarioSimulatorScreen() {
             <Feather name="arrow-left" size={22} color="#000" />
           </Pressable>
           <View className="flex-1 pr-2">
-            <Text className="text-brand-navy font-black text-[22px] tracking-tight mb-1">Scenario Simulator</Text>
-            <Text className="text-slate-500 text-[11px] font-semibold">AI-powered health risk simulation & recommendations</Text>
+            <Text className="text-brand-navy font-black text-[22px] tracking-tight mb-1">{t('scenarioSimulatorHeaderTitle')}</Text>
+            <Text className="text-slate-500 text-[11px] font-semibold">{t('scenarioSimulatorHeaderSubtitle')}</Text>
           </View>
         </View>
       </View>
@@ -56,12 +59,12 @@ export default function ScenarioSimulatorScreen() {
         {/* Promo Banner */}
         <View className="bg-blue-50/80 border border-blue-100 rounded-3xl p-5 mb-6 flex-row items-center justify-between overflow-hidden relative">
           <View className="flex-1 pr-4 z-10">
-            <Text className="text-brand-navy font-black text-[15px] mb-2 leading-tight">Simulate. Predict.{'\n'}Prepare. Prevent.</Text>
-            <Text className="text-slate-500 text-[9px] font-semibold leading-4 mb-4">Use AI insights to simulate health scenarios and get actionable recommendations.</Text>
+            <Text className="text-brand-navy font-black text-[15px] mb-2 leading-tight">{t('scenarioSimulatorPromoTitle')}</Text>
+            <Text className="text-slate-500 text-[9px] font-semibold leading-4 mb-4">{t('scenarioSimulatorPromoDesc')}</Text>
             
             <View className="bg-white border border-blue-100 rounded-full px-2.5 py-1.5 flex-row items-center self-start">
               <Feather name="aperture" size={10} color="#3B82F6" className="mr-1" />
-              <Text className="text-blue-600 font-bold text-[8px] uppercase tracking-wider">Powered by Gemini AI</Text>
+              <Text className="text-blue-600 font-bold text-[8px] uppercase tracking-wider">{t('scenarioSimulatorPoweredBy')}</Text>
             </View>
           </View>
           
@@ -105,7 +108,7 @@ export default function ScenarioSimulatorScreen() {
             <View className="w-8 h-8 rounded-full bg-blue-50 items-center justify-center mr-2 border border-blue-100">
               <Feather name="sliders" size={14} color="#3B82F6" />
             </View>
-            <Text className="text-brand-navy text-[15px] font-black">Simulation Parameters</Text>
+            <Text className="text-brand-navy text-[15px] font-black">{t('scenarioSimulatorParamsTitle')}</Text>
           </View>
           
           <View>
@@ -113,21 +116,21 @@ export default function ScenarioSimulatorScreen() {
             {/* Scenario */}
             <View className="mb-6">
               <Dropdown
-                label="1. Select Hypothetical Risk Scenario"
+                label={t('scenarioSimulatorScenarioLabel')}
                 selectedValue={scenario}
                 onValueChange={setScenario}
                 options={[
-                  { label: 'Dengue Outbreak Surge', value: 'Dengue Outbreak Surge' },
-                  { label: 'Severe Heatwave', value: 'Severe Heatwave' },
-                  { label: 'Monsoon Flooding', value: 'Monsoon Flooding' },
-                  { label: 'Viral Fever Epidemic', value: 'Viral Fever Epidemic' }
+                  { label: t('scenarioSimulatorOptionDengue'), value: 'Dengue Outbreak Surge' },
+                  { label: t('scenarioSimulatorOptionHeatwave'), value: 'Severe Heatwave' },
+                  { label: t('scenarioSimulatorOptionFlooding'), value: 'Monsoon Flooding' },
+                  { label: t('scenarioSimulatorOptionViralFever'), value: 'Viral Fever Epidemic' }
                 ]}
               />
             </View>
 
             {/* Severity */}
             <View className="mb-6">
-              <Text className="text-brand-navy text-[11px] font-extrabold mb-2">2. Severity Level</Text>
+              <Text className="text-brand-navy text-[11px] font-extrabold mb-2">{t('scenarioSimulatorSeverityLabel')}</Text>
               <View className="flex-row space-x-2">
                 
                 {/* Low */}
@@ -135,7 +138,7 @@ export default function ScenarioSimulatorScreen() {
                   <View className="w-3 h-3 rounded-full bg-emerald-100 items-center justify-center mr-2">
                     <View className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                   </View>
-                  <Text className={`font-bold text-[11px] ${severity === 'Low' ? 'text-emerald-700' : 'text-slate-600'}`}>Low</Text>
+                  <Text className={`font-bold text-[11px] ${severity === 'Low' ? 'text-emerald-700' : 'text-slate-600'}`}>{t('scenarioSimulatorSeverityLow')}</Text>
                 </Pressable>
 
                 {/* Medium */}
@@ -143,7 +146,7 @@ export default function ScenarioSimulatorScreen() {
                   <View className="w-3 h-3 rounded-full bg-orange-100 items-center justify-center mr-2">
                     <View className="w-1.5 h-1.5 rounded-full bg-orange-500" />
                   </View>
-                  <Text className={`font-bold text-[11px] ${severity === 'Medium' ? 'text-orange-700' : 'text-slate-600'}`}>Medium</Text>
+                  <Text className={`font-bold text-[11px] ${severity === 'Medium' ? 'text-orange-700' : 'text-slate-600'}`}>{t('scenarioSimulatorSeverityMedium')}</Text>
                 </Pressable>
 
                 {/* High */}
@@ -151,7 +154,7 @@ export default function ScenarioSimulatorScreen() {
                   <View className="w-4 h-4 rounded-full bg-red-100 items-center justify-center mr-1">
                     <Feather name="bar-chart-2" size={10} color="#EF4444" />
                   </View>
-                  <Text className={`font-bold text-[11px] ${severity === 'High' ? 'text-red-600' : 'text-slate-600'}`}>High</Text>
+                  <Text className={`font-bold text-[11px] ${severity === 'High' ? 'text-red-600' : 'text-slate-600'}`}>{t('scenarioSimulatorSeverityHigh')}</Text>
                 </Pressable>
 
               </View>
@@ -160,14 +163,14 @@ export default function ScenarioSimulatorScreen() {
             {/* Region */}
             <View className="mb-6 mt-1">
               <Dropdown
-                label="3. Region / Area"
+                label={t('scenarioSimulatorRegionLabel')}
                 selectedValue={region}
                 onValueChange={setRegion}
                 options={[
-                  { label: 'Gautam Budh Nagar', value: 'Gautam Budh Nagar' },
-                  { label: 'Noida City Zone', value: 'Noida City Zone' },
-                  { label: 'Dadri Rural', value: 'Dadri Rural' },
-                  { label: 'Jewar Block', value: 'Jewar Block' }
+                  { label: t('scenarioSimulatorRegionGautamBudhNagar'), value: 'Gautam Budh Nagar' },
+                  { label: t('scenarioSimulatorRegionNoida'), value: 'Noida City Zone' },
+                  { label: t('scenarioSimulatorRegionDadri'), value: 'Dadri Rural' },
+                  { label: t('scenarioSimulatorRegionJewar'), value: 'Jewar Block' }
                 ]}
               />
             </View>
@@ -175,13 +178,13 @@ export default function ScenarioSimulatorScreen() {
             {/* Time Window */}
             <View className="mb-8 mt-1">
               <Dropdown
-                label="4. Simulation Time Window"
+                label={t('scenarioSimulatorTimeWindowLabel')}
                 selectedValue={timeWindow}
                 onValueChange={setTimeWindow}
                 options={[
-                  { label: 'Next 7 Days', value: 'Next 7 Days' },
-                  { label: 'Next 14 Days', value: 'Next 14 Days' },
-                  { label: 'Next 30 Days', value: 'Next 30 Days' }
+                  { label: t('scenarioSimulatorTimeWindow7Days'), value: 'Next 7 Days' },
+                  { label: t('scenarioSimulatorTimeWindow14Days'), value: 'Next 14 Days' },
+                  { label: t('scenarioSimulatorTimeWindow30Days'), value: 'Next 30 Days' }
                 ]}
               />
             </View>
@@ -197,7 +200,7 @@ export default function ScenarioSimulatorScreen() {
               ) : (
                 <>
                   <Feather name="aperture" size={16} color="#FFF" className="mr-2" />
-                  <Text className="text-white font-extrabold text-[13px]">Run AI Simulation</Text>
+                  <Text className="text-white font-extrabold text-[13px]">{t('scenarioSimulatorRunButton')}</Text>
                 </>
               )}
             </Pressable>
@@ -215,11 +218,11 @@ export default function ScenarioSimulatorScreen() {
                 <View className="w-8 h-8 rounded-full bg-blue-50 items-center justify-center mr-2 border border-blue-100">
                   <Feather name="aperture" size={14} color="#3B82F6" />
                 </View>
-                <Text className="text-brand-navy text-[15px] font-black">Simulation Analysis Summary</Text>
+                <Text className="text-brand-navy text-[15px] font-black">{t('scenarioSimulatorAnalysisSummaryTitle')}</Text>
               </View>
               <View className="bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-1 flex-row items-center">
                 <Feather name="check-circle" size={10} color="#10B981" className="mr-1" />
-                <Text className="text-emerald-700 font-bold text-[9px]">Confidence: 88%</Text>
+                <Text className="text-emerald-700 font-bold text-[9px]">{t('scenarioSimulatorConfidenceBadge')}</Text>
               </View>
             </View>
 
@@ -230,16 +233,16 @@ export default function ScenarioSimulatorScreen() {
                   <View className="w-6 h-6 rounded-md bg-emerald-100 items-center justify-center mr-2">
                     <Feather name="shield" size={12} color="#10B981" />
                   </View>
-                  <Text className="text-emerald-800 font-extrabold text-[13px]">AI Impact Assessment</Text>
+                  <Text className="text-emerald-800 font-extrabold text-[13px]">{t('scenarioSimulatorImpactAssessmentTitle')}</Text>
                 </View>
               <View className="bg-emerald-100/50 rounded-full px-2 py-1">
-                  <Text className="text-emerald-700 font-extrabold text-[9px]">High Risk Detected</Text>
+                  <Text className="text-emerald-700 font-extrabold text-[9px]">{t('scenarioSimulatorHighRiskDetected')}</Text>
                 </View>
               </View>
               <Text className="text-slate-600 font-semibold text-[10px] leading-relaxed">
                 {result.suggestedTransfers.length > 0 
                   ? result.suggestedTransfers[0].reasoning 
-                  : "Based on regional trends, climate indices, and current case patterns, a high severity scenario may cause a sharp rise in patient admissions within 72 hours. Immediate action is recommended to prevent resource strain."}
+                  : t('scenarioSimulatorDefaultImpactText')}
               </Text>
             </View>
 
@@ -251,10 +254,10 @@ export default function ScenarioSimulatorScreen() {
                 <View className="w-8 h-8 rounded-full bg-red-100/50 items-center justify-center mb-1">
                   <MaterialCommunityIcons name="bed-empty" size={16} color="#EF4444" />
                 </View>
-                <Text className="text-slate-700 font-bold text-[8px] text-center mb-0.5" numberOfLines={1}>Inpatient Beds Required</Text>
-                <Text className="text-red-500 font-black text-lg mb-1">{result.estimatedBedRequirement} units</Text>
+                <Text className="text-slate-700 font-bold text-[8px] text-center mb-0.5" numberOfLines={1}>{t('scenarioSimulatorBedsRequiredLabel')}</Text>
+                <Text className="text-red-500 font-black text-lg mb-1">{result.estimatedBedRequirement} {t('scenarioSimulatorUnitsSuffix')}</Text>
                 <View className="bg-red-100/60 rounded-full px-2 py-0.5">
-                  <Text className="text-red-600 font-bold text-[7px]">High Demand</Text>
+                  <Text className="text-red-600 font-bold text-[7px]">{t('scenarioSimulatorHighDemand')}</Text>
                 </View>
               </View>
 
@@ -263,12 +266,12 @@ export default function ScenarioSimulatorScreen() {
                 <View className="w-8 h-8 rounded-full bg-orange-100/50 items-center justify-center mb-1">
                   <MaterialCommunityIcons name="pill" size={16} color="#F97316" />
                 </View>
-                <Text className="text-slate-700 font-bold text-[8px] text-center mb-0.5" numberOfLines={1}>Drug Demand Surge</Text>
+                <Text className="text-slate-700 font-bold text-[8px] text-center mb-0.5" numberOfLines={1}>{t('scenarioSimulatorDrugDemandSurgeLabel')}</Text>
                 <Text className="text-orange-500 font-black text-lg mb-1">
-                  {Object.values(result.estimatedMedicineDemand).reduce((a, b) => a + b, 0)} units
+                  {Object.values(result.estimatedMedicineDemand).reduce((a, b) => a + b, 0)} {t('scenarioSimulatorUnitsSuffix')}
                 </Text>
                 <View className="bg-orange-100/60 rounded-full px-2 py-0.5">
-                  <Text className="text-orange-600 font-bold text-[7px]">Very High</Text>
+                  <Text className="text-orange-600 font-bold text-[7px]">{t('scenarioSimulatorVeryHigh')}</Text>
                 </View>
               </View>
 
@@ -277,10 +280,10 @@ export default function ScenarioSimulatorScreen() {
                 <View className="w-8 h-8 rounded-full bg-purple-100/50 items-center justify-center mb-1">
                   <Feather name="users" size={14} color="#8B5CF6" />
                 </View>
-                <Text className="text-slate-700 font-bold text-[8px] text-center mb-0.5" numberOfLines={1}>Additional Staff</Text>
+                <Text className="text-slate-700 font-bold text-[8px] text-center mb-0.5" numberOfLines={1}>{t('scenarioSimulatorAdditionalStaffLabel')}</Text>
                 <Text className="text-purple-600 font-black text-lg mb-1">+{result.estimatedStaffRequirement}</Text>
                 <View className="bg-purple-100/60 rounded-full px-2 py-0.5">
-                  <Text className="text-purple-600 font-bold text-[7px]">In 7 Days</Text>
+                  <Text className="text-purple-600 font-bold text-[7px]">{t('scenarioSimulatorIn7Days')}</Text>
                 </View>
               </View>
 
@@ -293,20 +296,38 @@ export default function ScenarioSimulatorScreen() {
                   <View className="w-5 h-5 rounded-full bg-blue-100 items-center justify-center mr-2">
                     <Feather name="aperture" size={10} color="#2563EB" />
                   </View>
-                  <Text className="text-blue-700 font-extrabold text-[11px]">AI Recommended Actions</Text>
+                  <Text className="text-blue-700 font-extrabold text-[11px]">{t('scenarioSimulatorRecommendedActionsTitle')}</Text>
                 </View>
 
                 <View className="space-y-2">
-                  {result.suggestedTransfers.slice(0, 3).map((rec, i) => (
-                    <View key={rec.id || i} className="flex-row items-start">
-                      <Feather name="check-circle" size={10} color="#3B82F6" className="mt-0.5 mr-2" />
-                      <Text className="text-brand-navy font-semibold text-[9px] leading-3 flex-1">{rec.title || `Transfer ${rec.quantity} ${rec.item}`}</Text>
+                  {result.suggestedTransfers.slice(0, 3).map((rec, i) => {
+                    return (
+                    <View key={rec.id || i} className="flex-row items-start justify-between mb-2">
+                      <View className="flex-row items-start flex-1 pr-2">
+                        <Feather name="check-circle" size={10} color="#3B82F6" className="mt-0.5 mr-2" />
+                        <Text className="text-brand-navy font-semibold text-[9px] leading-3 flex-1">{rec.title || t('scenarioSimulatorTransferFallback').replace('{quantity}', String(rec.quantity)).replace('{item}', rec.item)}</Text>
+                      </View>
+                      <Pressable 
+                        onPress={() => {
+                          const sourceId = localPHCs.find(p => p.id === rec.sourceFacility || p.name === rec.sourceFacility)?.id || '';
+                          const targetId = localPHCs.find(p => p.id === rec.targetFacility || p.name === rec.targetFacility)?.id || '';
+                          const medicineId = localMedicines.find(m => m.id === rec.item || m.name.toLowerCase().includes(rec.item.toLowerCase()) || rec.item.toLowerCase().includes(m.name.toLowerCase()))?.id || '';
+                          router.push({
+                            pathname: '/(tabs)/resource-redistribution',
+                            params: { draft: 'true', source: sourceId, target: targetId, medicine: medicineId, qty: rec.quantity.toString() }
+                          });
+                        }}
+                        className="bg-blue-100 rounded-full px-2 py-1 items-center justify-center border border-blue-200 shadow-sm active:bg-blue-200 flex-row"
+                      >
+                        <Text className="text-blue-700 font-bold text-[8px] mr-1">{t('scenarioSimulatorDraftButton')}</Text>
+                        <Feather name="arrow-right" size={8} color="#1D4ED8" />
+                      </Pressable>
                     </View>
-                  ))}
+                  )})}
                   {result.suggestedTransfers.length === 0 && (
                     <View className="flex-row items-start">
                       <Feather name="check-circle" size={10} color="#3B82F6" className="mt-0.5 mr-2" />
-                      <Text className="text-brand-navy font-semibold text-[9px] leading-3 flex-1">Ensure resources are properly stocked based on regular schedules.</Text>
+                      <Text className="text-brand-navy font-semibold text-[9px] leading-3 flex-1">{t('scenarioSimulatorDefaultRecommendation')}</Text>
                     </View>
                   )}
                 </View>

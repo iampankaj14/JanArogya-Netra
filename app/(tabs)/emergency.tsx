@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable, ScrollView, Switch } from 'react-native';
+import { View, Text, Pressable, ScrollView, Switch, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import ScreenContainer from '@/components/ui/layout/ScreenContainer';
 import { useAuth } from '@/context/AuthContext';
 import { useDashboard } from '@/hooks/useDashboard';
+import { useTranslation } from '@/hooks/useTranslation';
 import { addLocalNotification } from '@/services/repositories/localDb';
 import { AlertItem } from '@/shared/types/alert';
 
@@ -12,6 +13,7 @@ export default function EmergencyScreen() {
   const router = useRouter();
   const { authState } = useAuth();
   const { alerts } = useDashboard();
+  const { t } = useTranslation();
   
   const [escalated, setEscalated] = useState(false);
 
@@ -26,15 +28,15 @@ export default function EmergencyScreen() {
       // Dispatch notification to BMO
       addLocalNotification({
         id: `n_esc_${Date.now()}`,
-        title: 'Emergency Escalation from PHC',
-        message: `${authState?.name || 'PHC Staff'} escalated an emergency from ${authState?.facilityId}. Immediate attention required.`,
+        title: t('emergencyEscalationNotifTitle'),
+        message: `${authState?.name || t('emergencyStaffFallbackName')} ${t('emergencyEscalationNotifMessage')} ${authState?.facilityId}. ${t('emergencyEscalationNotifRequiresAttention')}`,
         timestamp: new Date().toISOString(),
         read: false,
         type: 'alert',
-        category: 'Epidemic Alert',
+        category: t('emergencyEscalationNotifCategory'),
         isNew: true,
       });
-      alert('Emergency escalated to Block Medical Officer successfully.');
+      Alert.alert(t('emergencyEscalateAlertTitle'), t('emergencyEscalateAlertMessage'));
     }
   };
 
@@ -50,8 +52,8 @@ export default function EmergencyScreen() {
             <Feather name="arrow-left" size={22} color="#000" />
           </Pressable>
           <View className="flex-1 pr-2">
-            <Text className="text-brand-navy font-black text-[22px] tracking-tight mb-1">Emergency Protocol</Text>
-            <Text className="text-slate-500 text-[11px] font-semibold">Active Crisis Management</Text>
+            <Text className="text-brand-navy font-black text-[22px] tracking-tight mb-1">{t('emergencyHeaderTitle')}</Text>
+            <Text className="text-slate-500 text-[11px] font-semibold">{t('emergencyHeaderSubtitle')}</Text>
           </View>
         </View>
       </View>
@@ -61,12 +63,12 @@ export default function EmergencyScreen() {
         {/* Promo Banner (Red/Orange Theme) */}
         <View className="bg-red-50/80 border border-red-100 rounded-3xl p-5 mb-6 flex-row items-center justify-between overflow-hidden relative">
           <View className="flex-1 pr-4 z-10">
-            <Text className="text-red-900 font-black text-[15px] mb-2 leading-tight">CRITICAL ALERT{'\n'}MODE ACTIVE.</Text>
-            <Text className="text-red-700/80 text-[9px] font-semibold leading-4 mb-4">You are viewing highest-priority incidents requiring immediate mitigation or escalation.</Text>
+            <Text className="text-red-900 font-black text-[15px] mb-2 leading-tight">{t('emergencyBannerTitle')}</Text>
+            <Text className="text-red-700/80 text-[9px] font-semibold leading-4 mb-4">{t('emergencyBannerDesc')}</Text>
             
             <View className="bg-white border border-red-100 rounded-full px-2.5 py-1.5 flex-row items-center self-start">
               <Feather name="alert-triangle" size={10} color="#EF4444" className="mr-1" />
-              <Text className="text-red-600 font-bold text-[8px] uppercase tracking-wider">Priority Attention</Text>
+              <Text className="text-red-600 font-bold text-[8px] uppercase tracking-wider">{t('emergencyPriorityBadge')}</Text>
             </View>
           </View>
           
@@ -92,10 +94,10 @@ export default function EmergencyScreen() {
               <View className="w-6 h-6 rounded-full bg-orange-100 items-center justify-center mr-2">
                 <Feather name="radio" size={12} color="#F97316" />
               </View>
-              <Text className="text-brand-navy font-black text-[15px]">Escalate to BMO</Text>
+              <Text className="text-brand-navy font-black text-[15px]">{t('emergencyEscalateTitle')}</Text>
             </View>
             <Text className="text-slate-500 text-[10px] font-semibold leading-relaxed">
-              Notify the Block Medical Officer immediately. This bypasses normal reporting intervals. (DHO will not be directly pinged).
+              {t('emergencyEscalateDesc')}
             </Text>
           </View>
           <Switch
@@ -108,7 +110,7 @@ export default function EmergencyScreen() {
         </View>
 
         {/* Critical Alerts List */}
-        <Text className="text-brand-navy font-extrabold text-[15px] mb-4 ml-1">Current Critical Incidents</Text>
+        <Text className="text-brand-navy font-extrabold text-[15px] mb-4 ml-1">{t('emergencyCurrentIncidentsTitle')}</Text>
         
         {criticalAlerts.length > 0 ? (
           criticalAlerts.map((alert: AlertItem) => (
@@ -134,8 +136,8 @@ export default function EmergencyScreen() {
             <View className="w-12 h-12 rounded-full bg-slate-200 items-center justify-center mb-3">
               <Feather name="check" size={20} color="#94A3B8" />
             </View>
-            <Text className="text-brand-navy font-bold text-center">No critical incidents</Text>
-            <Text className="text-slate-500 text-[11px] text-center mt-1">All active alerts are medium/low priority.</Text>
+            <Text className="text-brand-navy font-bold text-center">{t('emergencyNoCriticalTitle')}</Text>
+            <Text className="text-slate-500 text-[11px] text-center mt-1">{t('emergencyNoCriticalDesc')}</Text>
           </View>
         )}
 

@@ -34,6 +34,8 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#208AEF",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 150,
           "android": {
             "image": "./assets/images/splash-icon.png",
             "imageWidth": 76
@@ -41,7 +43,15 @@
         }
       ],
       "expo-secure-store",
-      "expo-video"
+      "expo-video",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Allow JanArogya Netra to use the microphone for voice input.",
+          "speechRecognitionPermission": "Allow JanArogya Netra to use speech recognition.",
+          "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox"]
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

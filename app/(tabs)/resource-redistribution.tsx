@@ -1,14 +1,34 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable, ScrollView, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, ScrollView, TextInput, ActivityIndicator, Alert } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useAuth } from '@/context/AuthContext';
 import { Feather } from '@expo/vector-icons';
 import ScreenContainer from '@/components/ui/layout/ScreenContainer';
 import { Dropdown } from '@/components/ui/inputs/Dropdown';
+import { useTranslation } from '@/hooks/useTranslation';
 import { localPHCs, localMedicines } from '@/services/repositories/localDb';
 import { transfersRepository } from '@/services/repositories/transfersRepository';
 
+let Notifications: typeof import('expo-notifications') | null = null;
+try {
+  Notifications = require('expo-notifications');
+  Notifications?.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+} catch (e) {
+  console.warn('Notifications unavailable in this runtime', e);
+  Notifications = null;
+}
+
 export default function ResourceRedistributionScreen() {
   const router = useRouter();
+  const { t, language } = useTranslation();
   const { source, target, medicine, amount } = useLocalSearchParams();
   
   const [sourceId, setSourceId] = useState<string>((source as string) || localPHCs[0]?.id);
@@ -22,17 +42,27 @@ export default function ResourceRedistributionScreen() {
   const targetPhc = localPHCs.find(p => p.id === targetId);
   const medicineObj = localMedicines.find(m => m.id === medicineId);
   
-  const sourceName = sourcePhc?.name || 'Unknown Source';
-  const targetName = targetPhc?.name || 'Unknown Target';
-  const medicineName = medicineObj?.name || 'Unknown Medicine';
+  const sourceName = sourcePhc ? (language === 'hi' && sourcePhc.nameHi ? sourcePhc.nameHi : sourcePhc.name) : t('redistributionDefaultSource');
+  const targetName = targetPhc ? (language === 'hi' && targetPhc.nameHi ? targetPhc.nameHi : targetPhc.name) : t('redistributionDefaultTarget');
+  const medicineName = medicineObj ? (language === 'hi' && medicineObj.nameHi ? medicineObj.nameHi : medicineObj.name) : t('redistributionDefaultMedicine');
   const availableStock = medicineObj?.currentStock || 0;
 
-  const phcOptions = localPHCs.map(p => ({ label: p.name, value: p.id }));
-  const medicineOptions = localMedicines.map(m => ({ label: m.name, value: m.id }));
+  const { authState } = useAuth();
+  
+  const currentBlock = authState?.role === 'BMO' 
+    ? (localPHCs.find(p => p.id === authState.facilityId)?.block)
+    : null;
+
+  const allowedPHCs = currentBlock 
+    ? localPHCs.filter(p => p.block === currentBlock)
+    : localPHCs;
+
+  const phcOptions = allowedPHCs.map(p => ({ label: language === 'hi' && p.nameHi ? p.nameHi : p.name, value: p.id }));
+  const medicineOptions = localMedicines.map(m => ({ label: language === 'hi' && m.nameHi ? m.nameHi : m.name, value: m.id }));
 
   const handleSubmit = async () => {
     if (!sourcePhc || !targetPhc || !medicineObj) {
-      alert('Missing transfer details.');
+      Alert.alert(t('redistributionAlertErrorTitle'), t('redistributionAlertMissingDetails'));
       return;
     }
     setSubmitting(true);
@@ -43,10 +73,28 @@ export default function ResourceRedistributionScreen() {
         medicineObj.id,
         parseInt(qty, 10) || 0
       );
-      alert('Transfer dispatched successfully!');
+      
+      // Fire local notification (best-effort — unavailable on Android in Expo Go SDK 53+)
+      try {
+        await Notifications?.scheduleNotificationAsync({
+          content: {
+            title: t('redistributionNotificationTitle'),
+            body: t('redistributionNotificationBody')
+              .replace('{qty}', qty)
+              .replace('{medicineName}', medicineName)
+              .replace('{targetName}', targetName),
+            sound: 'default',
+          },
+          trigger: null,
+        });
+      } catch (notifError) {
+        console.warn('Failed to schedule notification', notifError);
+      }
+
+      Alert.alert(t('redistributionAlertSuccessTitle'), t('redistributionAlertSuccessMsg'));
       router.back();
     } catch (e: any) {
-      alert(`Error: ${e.message}`);
+      Alert.alert(t('redistributionAlertErrorTitle'), `${t('redistributionAlertErrorPrefix')} ${(e as Error).message}`);
     } finally {
       setSubmitting(false);
     }
@@ -64,13 +112,10 @@ export default function ResourceRedistributionScreen() {
             <Feather name="arrow-left" size={22} color="#0F172A" />
           </Pressable>
           <View className="flex-1 pr-2">
-            <Text className="text-brand-navy font-black text-[22px] tracking-tight">Draft Transfer Dispatch</Text>
-            <Text className="text-slate-500 text-[11px] font-semibold mt-0.5">Move stock. Meet demand. Save lives.</Text>
+            <Text className="text-brand-navy font-black text-[22px] tracking-tight">{t('redistributionHeaderTitle')}</Text>
+            <Text className="text-slate-500 text-[11px] font-semibold mt-0.5">{t('redistributionHeaderSubtitle')}</Text>
           </View>
         </View>
-        <Pressable className="w-11 h-11 rounded-full bg-blue-50 border border-blue-100 items-center justify-center active:bg-blue-100 shadow-sm">
-          <Feather name="truck" size={18} color="#2563EB" />
-        </Pressable>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
@@ -82,10 +127,10 @@ export default function ResourceRedistributionScreen() {
               <View className="w-10 h-10 rounded-full bg-white shadow-sm border border-blue-100 items-center justify-center mr-3">
                 <Feather name="package" size={20} color="#3B82F6" />
               </View>
-              <Text className="text-blue-600 font-black text-[20px] tracking-tight">Stock Transfer</Text>
+              <Text className="text-blue-600 font-black text-[20px] tracking-tight">{t('redistributionPromoTitle')}</Text>
             </View>
             <Text className="text-slate-500 text-[10px] font-semibold leading-4">
-              Allocate medicines & resources from surplus facilities to where they're needed most.
+              {t('redistributionPromoDesc')}
             </Text>
           </View>
           
@@ -122,7 +167,7 @@ export default function ResourceRedistributionScreen() {
             <View className="w-8 h-8 rounded-md bg-blue-50 items-center justify-center mr-3 border border-blue-100">
               <Feather name="package" size={16} color="#3B82F6" />
             </View>
-            <Text className="text-brand-navy text-[17px] font-black tracking-tight">Stock Allocation Request</Text>
+            <Text className="text-brand-navy text-[17px] font-black tracking-tight">{t('redistributionFormTitle')}</Text>
           </View>
           
           <View>
@@ -130,48 +175,48 @@ export default function ResourceRedistributionScreen() {
             {/* 1. Source Facility */}
             <View className="mb-6">
               <Dropdown
-                label="1. Source Facility (Surplus)"
+                label={t('redistributionSourceLabel')}
                 selectedValue={sourceId}
                 onValueChange={setSourceId}
                 options={phcOptions}
               />
               <View className="flex-row items-center ml-1 mt-1">
                 <Feather name="check-circle" size={10} color="#10B981" className="mr-1.5" />
-                <Text className="text-emerald-600 font-bold text-[9px]">Selected facility active</Text>
+                <Text className="text-emerald-600 font-bold text-[9px]">{t('redistributionSourceSelectedNote')}</Text>
               </View>
             </View>
 
             {/* 2. Target Facility */}
             <View className="mb-6 mt-1">
               <Dropdown
-                label="2. Target Facility (Shortage)"
+                label={t('redistributionTargetLabel')}
                 selectedValue={targetId}
                 onValueChange={setTargetId}
                 options={phcOptions}
               />
               <View className="flex-row items-center ml-1 mt-1">
                 <Feather name="alert-triangle" size={10} color="#F97316" className="mr-1.5" />
-                <Text className="text-orange-500 font-bold text-[9px]">Destination facility ready</Text>
+                <Text className="text-orange-500 font-bold text-[9px]">{t('redistributionTargetReadyNote')}</Text>
               </View>
             </View>
 
             {/* 3. Requested Medicine */}
             <View className="mb-6 mt-1">
               <Dropdown
-                label="3. Requested Medicine / Resource"
+                label={t('redistributionMedicineLabel')}
                 selectedValue={medicineId}
                 onValueChange={setMedicineId}
                 options={medicineOptions}
               />
               <View className="flex-row items-center ml-1 mt-1">
                 <Feather name="info" size={10} color="#3B82F6" className="mr-1.5" />
-                <Text className="text-blue-500 font-bold text-[9px]">Available stock: {availableStock} units</Text>
+                <Text className="text-blue-500 font-bold text-[9px]">{t('redistributionAvailableStockNote').replace('{availableStock}', String(availableStock))}</Text>
               </View>
             </View>
 
             {/* 4. Quantity */}
             <View className="mb-8">
-              <Text className="text-brand-navy text-[11px] font-extrabold mb-2">4. Reallocation Quantity (Units)</Text>
+              <Text className="text-brand-navy text-[11px] font-extrabold mb-2">{t('redistributionQuantityLabel')}</Text>
               <View className="bg-blue-50/30 border border-blue-300 rounded-2xl px-4 py-2.5 flex-row items-center justify-between">
                 <View className="flex-row items-center flex-1">
                    <View className="w-7 h-7 rounded-md bg-blue-100 items-center justify-center mr-3">
@@ -182,12 +227,12 @@ export default function ResourceRedistributionScreen() {
                      onChangeText={setQty}
                      keyboardType="numeric"
                      className="flex-1 font-bold text-[15px] text-brand-navy py-1"
-                     placeholder="Enter quantity"
+                     placeholder={t('redistributionQuantityPlaceholder')}
                      placeholderTextColor="#94A3B8"
                    />
                 </View>
                 <View className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-1.5">
-                  <Text className="text-blue-600 font-bold text-[11px]">Units</Text>
+                  <Text className="text-blue-600 font-bold text-[11px]">{t('redistributionUnitsBadge')}</Text>
                 </View>
               </View>
             </View>
@@ -198,7 +243,7 @@ export default function ResourceRedistributionScreen() {
                 <Feather name="info" size={10} color="#3B82F6" />
               </View>
               <Text className="text-blue-700 font-semibold text-[9px] flex-1">
-                You are transferring <Text className="font-black">{qty || '0'} units</Text> of <Text className="font-black">{medicineName}</Text> from <Text className="font-black">{sourceName}</Text> to <Text className="font-black">{targetName}</Text>.
+                {t('redistributionSummaryPrefix')} <Text className="font-black">{qty || '0'} {t('redistributionSummaryUnitsSuffix')}</Text> {t('reportsOccupiedOfTotalJoiner')} <Text className="font-black">{medicineName}</Text> {t('redistributionSummaryFrom')} <Text className="font-black">{sourceName}</Text> {t('redistributionSummaryTo')} <Text className="font-black">{targetName}</Text>.
               </Text>
             </View>
 
@@ -213,7 +258,7 @@ export default function ResourceRedistributionScreen() {
               ) : (
                 <>
                   <Feather name="send" size={16} color="#FFF" className="mr-2" />
-                  <Text className="text-white font-extrabold text-[14px]">Review & Draft Dispatch</Text>
+                  <Text className="text-white font-extrabold text-[14px]">{t('redistributionSubmitButton')}</Text>
                 </>
               )}
             </Pressable>
@@ -228,8 +273,8 @@ export default function ResourceRedistributionScreen() {
               <Feather name="shield" size={18} color="#FFF" />
             </View>
             <View>
-              <Text className="text-emerald-700 font-black text-[13px] mb-0.5">Secure & Trackable</Text>
-              <Text className="text-emerald-600/80 font-bold text-[9px] leading-3">All transfers are logged and tracked for transparency.</Text>
+              <Text className="text-emerald-700 font-black text-[13px] mb-0.5">{t('redistributionFooterTitle')}</Text>
+              <Text className="text-emerald-600/80 font-bold text-[9px] leading-3">{t('redistributionFooterDesc')}</Text>
             </View>
           </View>
 

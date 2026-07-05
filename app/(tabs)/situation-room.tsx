@@ -1,9 +1,9 @@
 import ErrorState from '@/components/ui/feedback/ErrorState';
 import ScreenContainer from '@/components/ui/layout/ScreenContainer';
-import { Feather, MaterialIcons } from '@expo/vector-icons';
+import { Feather, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, Image, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 import Svg, { Defs, Path, Pattern, Stop, LinearGradient as SvgLinearGradient } from 'react-native-svg';
 
@@ -13,6 +13,79 @@ import { useAlerts } from '@/hooks/useAlerts';
 import { useDashboard } from '@/hooks/useDashboard';
 import { useTranslation } from '@/hooks/useTranslation';
 import { localPHCs, localLogistics, localDiseaseTrends, localTelemetryAudits, localRecommendations } from '@/services/repositories/localDb';
+
+const translateDynamic = (text: string, lang: string) => {
+  if (lang !== 'hi' || !text) return text;
+  
+  const map: Record<string, string> = {
+    // Facilities
+    'PHC Badalpur': 'पीएचसी बादलपुर',
+    'PHC Barola': 'पीएचसी बरौला',
+    'Jewar PHC': 'जेवर पीएचसी',
+    'District Hospital': 'जिला अस्पताल',
+    'Dadri CHC': 'दादरी सीएचसी',
+    'State Warehouse': 'राज्य गोदाम',
+    'CHC Bhangel': 'सीएचसी भंगेल',
+    'UPHC Surajpur': 'यूपीएचसी सूरजपुर',
+    'PHC Bisrakh': 'पीएचसी बिसरख',
+    
+    // Diseases
+    'Dengue': 'डेंगू',
+    'Malaria': 'मलेरिया',
+    'Chikungunya': 'चिकनगुनिया',
+    'Acute Diarrheal Disease (ADD)': 'तीव्र डायरिया रोग (ADD)',
+    'Acute Diarrheal Disease': 'तीव्र डायरिया रोग (ADD)',
+    'Typhoid': 'टाइफाइड',
+    'Cholera': 'हैजा',
+    'Seasonal Influenza (Flu)': 'मौसमी इन्फ्लूएंजा (फ्लू)',
+    'Viral Fever': 'वायरल बुखार',
+    'Acute Respiratory Infection (ARI)': 'तीव्र श्वसन संक्रमण (ARI)',
+    'Pneumonia': 'निमोनिया',
+    
+    // Medicines
+    'Paracetamol 650mg': 'पेरासिटामोल 650mg',
+    'IV Fluids': 'आईवी फ्लूइड्स',
+    'Dengue Testing Kits': 'डेंगू टेस्टिंग किट्स',
+    'Amoxicillin': 'अमोक्सिसिलिन',
+    'ORS Packets': 'ओआरएस पैकेट्स',
+    'Malaria RDT': 'मलेरिया आरडीटी',
+    
+    // Status
+    'pending': 'लंबित',
+    'approved': 'स्वीकृत',
+    'en_route': 'रास्ते में',
+    'delivered': 'वितरित',
+    'PENDING': 'लंबित',
+    'APPROVED': 'स्वीकृत',
+    'EN_ROUTE': 'रास्ते में',
+    'DELIVERED': 'वितरित',
+
+    // Specific audit texts
+    'Redistribution Approved': 'पुनर्वितरण स्वीकृत',
+    'Critical Stockout Alert': 'गंभीर स्टॉकआउट अलर्ट',
+    'Disease Trend Spike': 'रोग रुझान में वृद्धि',
+    'Logistics Dispatched': 'लॉजिस्टिक्स भेजा गया'
+  };
+
+  if (map[text]) return map[text];
+
+  let result = text;
+  Object.keys(map).forEach(key => {
+    result = result.replace(new RegExp(key, 'g'), map[key]);
+  });
+  
+  // Custom phrases
+  result = result.replace('approved transfer of', 'ने ट्रांसफर को मंजूरी दी');
+  result = result.replace('to', 'को');
+  result = result.replace('stock dropped below', 'का स्टॉक नीचे गिर गया');
+  result = result.replace('tablets at', 'टैबलेट से');
+  result = result.replace('cases increased by', 'के मामले बढ़ गए');
+  result = result.replace('in', 'में');
+  result = result.replace('dispatched to', 'को भेजा गया');
+  result = result.replace('Dengue NS1 Kits', 'डेंगू NS1 किट्स');
+
+  return result;
+};
 
 const generateSparkline = (data: number[], width: number, height: number) => {
   if (!data || data.length === 0) return { path: '', areaPath: '', lastPoint: { x: 0, y: 0 } };
@@ -46,17 +119,18 @@ export default function SituationRoomScreen() {
   const carouselWidth = width - 44;
 
   const { authState } = useAuth();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { district, alerts: hookAlerts, recommendations: hookRecommendations, loading: dashboardLoading, refetch } = useDashboard();
   const { approveAlert, rejectAlert } = useAlerts();
 
   const isBMO = authState?.role === 'BMO';
   const isPHC = authState?.role === 'PHC';
 
+  const { showAllTrends: showAllTrendsParam } = useLocalSearchParams();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const alerts = hookAlerts;
-  const [showAllTrends, setShowAllTrends] = useState(false);
+  const [showAllTrends, setShowAllTrends] = useState(showAllTrendsParam === 'true');
   const [isLogisticsOpen, setIsLogisticsOpen] = useState(false);
   
   const assignedFacilityId = authState?.facilityId || 'phc_barola';
@@ -67,18 +141,7 @@ export default function SituationRoomScreen() {
   const [commandQueue, setCommandQueue] = useState(localLogistics);
   const [telemetryAudits, setTelemetryAudits] = useState(localTelemetryAudits);
 
-  const { showAllTrends: showAllTrendsParam } = useLocalSearchParams();
-  useEffect(() => {
-    if (showAllTrendsParam === 'true') {
-      setShowAllTrends(true);
-    }
-  }, [showAllTrendsParam]);
-
-  useEffect(() => {
-    if (!dashboardLoading) {
-      setLoading(false);
-    }
-  }, [dashboardLoading]);
+  // Removed effects that call setState synchronously
 
   // Dynamic Data for Sparklines
   // Generate a trend that ends precisely at the actual metrics
@@ -100,9 +163,9 @@ export default function SituationRoomScreen() {
   const blockPhcIds = blockPhcs.map(p => p.id);
   const filteredAlerts = isBMO ? alerts.filter(a => blockPhcIds.includes(a.facilityId)) : alerts;
 
-  const filteredTelemetryAudits = isBMO 
+  const filteredTelemetryAudits = (isBMO 
     ? telemetryAudits.filter(a => blockPhcs.some(p => a.desc.includes(p.name) || a.desc.includes(p.id) || a.desc.includes(assignedFacilityId)))
-    : telemetryAudits;
+    : telemetryAudits).map((audit, i) => ({ ...audit, time: i === 0 ? 'Just now' : `${Math.max(1, i * 4)}m ago` }));
 
   // Dynamic Outbreaks Carousel derived from active alerts in DB
   const unresolvedOutbreaks = filteredAlerts
@@ -112,8 +175,8 @@ export default function SituationRoomScreen() {
       facilityId: a.facilityId,
       disease: a.title.replace(' Surge Warning', '').replace(' Warning', ''),
       location: a.facilityName,
-      priority: a.priority === 'CRITICAL' ? 'High Priority (Outbreak)' : 'Medium Priority',
-      cases: a.title.includes('Dengue') ? 28 : (a.title.includes('Diarrheal') ? 12 : 15),
+      priority: a.priority === 'CRITICAL' ? t('situationRoomHighPriorityOutbreak') : t('situationRoomMediumPriority'),
+      cases: localDiseaseTrends.find(t => a.title.includes(t.disease))?.cases || 15,
       isEmergency: a.priority === 'CRITICAL',
     }));
 
@@ -126,18 +189,27 @@ export default function SituationRoomScreen() {
   // Dynamic Data for Disease Trends
   const diseaseTrendsData = localDiseaseTrends;
 
-  // Dynamic Image Mapping for Diseases
-  const diseaseImages: Record<string, any> = {
-    'Dengue': require('@/data/disease/dengue.png'),
-    'Malaria': require('@/data/disease/malaria.png'),
-    'Chikungunya': require('@/data/disease/chinungunya.png'),
-    'Acute Diarrheal Disease (ADD)': require('@/data/disease/diarrhea.png'),
-    'Typhoid': require('@/data/disease/typhois.png'),
-    'Cholera': require('@/data/disease/cholera.png'),
-    'Seasonal Influenza (Flu)': require('@/data/disease/influenza.png'),
-    'Viral Fever': require('@/data/disease/fever.png'),
-    'Acute Respiratory Infection (ARI)': require('@/data/disease/respiratory.png'),
-    'Pneumonia': require('@/data/disease/pheumoina.png'),
+  const diseaseIcons: Record<string, { name: any, color: string, bg: string }> = {
+    'Dengue': { name: 'virus', color: '#EF4444', bg: '#FEE2E2' },
+    'Malaria': { name: 'bug', color: '#EAB308', bg: '#FEF9C3' },
+    'Chikungunya': { name: 'spider', color: '#F97316', bg: '#FFEDD5' },
+    'Acute Diarrheal Disease (ADD)': { name: 'stomach', color: '#8B5CF6', bg: '#EDE9FE' },
+    'Acute Diarrheal Disease': { name: 'stomach', color: '#8B5CF6', bg: '#EDE9FE' },
+    'Typhoid': { name: 'bacteria', color: '#06B6D4', bg: '#CFFAFE' },
+    'Cholera': { name: 'water-alert', color: '#3B82F6', bg: '#DBEAFE' },
+    'Seasonal Influenza (Flu)': { name: 'virus', color: '#EC4899', bg: '#FCE7F3' },
+    'Viral Fever': { name: 'thermometer-high', color: '#F43F5E', bg: '#FFE4E6' },
+    'Acute Respiratory Infection (ARI)': { name: 'lungs', color: '#10B981', bg: '#D1FAE5' },
+    'Pneumonia': { name: 'lungs', color: '#14B8A6', bg: '#CCFBF1' },
+  };
+
+  const logisticsIcons: Record<string, { name: any, color: string, bg: string }> = {
+    'Paracetamol 650mg': { name: 'pill', color: '#10B981', bg: '#D1FAE5' },
+    'IV Fluids': { name: 'iv-bag', color: '#3B82F6', bg: '#DBEAFE' },
+    'Dengue Testing Kits': { name: 'test-tube', color: '#F59E0B', bg: '#FEF3C7' },
+    'Amoxicillin': { name: 'pill', color: '#8B5CF6', bg: '#EDE9FE' },
+    'ORS Packets': { name: 'water-plus', color: '#06B6D4', bg: '#CFFAFE' },
+    'Malaria RDT': { name: 'test-tube', color: '#EF4444', bg: '#FEE2E2' },
   };
 
   // Auto-scroll logic for the carousel
@@ -220,12 +292,13 @@ export default function SituationRoomScreen() {
     return () => clearTimeout(timer);
   }, []);
 
-  const handleApproveMission = (id: string) => {
+  const handleApproveMission = useCallback((id: string) => {
     const mission = activeMissions.find(m => m.id === id);
     if (mission) {
       setActiveMissions(prev => prev.filter(m => m.id !== id));
       
       const newLogisticsRequest = {
+        // eslint-disable-next-line react-hooks/purity
         id: `req-${Date.now()}`,
         from: mission.sourceFacility,
         to: mission.targetFacility,
@@ -237,17 +310,20 @@ export default function SituationRoomScreen() {
       setCommandQueue(prev => [newLogisticsRequest, ...prev]);
 
       const newAudit = {
+        // eslint-disable-next-line react-hooks/purity
         id: `ta-${Date.now()}`,
         type: 'approved',
         icon: 'check',
         color: 'green',
-        text: 'Redistribution Approved',
-        desc: `${authState?.role} ${authState?.name || 'User'} approved transfer of ${mission.quantity} ${mission.item} to ${mission.targetFacility}.`,
+        text: t('situationRoomRedistributionApproved'),
+        desc: language === 'hi' 
+          ? `${authState?.role} ${authState?.name || 'User'} ने ${mission.targetFacility} को ${mission.quantity} ${mission.item} के ट्रांसफर को मंजूरी दी।`
+          : `${authState?.role} ${authState?.name || 'User'} approved transfer of ${mission.quantity} ${mission.item} to ${mission.targetFacility}.`,
         time: 'Just now'
       };
       setTelemetryAudits(prev => [newAudit, ...prev]);
     }
-  };
+  }, [activeMissions, authState]);
 
 
 
@@ -290,7 +366,7 @@ export default function SituationRoomScreen() {
         </View>
 
         <Text className="text-center text-slate-400 text-xs font-semibold tracking-wider animate-pulse uppercase">
-          Initializing telemetry feed...
+          {t('situationRoomInitializingTelemetry')}
         </Text>
       </View>
     );
@@ -299,7 +375,7 @@ export default function SituationRoomScreen() {
   if (error) {
     return (
       <ErrorState
-        message="Unable to connect to active monitoring networks."
+        message={t('situationRoomErrorMessage')}
         onRetry={() => {
           setError(false);
           setLoading(true);
@@ -333,32 +409,32 @@ export default function SituationRoomScreen() {
 
             {/* Text content on the left shifted further right and pushed down */}
             <View className="z-10 w-[56%] ml-3 mt-5">
-              <Text className="text-brand-navy font-black text-[26px] mb-4 tracking-tight ml-1">Netra Daily Briefing</Text>
+              <Text className="text-brand-navy font-black text-[26px] mb-4 tracking-tight ml-1">{t('situationRoomBriefingTitle')}</Text>
 
               <View className="gap-1 mb-5 ml-1">
                 <View className="flex-row items-center">
                   <View className="w-6 h-6 rounded-full bg-blue-500 items-center justify-center mr-2.5 shadow-sm shadow-blue-500/10">
                     <Feather name="home" size={10} color="white" />
                   </View>
-                  <Text className="text-slate-800 text-[11.5px] font-bold" numberOfLines={1}>{blockPhcs.length} PHCs under watch</Text>
+                  <Text className="text-slate-800 text-[11.5px] font-bold" numberOfLines={1}>{blockPhcs.length} {t('situationRoomPhcsUnderWatch')}</Text>
                 </View>
                 <View className="flex-row items-center">
                   <View className="w-6 h-6 rounded-full bg-red-500 items-center justify-center mr-2.5 shadow-sm shadow-red-500/10">
                     <Feather name="alert-triangle" size={10} color="white" />
                   </View>
-                  <Text className="text-slate-800 text-[11.5px] font-bold" numberOfLines={1}>{filteredAlerts.filter(a => a.type === 'OUTBREAK' && !a.resolved).length} Outbreak alerts</Text>
+                  <Text className="text-slate-800 text-[11.5px] font-bold" numberOfLines={1}>{filteredAlerts.filter(a => a.type === 'OUTBREAK' && !a.resolved).length} {t('situationRoomOutbreakAlerts')}</Text>
                 </View>
                 <View className="flex-row items-center">
                   <View className="w-6 h-6 rounded-full bg-yellow-500 items-center justify-center mr-2.5 shadow-sm shadow-yellow-500/10">
                     <Feather name="battery" size={10} color="white" />
                   </View>
-                  <Text className="text-slate-800 text-[11.5px] font-bold" numberOfLines={1}>{filteredAlerts.filter(a => a.type === 'SHORTAGE' && !a.resolved).length} Medicine shortages</Text>
+                  <Text className="text-slate-800 text-[11.5px] font-bold" numberOfLines={1}>{filteredAlerts.filter(a => a.type === 'SHORTAGE' && !a.resolved).length} {t('situationRoomMedicineShortages')}</Text>
                 </View>
                 <View className="flex-row items-center">
                   <View className="w-6 h-6 rounded-full bg-green-500 items-center justify-center mr-2.5 shadow-sm shadow-green-500/10">
                     <Feather name="activity" size={10} color="white" />
                   </View>
-                  <Text className="text-slate-800 text-[11.5px] font-bold" numberOfLines={1}>{filteredAlerts.filter(a => !a.resolved).length} Alerts need attention</Text>
+                  <Text className="text-slate-800 text-[11.5px] font-bold" numberOfLines={1}>{filteredAlerts.filter(a => !a.resolved).length} {t('situationRoomAlertsNeedAttention')}</Text>
                 </View>
               </View>
 
@@ -366,7 +442,7 @@ export default function SituationRoomScreen() {
                 className="self-start rounded-full bg-[#1A63C6] px-5 py-2.5 mb-6 flex-row items-center shadow-sm shadow-blue-500/50"
                 onPress={() => router.push('/reports')}
               >
-                <Text className="text-white text-[12px] font-bold mr-2">View Details</Text>
+                <Text className="text-white text-[12px] font-bold mr-2">{t('situationRoomViewDetails')}</Text>
                 <View className="bg-white rounded-full p-0.5">
                   <Feather name="arrow-right" size={11} color="#1A63C6" />
                 </View>
@@ -386,7 +462,7 @@ export default function SituationRoomScreen() {
               </View>
               {/* Right: Text Stack */}
               <View className="flex-1 ml-3 pt-0.5">
-                <Text className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{isBMO ? 'Block Score' : 'District Score'}</Text>
+                <Text className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{isBMO ? t('situationRoomBlockScore') : t('situationRoomDistrictScore')}</Text>
                 <View className="flex-row items-baseline mt-1">
                   <Text className="text-4xl font-black text-slate-800 tracking-tighter">{averageHealthScore}</Text>
                   <Text className="text-sm font-bold text-slate-400 ml-1">/100</Text>
@@ -436,11 +512,11 @@ export default function SituationRoomScreen() {
               </View>
               {/* Right: Text Stack */}
               <View className="flex-1 ml-3 pt-0.5">
-                <Text className="text-slate-800 font-bold text-[10px] mb-0.5 tracking-wide" numberOfLines={1}>AI Recommendations</Text>
+                <Text className="text-slate-800 font-bold text-[10px] mb-0.5 tracking-wide" numberOfLines={1}>{t('situationRoomAiRecommendations')}</Text>
                 <Text className="text-brand-navy font-black text-[26px] leading-none mb-1.5">{aiRecommendations.length}</Text>
                 <View className="flex-row items-center">
                   <Feather name="arrow-up-right" size={11} color="#16A34A" />
-                  <Text className="text-green-600 font-extrabold text-[10.5px] ml-1">New</Text>
+                  <Text className="text-green-600 font-extrabold text-[10.5px] ml-1">{t('situationRoomNew')}</Text>
                 </View>
               </View>
             </View>
@@ -481,7 +557,7 @@ export default function SituationRoomScreen() {
 
         {/* Unresolved Outbreaks Carousel */}
         <View className="mb-8">
-          <Text className="text-brand-navy font-extrabold text-lg mb-3 px-1">Unresolved Outbreaks</Text>
+          <Text className="text-brand-navy font-extrabold text-lg mb-3 px-1">{t('situationRoomUnresolvedOutbreaks')}</Text>
           <ScrollView
             ref={scrollViewRef}
             horizontal
@@ -501,17 +577,28 @@ export default function SituationRoomScreen() {
                 >
                   {/* Left Icon Container */}
                   <View className="w-[52px] h-[52px] items-center justify-center mr-1">
-                    <Image
-                      source={diseaseImages[outbreak.disease] || require('@/data/disease/fever.png')}
-                      style={{ width: 44, height: 44, borderRadius: 22 }}
-                      resizeMode="cover"
-                    />
+                    <View 
+                      style={{ 
+                        width: 44, 
+                        height: 44, 
+                        borderRadius: 22, 
+                        backgroundColor: diseaseIcons[outbreak.disease]?.bg || '#FEE2E2',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      <MaterialCommunityIcons 
+                        name={diseaseIcons[outbreak.disease]?.name || 'virus'} 
+                        size={24} 
+                        color={diseaseIcons[outbreak.disease]?.color || '#EF4444'} 
+                      />
+                    </View>
                   </View>
 
                   {/* Middle Content */}
                   <View className="flex-1 px-3 justify-center">
-                    <Text className="text-white font-extrabold text-[15px] mb-0.5" numberOfLines={1}>{outbreak.disease}</Text>
-                    <Text className="text-red-100 font-semibold text-[10px] mb-1.5" numberOfLines={1}>{outbreak.location}</Text>
+                    <Text className="text-white font-extrabold text-[15px] mb-0.5" numberOfLines={1}>{translateDynamic(outbreak.disease, language)}</Text>
+                    <Text className="text-red-100 font-semibold text-[10px] mb-1.5" numberOfLines={1}>{translateDynamic(outbreak.location, language)}</Text>
                     <View className="flex-row items-center bg-red-500 self-start px-2 py-0.5 rounded-full shadow-sm shadow-black/10">
                       <MaterialIcons name="local-fire-department" size={11} color="#FFFFFF" />
                       <Text className="text-white font-bold text-[9.5px] ml-1">{outbreak.priority}</Text>
@@ -521,7 +608,7 @@ export default function SituationRoomScreen() {
                   {/* Right Cases Box */}
                   <View className="bg-red-500 border-red-400 rounded-[14px] w-[50px] py-1.5 items-center justify-center border mr-2 shadow-sm shadow-black/10">
                     <Text className="text-white font-black text-[22px] leading-tight">{outbreak.cases}</Text>
-                    <Text className="text-red-100 font-bold text-[9px] mt-0.5">Cases</Text>
+                    <Text className="text-red-100 font-bold text-[9px] mt-0.5">{t('situationRoomCases')}</Text>
                   </View>
 
                   <Feather name="chevron-right" size={20} color="#FFFFFF" />
@@ -544,9 +631,9 @@ export default function SituationRoomScreen() {
         {/* Disease Trends Section */}
         <View className="mb-8 px-1">
           <View className="flex-row justify-between items-center mb-3">
-            <Text className="text-brand-navy font-extrabold text-lg">Disease Trends</Text>
+            <Text className="text-brand-navy font-extrabold text-lg">{t('situationRoomDiseaseTrends')}</Text>
             <Pressable onPress={() => setShowAllTrends(!showAllTrends)} className="flex-row items-center py-1 px-2">
-              <Text className="text-blue-600 font-bold text-xs mr-1">{showAllTrends ? 'Show Less' : 'View All'}</Text>
+              <Text className="text-blue-600 font-bold text-xs mr-1">{showAllTrends ? t('situationRoomShowLess') : t('situationRoomViewAll')}</Text>
               <Feather name={showAllTrends ? 'chevron-up' : 'chevron-down'} size={14} color="#2563EB" />
             </Pressable>
           </View>
@@ -560,16 +647,27 @@ export default function SituationRoomScreen() {
 
                   {/* Left Image Icon */}
                   <View className="w-10 h-10 items-center justify-center mr-3">
-                    <Image
-                      source={diseaseImages[trend.disease] || require('@/data/disease/fever.png')}
-                      style={{ width: 34, height: 34, borderRadius: 17 }}
-                      resizeMode="cover"
-                    />
+                    <View 
+                      style={{ 
+                        width: 34, 
+                        height: 34, 
+                        borderRadius: 17, 
+                        backgroundColor: diseaseIcons[trend.disease]?.bg || '#FEE2E2',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      <MaterialCommunityIcons 
+                        name={diseaseIcons[trend.disease]?.name || 'virus'} 
+                        size={18} 
+                        color={diseaseIcons[trend.disease]?.color || '#EF4444'} 
+                      />
+                    </View>
                   </View>
 
                   {/* Disease Name */}
                   <View className="w-[85px]">
-                    <Text className="text-brand-navy font-extrabold text-[14px]" numberOfLines={1}>{trend.disease}</Text>
+                    <Text className="text-brand-navy font-extrabold text-[14px]" numberOfLines={1}>{translateDynamic(trend.disease, language)}</Text>
                   </View>
 
                   {/* Sparkline Graph */}
@@ -602,7 +700,7 @@ export default function SituationRoomScreen() {
                   {/* Stats Area */}
                   <View className="items-center w-[45px]">
                     <Text className="text-brand-navy font-black text-[16px] leading-tight">{trend.cases}</Text>
-                    <Text className="text-slate-500 font-bold text-[9px]">Cases</Text>
+                    <Text className="text-slate-500 font-bold text-[9px]">{t('situationRoomCases')}</Text>
                   </View>
 
                   {/* Trend Pill */}
@@ -620,7 +718,7 @@ export default function SituationRoomScreen() {
         {/* Active Netra Decision Requests Section */}
         <View className="mb-8 px-1">
           <View className="flex-row justify-between items-center mb-3">
-            <Text className="text-brand-navy font-extrabold text-lg">Active Netra Decision Requests</Text>
+            <Text className="text-brand-navy font-extrabold text-lg">{t('situationRoomActiveDecisionRequests')}</Text>
           </View>
 
           {aiDecisionRequests.length === 0 ? (
@@ -628,8 +726,8 @@ export default function SituationRoomScreen() {
               <View className="w-14 h-14 rounded-full bg-green-100 items-center justify-center mb-3">
                 <Feather name="check-circle" size={24} color="#16A34A" />
               </View>
-              <Text className="text-green-800 font-extrabold text-[15px] mb-1">All Clear!</Text>
-              <Text className="text-green-600 font-semibold text-center text-[12px]">No active recommendations. Everything is fine.</Text>
+              <Text className="text-green-800 font-extrabold text-[15px] mb-1">{t('situationRoomAllClear')}</Text>
+              <Text className="text-green-600 font-semibold text-center text-[12px]">{t('situationRoomNoActiveRecommendations')}</Text>
             </View>
           ) : (
             <ScrollView
@@ -660,18 +758,18 @@ export default function SituationRoomScreen() {
                     {/* Header Row */}
                     <View className="flex-row justify-between items-center mb-4 relative z-10">
                       <View className="flex-row items-center">
-                        {/* Glass Icon */}
-                        <View className="w-10 h-10 rounded-[12px] bg-white/70 border border-white items-center justify-center mr-3">
-                          <Feather name="cpu" size={18} color="#4F46E5" />
+                        {/* Netra Logo */}
+                        <View className="w-10 h-10 rounded-[12px] bg-white/70 border border-white items-center justify-center mr-3 overflow-hidden">
+                          <Image source={require('../../data/netra.png')} style={{width: 24, height: 24}} resizeMode="contain" />
                         </View>
                         <View>
-                          <Text className="text-slate-600 font-bold text-[11px] mb-0.5">Netra Recommendation</Text>
-                          <Text className="text-brand-navy font-black text-[15px]">{request.type}</Text>
+                          <Text className="text-slate-600 font-bold text-[11px] mb-0.5">{t('situationRoomNetraRecommendation')}</Text>
+                          <Text className="text-brand-navy font-black text-[15px]">{language === 'hi' ? (request.type === 'Redistribute Stock' ? 'स्टॉक पुनर्वितरित करें' : request.type) : request.type}</Text>
                         </View>
                       </View>
                       {/* Glass Pill */}
                       <View className="bg-white/70 border border-white px-2.5 py-1 rounded-full">
-                        <Text className="text-blue-700 font-extrabold text-[10px]">{request.confidence} Conf.</Text>
+                        <Text className="text-blue-700 font-extrabold text-[10px]">{request.confidence} {t('situationRoomConfidenceSuffix')}</Text>
                       </View>
                     </View>
 
@@ -680,27 +778,27 @@ export default function SituationRoomScreen() {
                       {/* Source Facility Glass Card */}
                       <View className="bg-white/60 rounded-[16px] p-2 flex-1 flex-row items-center border border-white">
                         <View className="w-8 h-8 rounded-lg bg-blue-50 items-center justify-center mr-2 border border-white">
-                          <Feather name="home" size={14} color="#2563EB" />
+                          <MaterialIcons name="local-hospital" size={20} color="#2563EB" />
                         </View>
                         <View className="flex-1">
-                          <Text className="text-slate-500 font-bold text-[9px] mb-0.5">Source Facility</Text>
-                          <Text className="text-brand-navy font-bold text-[11px]" numberOfLines={1}>{request.source}</Text>
+                          <Text className="text-slate-500 font-bold text-[9px] mb-0.5">{t('situationRoomSourceFacility')}</Text>
+                          <Text className="text-brand-navy font-bold text-[11px]" numberOfLines={1}>{translateDynamic(request.source, language)}</Text>
                         </View>
                       </View>
 
                       {/* Arrow */}
                       <View className="w-6 items-center justify-center">
-                        <Feather name="arrow-right" size={16} color="#2563EB" />
+                        <MaterialIcons name="arrow-right-alt" size={24} color="#2563EB" />
                       </View>
 
                       {/* Target Facility Glass Card */}
                       <View className="bg-white/60 rounded-[16px] p-2 flex-1 flex-row items-center border border-white">
                         <View className="w-8 h-8 rounded-lg bg-green-50 items-center justify-center mr-2 border border-white">
-                          <Feather name="home" size={14} color="#16A34A" />
+                          <MaterialIcons name="local-hospital" size={20} color="#16A34A" />
                         </View>
                         <View className="flex-1">
-                          <Text className="text-slate-500 font-bold text-[9px] mb-0.5">Target Facility</Text>
-                          <Text className="text-brand-navy font-bold text-[11px]" numberOfLines={1}>{request.target}</Text>
+                          <Text className="text-slate-500 font-bold text-[9px] mb-0.5">{t('situationRoomTargetFacility')}</Text>
+                          <Text className="text-brand-navy font-bold text-[11px]" numberOfLines={1}>{translateDynamic(request.target, language)}</Text>
                         </View>
                       </View>
                     </View>
@@ -708,9 +806,8 @@ export default function SituationRoomScreen() {
                     {/* Reasoning */}
                     <View className="mb-4 relative z-10">
                       <View className="flex-row items-center mb-1">
-                        <Feather name="zap" size={12} color="#4F46E5" style={{ marginRight: 4 }} />
-                        <Text className="text-indigo-600 font-black text-[10px] tracking-widest uppercase">REASONING</Text>
-                        <Feather name="zap" size={12} color="#4F46E5" style={{ marginLeft: 4 }} />
+                        <MaterialIcons name="tips-and-updates" size={16} color="#4F46E5" style={{ marginRight: 4 }} />
+                        <Text className="text-indigo-600 font-black text-[10px] tracking-widest uppercase">{t('situationRoomReasoningLabel')}</Text>
                       </View>
                       <Text className="text-slate-700 font-semibold text-[11px] leading-relaxed pr-10" numberOfLines={2}>
                         {request.reason}
@@ -719,17 +816,13 @@ export default function SituationRoomScreen() {
 
                     {/* Action Buttons with Liquid Glass feel */}
                     <View className="flex-row gap-3 relative z-10">
-                      <Pressable className="flex-1 py-3 rounded-xl border border-blue-400 items-center justify-center flex-row bg-white/40">
-                        <Feather name="file-text" size={14} color="#2563EB" style={{ marginRight: 6 }} />
-                        <Text className="text-blue-700 font-extrabold text-[12px]">View Details</Text>
-                      </Pressable>
 
                       <Pressable
                         onPress={() => handleApproveMission(request.id)}
                         className="flex-1 py-3 rounded-xl bg-blue-600/90 border border-blue-400 items-center justify-center flex-row shadow-lg shadow-blue-500/40"
                       >
-                        <Feather name="check-circle" size={14} color="white" style={{ marginRight: 6 }} />
-                        <Text className="text-white font-extrabold text-[12px]">Approve Request</Text>
+                        <MaterialIcons name="check-circle" size={18} color="white" style={{ marginRight: 6 }} />
+                        <Text className="text-white font-extrabold text-[12px]">{t('situationRoomApproveRequest')}</Text>
                       </Pressable>
                     </View>
                   </View>
@@ -764,10 +857,10 @@ export default function SituationRoomScreen() {
                 }}
                 className="py-4 flex-row justify-between items-center relative z-10"
               >
-                <Text className="text-brand-navy font-extrabold text-[15px]">Logistics & Dispatch Queue</Text>
+                <Text className="text-brand-navy font-extrabold text-[15px]">{t('situationRoomLogisticsQueueTitle')}</Text>
                 {logisticsRequests.length > 3 && (
                   <View className="flex-row items-center">
-                    <Text className="text-blue-600 font-bold text-xs mr-1">{isLogisticsOpen ? 'Show Less' : 'View All'}</Text>
+                    <Text className="text-blue-600 font-bold text-xs mr-1">{isLogisticsOpen ? t('situationRoomShowLess') : t('situationRoomViewAll')}</Text>
                     <Feather name={isLogisticsOpen ? "chevron-up" : "chevron-down"} size={16} color="#2563EB" />
                   </View>
                 )}
@@ -786,14 +879,26 @@ export default function SituationRoomScreen() {
                     'delivered': '#64748B'
                   };
                   return (
-                    <View key={item.id} className="flex-row items-center mb-3">
+                    <View key={item.id} className="flex-row items-center mb-4">
+                      {/* Left Icon */}
+                      <View 
+                        style={{ backgroundColor: logisticsIcons[item.item]?.bg || '#F3F4F6' }}
+                        className="w-10 h-10 rounded-full items-center justify-center mr-3"
+                      >
+                        <MaterialCommunityIcons 
+                          name={logisticsIcons[item.item]?.name || 'package-variant-closed'} 
+                          size={18} 
+                          color={logisticsIcons[item.item]?.color || '#6B7280'} 
+                        />
+                      </View>
+                      
                       <View className="flex-1">
-                        <Text className="text-brand-navy font-bold text-[13px]">{item.item}</Text>
-                        <Text className="text-slate-500 font-semibold text-[11px]">{item.from} → {item.to}</Text>
+                        <Text className="text-brand-navy font-bold text-[13px]">{translateDynamic(item.item, language)}</Text>
+                        <Text className="text-slate-500 font-semibold text-[11px] mt-0.5">{translateDynamic(item.from, language)} → {translateDynamic(item.to, language)}</Text>
                       </View>
                       <View className="items-end">
                         <Text className="text-brand-navy font-black text-[13px]">{item.quantity}</Text>
-                        <Text style={{ color: statusColors[item.status] }} className="font-bold text-[10px] uppercase">{item.status}</Text>
+                        <Text style={{ color: statusColors[item.status] }} className="font-bold text-[10px] uppercase">{translateDynamic(item.status, language)}</Text>
                       </View>
                     </View>
                   );
@@ -805,14 +910,18 @@ export default function SituationRoomScreen() {
 
         {/* Recent Telemetry Audits */}
         <View className="mb-8 px-1">
-          <Text className="text-brand-navy font-extrabold text-[15px] mb-3 ml-2">Recent Telemetry Audits</Text>
+          <Text className="text-brand-navy font-extrabold text-[15px] mb-3 ml-2">{t('situationRoomRecentTelemetryAudits')}</Text>
           <View className="bg-white rounded-[24px] shadow-sm shadow-slate-200/50 border border-slate-100 overflow-hidden p-4 relative">
 
             {/* Timeline Line */}
             <View className="absolute left-[27px] top-[40px] bottom-[40px] w-[2px] bg-slate-100" />
 
             {filteredTelemetryAudits.slice(0, 3).map((audit, i) => (
-              <View key={audit.id} className={`flex-row items-center py-3 ${i !== Math.min(filteredTelemetryAudits.length, 3) - 1 ? 'border-b border-slate-50' : ''} relative`}>
+              <Pressable 
+                key={audit.id} 
+                onPress={() => router.push('/reports')}
+                className={`flex-row items-center py-3 ${i !== Math.min(filteredTelemetryAudits.length, 3) - 1 ? 'border-b border-slate-50' : ''} relative`}
+              >
                 <View className="w-6 items-center justify-center bg-white z-10 mr-3">
                   <View className={`w-[18px] h-[18px] rounded-full bg-${audit.color}-500 items-center justify-center border-2 border-white`}>
                     <Feather name={audit.icon as any} size={10} color="white" />
@@ -820,19 +929,19 @@ export default function SituationRoomScreen() {
                 </View>
 
                 <View className={`w-11 h-11 rounded-full bg-${audit.color}-50 items-center justify-center mr-3 border border-${audit.color}-100/50`}>
-                  <Feather name="shield" size={16} color={audit.color === 'red' ? '#EF4444' : '#16A34A'} />
+                  <Feather name="shield" size={16} color={audit.color === 'red' ? '#EF4444' : '#10B981'} />
                 </View>
 
                 <View className="flex-1">
-                  <Text className="text-brand-navy font-bold text-[13px] mb-0.5">{audit.text}</Text>
-                  <Text className="text-slate-500 font-semibold text-[11px] leading-relaxed pr-2">{audit.desc}</Text>
+                  <Text className="text-brand-navy font-bold text-[13px] mb-0.5">{translateDynamic(audit.text, language)}</Text>
+                  <Text className="text-slate-500 font-semibold text-[11px] leading-relaxed pr-2">{translateDynamic(audit.desc, language)}</Text>
                 </View>
 
                 <View className="items-end pl-2">
-                  <Text className="text-slate-400 font-bold text-[10px] mb-2">{audit.time}</Text>
+                  <Text className="text-slate-400 font-bold text-[10px] mb-2">{language === 'hi' ? audit.time.replace('Just now', 'अभी अभी').replace('m ago', 'मिनट पहले') : audit.time}</Text>
                   <Feather name="chevron-right" size={14} color="#CBD5E1" />
                 </View>
-              </View>
+              </Pressable>
             ))}
 
           </View>
