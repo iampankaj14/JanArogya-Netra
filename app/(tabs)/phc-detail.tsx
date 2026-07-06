@@ -241,7 +241,7 @@ export default function PHCDetailScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
 
         {/* HERO SECTION */}
-        <View className="bg-white px-4 py-6 shadow-sm border-b border-slate-100 mb-4 rounded-b-3xl mt-2">
+        <View className="bg-white px-4 py-6 shadow-sm border-b-2 border-blue-200 mb-4 rounded-b-3xl mt-2">
           {/* Back button */}
           <Pressable
             onPress={() => {
@@ -385,44 +385,60 @@ export default function PHCDetailScreen() {
 
         {/* KEY METRICS GRID */}
         <View className="px-4 mb-4 flex-row flex-wrap justify-between">
-          <MetricCard
-            title={t('phcDetailMetricFootfallToday')}
-            value={todayFootfall.toString()}
-            icon="account-group" iconBg="bg-purple-500"
-            trend={footfallTrend} trendVal={`${footfallPct}%`} subtitle={t('phcDetailMetricSubtitleVsYesterday')}
-            borderColor="border-purple-200"
-            bgColor="#F3E8FF"
-          />
-          <MetricCard
-            title={t('phcDetailMetricBedsAvailable')}
-            value={`${bedsAvailable} / ${phc.bedsTotal}`}
-            icon="bed-empty" iconBg="bg-emerald-500"
-            subtitle={`${bedsOccupiedPct}${t('phcDetailMetricOccupiedSuffix')}`}
-            borderColor="border-emerald-200"
-            bgColor="#D1FAE5"
-          />
-          <MetricCard
-            title={t('phcDetailStaffPresentLabel')}
-            value={`${phc.staffPresent} / ${phc.staffTotal}`}
-            icon="account-group" iconBg="bg-amber-500"
-            subtitle={`${staffAbsent} ${t('phcDetailAbsentTodaySuffix')}`}
-            borderColor="border-amber-200"
-            bgColor="#FEF3C7"
-          />
-          <MetricCard
-            title={t('phcDetailMetricConsultRooms')}
-            value={phc.consultRooms.toString()}
-            icon="doctor" iconBg="bg-purple-400"
-            borderColor="border-purple-200"
-            bgColor="#F3E8FF"
-          />
-          <MetricCard
-            title={t('phcDetailMetricLabServices')}
-            value={t('phcDetailMetricLabServicesValue')}
-            icon="flask" iconBg="bg-blue-400"
-            borderColor="border-blue-200"
-            bgColor="#DBEAFE"
-          />
+          {[
+            {
+              id: 'footfall',
+              title: t('phcDetailMetricFootfallToday'),
+              value: todayFootfall.toString(),
+              icon: 'account-group',
+              iconBg: 'bg-purple-500',
+              trend: footfallTrend,
+              trendVal: `${footfallPct}%`,
+              subtitle: t('phcDetailMetricSubtitleVsYesterday'),
+              borderColor: 'border-purple-200',
+              bgColor: '#F3E8FF'
+            },
+            {
+              id: 'beds',
+              title: t('phcDetailMetricBedsAvailable'),
+              value: `${bedsAvailable} / ${phc.bedsTotal}`,
+              icon: 'bed-empty',
+              iconBg: 'bg-emerald-500',
+              subtitle: `${bedsOccupiedPct}${t('phcDetailMetricOccupiedSuffix')}`,
+              borderColor: 'border-emerald-200',
+              bgColor: '#D1FAE5'
+            },
+            {
+              id: 'staff',
+              title: t('phcDetailStaffPresentLabel'),
+              value: `${phc.staffPresent} / ${phc.staffTotal}`,
+              icon: 'account-group',
+              iconBg: 'bg-amber-500',
+              subtitle: `${staffAbsent} ${t('phcDetailAbsentTodaySuffix')}`,
+              borderColor: 'border-amber-200',
+              bgColor: '#FEF3C7'
+            },
+            {
+              id: 'rooms',
+              title: t('phcDetailMetricConsultRooms'),
+              value: phc.consultRooms.toString(),
+              icon: 'doctor',
+              iconBg: 'bg-purple-400',
+              borderColor: 'border-purple-200',
+              bgColor: '#F3E8FF'
+            },
+            {
+              id: 'labs',
+              title: t('phcDetailMetricLabServices'),
+              value: t('phcDetailMetricLabServicesValue'),
+              icon: 'flask',
+              iconBg: 'bg-blue-400',
+              borderColor: 'border-blue-200',
+              bgColor: '#DBEAFE'
+            }
+          ].map(metric => (
+            <MetricCard key={metric.id} {...metric} />
+          ))}
         </View>
 
         {/* MEDICINE STOCK OVERVIEW */}
@@ -901,11 +917,11 @@ export default function PHCDetailScreen() {
             </View>
 
             {/* Detailed Graph Area */}
-            <View className="h-[180px] mt-2 relative -mx-1">
+            <View className="h-[210px] mt-2 relative -mx-1">
               {/* Average Line Label */}
               <Text className="absolute top-[80px] right-2 text-[9px] font-black text-slate-400 uppercase bg-white/90 px-1 z-10">{t('phcDetailAvgFootfallPrefix')} {avgFootfall}</Text>
 
-              <Svg height="100%" width="100%" viewBox="0 0 350 180">
+              <Svg height="100%" width="100%" viewBox="0 0 350 210">
                 <Defs>
                   <SvgLinearGradient id="footfallDetailGrad" x1="0" y1="0" x2="0" y2="1">
                     <Stop offset="0" stopColor="#3B82F6" stopOpacity="0.25" />
@@ -963,16 +979,23 @@ export default function PHCDetailScreen() {
                     {graphPts[activeDataPoint].val}
                   </SvgText>
                 )}
-              </Svg>
-            </View>
 
-            {/* X-Axis Labels */}
-            <View className="flex-row justify-between px-2 mt-2 pt-1 border-t border-slate-100">
-              {[t('phcDetailDayMon'), t('phcDetailDayTue'), t('phcDetailDayWed'), t('phcDetailDayThu'), t('phcDetailDayFri'), t('phcDetailDaySat'), t('phcDetailDaySun')].map((day, i) => (
-                <Text key={i} className={`text-[10px] ${activeDataPoint === i ? 'font-black text-blue-600' : 'font-bold text-slate-400'}`}>
-                  {day}
-                </Text>
-              ))}
+                {/* X-Axis Labels */}
+                <Path d="M0,190 L350,190" stroke="#F1F5F9" strokeWidth="1" />
+                {[t('phcDetailDayMon'), t('phcDetailDayTue'), t('phcDetailDayWed'), t('phcDetailDayThu'), t('phcDetailDayFri'), t('phcDetailDaySat'), t('phcDetailDaySun')].map((day, i) => (
+                  <SvgText
+                    key={`lbl-${i}`}
+                    x={graphPts[i].cx}
+                    y={205}
+                    fill={activeDataPoint === i ? "#2563EB" : "#94A3B8"}
+                    fontSize="10"
+                    fontWeight={activeDataPoint === i ? "900" : "bold"}
+                    textAnchor="middle"
+                  >
+                    {day}
+                  </SvgText>
+                ))}
+              </Svg>
             </View>
           </View>
 

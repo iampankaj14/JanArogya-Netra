@@ -43,25 +43,12 @@ export default function LoginScreen() {
     }
   };
 
-  const handleForgotPassword = async () => {
-    if (!email) {
-      setError('Please enter your email address to reset password.');
-      return;
-    }
-    setError('');
-    setLoading(true);
-    try {
-      if (isFirebaseConfigured) {
-        await sendPasswordResetEmail(auth, email);
-        Alert.alert('Success', 'Password reset link sent to your email.');
-      } else {
-        Alert.alert('Notice', 'In offline/mock mode: To reset password, please contact admin@janarogya.gov.in');
-      }
-    } catch (e: any) {
-      setError(e.message || 'Failed to send password reset email.');
-    } finally {
-      setLoading(false);
-    }
+  const handleForgotPassword = () => {
+    Alert.alert(
+      'Password Reset', 
+      'For password reset, please contact support at support@janarogya.gov.in',
+      [{ text: 'OK', style: 'default' }]
+    );
   };
 
   return (
@@ -72,21 +59,21 @@ export default function LoginScreen() {
     >
       {/* Header Section */}
       <View className="flex-row justify-between items-center px-4 pt-4 pb-2 bg-white z-10">
-        <Image
-          source={require('@/data/login/govt.png')}
-          style={{ width: 140, height: 45, marginLeft: -15 }}
-          resizeMode="contain"
-        />
+        <View className="justify-center h-[45px]">
+          <Text className="text-brand-navy font-black tracking-widest text-[14px]">MADE IN INDIA 🇮🇳</Text>
+        </View>
         
         {/* Language Switcher Toggle */}
         <TouchableOpacity 
           onPress={() => setLanguage(language === 'en' ? 'hi' : 'en')}
-          className="flex-row items-center bg-[#F8FAFC] border border-slate-200 rounded-full px-3 py-1.5 shadow-sm"
+          className="flex-row items-center bg-white border border-slate-200 rounded-full px-3.5 py-2 shadow-sm shadow-slate-200/50"
         >
-          <Feather name="globe" size={14} color="#0E62CC" />
-          <Text className="text-[#0E62CC] font-bold text-xs ml-1.5 uppercase">
-            {language === 'en' ? 'HI' : 'EN'}
-          </Text>
+          <Feather name="globe" size={16} color="#0E62CC" />
+          <View className="flex-row items-center ml-2">
+            <Text className={`text-[13px] ${language === 'en' ? 'text-[#0E62CC] font-bold' : 'text-slate-500 font-medium'}`}>English</Text>
+            <Text className="text-slate-300 mx-1.5">|</Text>
+            <Text className={`text-[13px] ${language === 'hi' ? 'text-[#0E62CC] font-bold' : 'text-slate-500 font-medium'}`}>हिन्दी</Text>
+          </View>
         </TouchableOpacity>
       </View>
 

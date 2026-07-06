@@ -158,59 +158,80 @@ export default function InventoryScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Top Summary Cards (Horizontal Scroll) */}
-        <View className="mt-4">
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
-            
-            {/* Total Items */}
-            <View className="bg-[#EFF6FF] border border-blue-100 rounded-2xl w-[115px] p-4 items-center relative shadow-sm shadow-blue-100/50">
-              <View className="w-12 h-12 rounded-full bg-blue-600 items-center justify-center mb-3 shadow-md shadow-blue-500/30">
-                <Feather name="box" size={20} color="white" />
+        {/* Top Summary Cards (2x2 Grid like Reports) */}
+        <View className="mt-4 px-4 flex-row flex-wrap justify-between">
+          
+          {/* Total Items */}
+          <TouchableOpacity className="w-[48%] bg-[#DBEAFE] rounded-[16px] p-4 border border-[#3B82F6]/60 shadow-sm shadow-blue-500/10 mb-4 justify-between overflow-hidden" style={{ minHeight: 140 }} activeOpacity={0.7}>
+            <Feather name="box" size={100} color="rgba(59,130,246,0.05)" style={{position: 'absolute', bottom: -20, right: -20, transform: [{rotate: '-15deg'}]}} />
+            <View className="flex-row justify-between items-start">
+              <View className="flex-1 mr-2">
+                <Text className="text-slate-500 font-bold text-[12px] uppercase tracking-wider leading-tight">{t('inventoryTotalItems')}</Text>
               </View>
-              {inventoryLoading ? <Skeleton width={40} height={30} className="mb-1 rounded" /> : <Text className="text-2xl font-black text-slate-800">{totalItems}</Text>}
-              <Text className="text-slate-500 text-[10px] font-bold mb-4">{t('inventoryTotalItems')}</Text>
-              <TouchableOpacity className="bg-blue-100/80 px-4 py-1.5 rounded-full border border-blue-200">
-                <Text className="text-blue-600 font-bold text-[10px]">{t('inventoryViewAll')}</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* In Stock */}
-            <View className="bg-[#ECFDF5] border border-emerald-100 rounded-2xl w-[115px] p-4 items-center relative shadow-sm shadow-emerald-100/50">
-              <View className="w-12 h-12 rounded-full bg-emerald-500 items-center justify-center mb-3 shadow-md shadow-emerald-500/30">
-                <Feather name="check-circle" size={20} color="white" />
-              </View>
-              {inventoryLoading ? <Skeleton width={40} height={30} className="mb-1 rounded" /> : <Text className="text-2xl font-black text-slate-800">{inStock}</Text>}
-              <Text className="text-slate-500 text-[10px] font-bold mb-4">{t('inventoryInStock')}</Text>
-              <View className="bg-emerald-100/80 px-3 py-1.5 rounded-full border border-emerald-200">
-                <Text className="text-emerald-700 font-bold text-[10px]">{t('inventorySufficient')}</Text>
+              <View className="w-9 h-9 rounded-full bg-blue-50 items-center justify-center">
+                <Feather name="box" size={18} color="#3B82F6" />
               </View>
             </View>
-
-            {/* Low Stock */}
-            <View className="bg-[#FFFBEB] border border-amber-100 rounded-2xl w-[115px] p-4 items-center relative shadow-sm shadow-amber-100/50">
-              <View className="w-12 h-12 rounded-full bg-amber-500 items-center justify-center mb-3 shadow-md shadow-amber-500/30">
-                <Feather name="alert-triangle" size={20} color="white" />
-              </View>
-              {inventoryLoading ? <Skeleton width={40} height={30} className="mb-1 rounded" /> : <Text className="text-2xl font-black text-slate-800">{lowStock}</Text>}
-              <Text className="text-slate-500 text-[10px] font-bold mb-4">{t('inventoryLowStock')}</Text>
-              <View className="bg-orange-100/80 px-3 py-1.5 rounded-full border border-orange-200">
-                <Text className="text-orange-600 font-bold text-[10px]">{t('inventoryReorderSoon')}</Text>
+            <View>
+              {inventoryLoading ? <Skeleton width={40} height={30} className="mb-1 rounded" /> : <Text className="text-brand-navy font-black text-3xl tracking-tight">{totalItems}</Text>}
+              <View className="flex-row items-center mt-1">
+                <Text className="text-blue-600 font-bold text-[11px]">{t('inventoryViewAll')}</Text>
+                <Feather name="chevron-right" size={12} color="#3B82F6" style={{ marginLeft: 2 }} />
               </View>
             </View>
+          </TouchableOpacity>
 
-            {/* Out of Stock */}
-            <View className="bg-[#FEF2F2] border border-red-100 rounded-2xl w-[115px] p-4 items-center relative shadow-sm shadow-red-100/50">
-              <View className="w-12 h-12 rounded-full bg-red-500 items-center justify-center mb-3 shadow-md shadow-red-500/30">
-                <Feather name="x-octagon" size={20} color="white" />
+          {/* In Stock */}
+          <TouchableOpacity className="w-[48%] bg-[#D1FAE5] rounded-[16px] p-4 border border-[#10B981]/60 shadow-sm shadow-emerald-500/10 mb-4 justify-between overflow-hidden" style={{ minHeight: 140 }} activeOpacity={0.7}>
+            <Feather name="check-circle" size={100} color="rgba(16,185,129,0.05)" style={{position: 'absolute', bottom: -20, right: -20, transform: [{rotate: '-15deg'}]}} />
+            <View className="flex-row justify-between items-start">
+              <View className="flex-1 mr-2">
+                <Text className="text-slate-500 font-bold text-[12px] uppercase tracking-wider leading-tight">{t('inventoryInStock')}</Text>
               </View>
-              {inventoryLoading ? <Skeleton width={40} height={30} className="mb-1 rounded" /> : <Text className="text-2xl font-black text-slate-800">{outOfStock}</Text>}
-              <Text className="text-slate-500 text-[10px] font-bold mb-4">{t('inventoryOutOfStock')}</Text>
-              <View className="bg-red-100/80 px-2 py-1.5 rounded-full border border-red-200">
-                <Text className="text-red-700 font-bold text-[9px] tracking-tight">{t('inventoryNeedAttention')}</Text>
+              <View className="w-9 h-9 rounded-full bg-emerald-50 items-center justify-center">
+                <Feather name="check-circle" size={18} color="#10B981" />
               </View>
             </View>
+            <View>
+              {inventoryLoading ? <Skeleton width={40} height={30} className="mb-1 rounded" /> : <Text className="text-brand-navy font-black text-3xl tracking-tight">{inStock}</Text>}
+              <Text className="text-emerald-600 font-bold text-[11px] mt-1">{t('inventorySufficient')}</Text>
+            </View>
+          </TouchableOpacity>
 
-          </ScrollView>
+          {/* Low Stock */}
+          <TouchableOpacity className="w-[48%] bg-[#FEF3C7] rounded-[16px] p-4 border border-[#F59E0B]/60 shadow-sm shadow-amber-500/10 mb-4 justify-between overflow-hidden" style={{ minHeight: 140 }} activeOpacity={0.7}>
+            <Feather name="alert-triangle" size={100} color="rgba(245,158,11,0.05)" style={{position: 'absolute', bottom: -20, right: -20, transform: [{rotate: '-15deg'}]}} />
+            <View className="flex-row justify-between items-start">
+              <View className="flex-1 mr-2">
+                <Text className="text-slate-500 font-bold text-[12px] uppercase tracking-wider leading-tight">{t('inventoryLowStock')}</Text>
+              </View>
+              <View className="w-9 h-9 rounded-full bg-amber-50 items-center justify-center">
+                <Feather name="alert-triangle" size={18} color="#F59E0B" />
+              </View>
+            </View>
+            <View>
+              {inventoryLoading ? <Skeleton width={40} height={30} className="mb-1 rounded" /> : <Text className="text-brand-navy font-black text-3xl tracking-tight">{lowStock}</Text>}
+              <Text className="text-amber-600 font-bold text-[11px] mt-1">{t('inventoryReorderSoon')}</Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* Out of Stock */}
+          <TouchableOpacity className="w-[48%] bg-[#FEE2E2] rounded-[16px] p-4 border border-[#EF4444]/60 shadow-sm shadow-red-500/10 mb-4 justify-between overflow-hidden" style={{ minHeight: 140 }} activeOpacity={0.7}>
+            <Feather name="x-octagon" size={100} color="rgba(239,68,68,0.05)" style={{position: 'absolute', bottom: -20, right: -20, transform: [{rotate: '-15deg'}]}} />
+            <View className="flex-row justify-between items-start">
+              <View className="flex-1 mr-2">
+                <Text className="text-slate-500 font-bold text-[12px] uppercase tracking-wider leading-tight">{t('inventoryOutOfStock')}</Text>
+              </View>
+              <View className="w-9 h-9 rounded-full bg-red-50 items-center justify-center">
+                <Feather name="x-octagon" size={18} color="#EF4444" />
+              </View>
+            </View>
+            <View>
+              {inventoryLoading ? <Skeleton width={40} height={30} className="mb-1 rounded" /> : <Text className="text-brand-navy font-black text-3xl tracking-tight">{outOfStock}</Text>}
+              <Text className="text-red-600 font-bold text-[11px] mt-1 tracking-tight">{t('inventoryNeedAttention')}</Text>
+            </View>
+          </TouchableOpacity>
+
         </View>
 
         <View className="px-4 mt-8 flex-row gap-3">
@@ -259,37 +280,60 @@ export default function InventoryScreen() {
 
 
           {filteredMedicines.length > 0 ? (
-            <View className="bg-white rounded-3xl border border-slate-100 p-2 shadow-sm shadow-slate-200/50">
+            <View className="px-2 mt-2">
               {filteredMedicines.map((item, idx) => {
                 const isOOS = item.currentStock === 0;
                 const isLow = item.currentStock <= item.minRequiredStock && item.currentStock > 0;
                 
                 const iconName = item.type === 'VACCINES' ? 'needle' : item.type === 'EMERGENCY' ? 'bottle-tonic-outline' : 'pill';
-                const bgColor = isOOS ? 'bg-[#FEF2F2]' : isLow ? 'bg-[#FFFBEB]' : 'bg-[#EFF6FF]';
-                const borderColor = isOOS ? 'border-red-50' : isLow ? 'border-orange-50' : 'border-blue-50';
-                const iconColor = isOOS ? '#EF4444' : isLow ? '#F59E0B' : '#3B82F6';
                 
-                const statusBg = isOOS ? 'bg-red-50' : isLow ? 'bg-orange-50' : 'bg-emerald-50';
-                const statusBorder = isOOS ? 'border-red-100' : isLow ? 'border-orange-100' : 'border-emerald-100';
-                const statusTextCol = isOOS ? 'text-red-600' : isLow ? 'text-orange-600' : 'text-emerald-600';
+                // Style matching situation-room logistics
+                const rowBgColor = isOOS ? 'bg-red-50' : isLow ? 'bg-orange-50' : 'bg-blue-50';
+                const rowBorderColor = isOOS ? 'border-red-200' : isLow ? 'border-orange-200' : 'border-blue-200';
+                const leftBarColor = isOOS ? 'bg-red-500' : isLow ? 'bg-[#F97316]' : 'bg-[#3B82F6]';
+                
+                const iconBgColor = isOOS ? '#FEE2E2' : isLow ? '#FFEDD5' : '#DBEAFE';
+                const iconColor = isOOS ? '#EF4444' : isLow ? '#EA580C' : '#2563EB';
+                const badgeIcon = isOOS ? 'alert-octagon' : isLow ? 'alert' : 'check-circle';
+                
+                const statusBg = isOOS ? 'bg-red-100' : isLow ? 'bg-orange-100' : 'bg-blue-100';
+                const statusBorder = isOOS ? 'border-red-200' : isLow ? 'border-orange-200' : 'border-blue-200';
+                const statusTextCol = isOOS ? 'text-red-700' : isLow ? 'text-orange-700' : 'text-blue-700';
                 const statusText = isOOS ? t('inventoryOutOfStock') : isLow ? t('inventoryLowStock') : t('inventorySufficient');
-                const stockTextCol = isOOS ? 'text-red-500' : isLow ? 'text-orange-500' : 'text-emerald-500';
+
+                // Stock Box styling
+                const stockBoxBg = isOOS ? 'bg-red-500' : isLow ? 'bg-orange-500' : 'bg-blue-500';
+                const stockBoxBorder = isOOS ? 'border-red-400' : isLow ? 'border-orange-400' : 'border-blue-400';
 
                 return (
-                  <View key={item.id} className={`flex-row items-center py-3 px-2 ${idx !== filteredMedicines.length - 1 ? 'border-b border-slate-50' : ''}`}>
-                    <View className={`w-[46px] h-[46px] rounded-[14px] ${bgColor} items-center justify-center mr-3 border ${borderColor}`}>
-                      <MaterialCommunityIcons name={iconName} size={22} color={iconColor} />
+                  <View key={item.id} className={`${rowBgColor} rounded-[12px] mb-3 shadow-sm shadow-slate-200/50 border ${rowBorderColor} flex-row overflow-hidden p-2.5 items-center relative`}>
+                    {/* Left Colored Bar */}
+                    <View className={`absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full ${leftBarColor}`} />
+                    
+                    {/* Square Icon Container */}
+                    <View className="ml-2 w-[40px] h-[40px] rounded-[10px] items-center justify-center mr-3 relative" style={{ backgroundColor: iconBgColor }}>
+                      <MaterialCommunityIcons name={iconName} size={20} color={iconColor} />
+                      <View className="absolute -bottom-1 -right-1 bg-white rounded-full p-[2px] shadow-sm border border-slate-100">
+                        <MaterialCommunityIcons name={badgeIcon} size={10} color={iconColor} />
+                      </View>
                     </View>
+                    
+                    {/* Middle Info */}
                     <View className="flex-1 pr-2">
-                      <Text className="text-slate-800 font-extrabold text-[14px] mb-0.5" numberOfLines={1}>{item.name}</Text>
-                      <Text className="text-slate-400 font-semibold text-[11px]">{item.type}</Text>
+                      <Text className="text-[#1E3A8A] font-black text-[14px] tracking-tight mb-0.5" numberOfLines={1}>{item.name}</Text>
+                      <Text className="text-slate-500 font-semibold text-[9px] uppercase tracking-wider">{item.type}</Text>
                     </View>
-                    <View className="items-center mr-4 w-[50px]">
-                      <Text className="text-slate-800 font-black text-[14px]">{item.currentStock}</Text>
-                      <Text className={`${stockTextCol} font-bold text-[9px] mt-0.5`}>{item.unit || t('inventoryDefaultUnit')}</Text>
-                    </View>
-                    <View className={`${statusBg} border ${statusBorder} px-2 py-1 rounded-md mr-3`}>
-                      <Text className={`${statusTextCol} font-bold text-[9px]`}>{statusText}</Text>
+                    
+                    {/* Right Info */}
+                    <View className="flex-row items-center">
+                      <View className={`${stockBoxBg} ${stockBoxBorder} border rounded-[14px] w-[50px] py-1.5 items-center justify-center mr-2 shadow-sm shadow-black/10`}>
+                        <Text className="text-white font-black text-[18px] leading-tight">{item.currentStock}</Text>
+                        <Text className="text-white/90 font-bold text-[8px] uppercase tracking-wider mt-0.5" numberOfLines={1}>{item.unit || t('inventoryDefaultUnit')}</Text>
+                      </View>
+                      
+                      <View className={`${statusBg} border ${statusBorder} px-2 py-1 rounded-full`}>
+                        <Text className={`${statusTextCol} font-bold text-[8px] uppercase tracking-wider`}>{statusText}</Text>
+                      </View>
                     </View>
                   </View>
                 );

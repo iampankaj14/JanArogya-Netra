@@ -62,12 +62,12 @@ export default function EmergencyScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 60 }}>
         
         {/* Promo Banner (Red/Orange Theme) */}
-        <View className="bg-red-50/80 border border-red-100 rounded-3xl p-5 mb-6 flex-row items-center justify-between overflow-hidden relative">
+        <View className="bg-red-50/80 border-2 border-red-200 rounded-3xl p-5 mb-6 flex-row items-center justify-between overflow-hidden relative">
           <View className="flex-1 pr-4 z-10">
             <Text className="text-red-900 font-black text-[15px] mb-2 leading-tight">{t('emergencyBannerTitle')}</Text>
             <Text className="text-red-700/80 text-[9px] font-semibold leading-4 mb-4">{t('emergencyBannerDesc')}</Text>
             
-            <View className="bg-white border border-red-100 rounded-full px-2.5 py-1.5 flex-row items-center self-start">
+            <View className="bg-white border-2 border-red-200 rounded-full px-2.5 py-1.5 flex-row items-center self-start">
               <Feather name="alert-triangle" size={10} color="#EF4444" className="mr-1" />
               <Text className="text-red-600 font-bold text-[8px] uppercase tracking-wider">{t('emergencyPriorityBadge')}</Text>
             </View>
@@ -89,7 +89,7 @@ export default function EmergencyScreen() {
         </View>
 
         {/* Escalation Toggle */}
-        <View className="bg-white border border-slate-100 shadow-sm p-5 rounded-3xl mb-6 flex-row items-center justify-between">
+        <View className="bg-yellow-50/50 border-2 border-yellow-300 shadow-sm p-5 rounded-3xl mb-6 flex-row items-center justify-between">
           <View className="flex-1 pr-4">
             <View className="flex-row items-center mb-1">
               <View className="w-6 h-6 rounded-full bg-orange-100 items-center justify-center mr-2">
@@ -109,7 +109,7 @@ export default function EmergencyScreen() {
         
         {criticalAlerts.length > 0 ? (
           criticalAlerts.map((alert: AlertItem) => (
-            <View key={alert.id} className="bg-white border border-red-100 shadow-sm p-4 rounded-2xl mb-4 relative overflow-hidden">
+            <View key={alert.id} className="bg-white border-2 border-red-200 shadow-sm p-4 rounded-2xl mb-4 relative overflow-hidden">
               <View className="absolute top-0 right-0 w-16 h-16 bg-red-50 rounded-bl-full -mr-4 -mt-4" />
               
               <View className="flex-row justify-between items-start mb-3">
@@ -127,7 +127,7 @@ export default function EmergencyScreen() {
             </View>
           ))
         ) : (
-          <View className="bg-slate-50 border border-slate-100 p-8 rounded-3xl items-center justify-center">
+          <View className="bg-slate-50 border-2 border-slate-200 p-8 rounded-3xl items-center justify-center">
             <View className="w-12 h-12 rounded-full bg-slate-200 items-center justify-center mb-3">
               <Feather name="check" size={20} color="#94A3B8" />
             </View>

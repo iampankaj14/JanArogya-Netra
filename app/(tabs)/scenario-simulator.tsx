@@ -137,32 +137,21 @@ export default function ScenarioSimulatorScreen() {
             {/* Severity */}
             <View className="mb-6">
               <Text className="text-brand-navy font-extrabold text-[13px] mb-2 uppercase tracking-wide">{t('scenarioSimulatorSeverityLabel')}</Text>
-              <View className="flex-row space-x-2">
-
-                {/* Low */}
-                <Pressable onPress={() => setSeverity('Low')} className={`flex-1 flex-row items-center justify-center h-14 rounded-2xl border-2 ${severity === 'Low' ? 'border-emerald-400 bg-emerald-50 shadow-sm shadow-emerald-500/20' : 'border-slate-200 bg-white'}`}>
-                  <View className={`w-3 h-3 rounded-full items-center justify-center mr-2 ${severity === 'Low' ? 'bg-emerald-100' : 'bg-slate-100'}`}>
-                    <View className={`w-1.5 h-1.5 rounded-full ${severity === 'Low' ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-                  </View>
-                  <Text className={`font-bold text-[12px] ${severity === 'Low' ? 'text-emerald-700' : 'text-slate-500'}`}>{t('scenarioSimulatorSeverityLow')}</Text>
+              <View className="flex-row gap-2">
+                <Pressable onPress={() => setSeverity('Low')} className={`flex-1 flex-row items-center justify-center h-12 rounded-xl transition-all ${severity === 'Low' ? 'bg-emerald-500 shadow-md shadow-emerald-500/30' : 'bg-slate-100'}`}>
+                  {severity === 'Low' && <Feather name="check-circle" size={14} color="white" className="mr-1.5" />}
+                  <Text className={`font-black text-[12px] uppercase tracking-wider ${severity === 'Low' ? 'text-white' : 'text-slate-400'}`}>{t('scenarioSimulatorSeverityLow')}</Text>
                 </Pressable>
-
-                {/* Medium */}
-                <Pressable onPress={() => setSeverity('Medium')} className={`flex-1 flex-row items-center justify-center h-14 rounded-2xl border-2 ${severity === 'Medium' ? 'border-orange-400 bg-orange-50 shadow-sm shadow-orange-500/20' : 'border-slate-200 bg-white'}`}>
-                  <View className={`w-3 h-3 rounded-full items-center justify-center mr-2 ${severity === 'Medium' ? 'bg-orange-100' : 'bg-slate-100'}`}>
-                    <View className={`w-1.5 h-1.5 rounded-full ${severity === 'Medium' ? 'bg-orange-500' : 'bg-slate-300'}`} />
-                  </View>
-                  <Text className={`font-bold text-[12px] ${severity === 'Medium' ? 'text-orange-700' : 'text-slate-500'}`}>{t('scenarioSimulatorSeverityMedium')}</Text>
+                
+                <Pressable onPress={() => setSeverity('Medium')} className={`flex-1 flex-row items-center justify-center h-12 rounded-xl transition-all ${severity === 'Medium' ? 'bg-amber-500 shadow-md shadow-amber-500/30' : 'bg-slate-100'}`}>
+                  {severity === 'Medium' && <Feather name="alert-circle" size={14} color="white" className="mr-1.5" />}
+                  <Text className={`font-black text-[12px] uppercase tracking-wider ${severity === 'Medium' ? 'text-white' : 'text-slate-400'}`}>{t('scenarioSimulatorSeverityMedium')}</Text>
                 </Pressable>
-
-                {/* High */}
-                <Pressable onPress={() => setSeverity('High')} className={`flex-1 flex-row items-center justify-center h-14 rounded-2xl border-2 ${severity === 'High' ? 'border-red-400 bg-red-50 shadow-sm shadow-red-500/20' : 'border-slate-200 bg-white'}`}>
-                  <View className={`w-4 h-4 rounded-full items-center justify-center mr-1.5 ${severity === 'High' ? 'bg-red-100' : 'bg-slate-100'}`}>
-                    <Feather name="bar-chart-2" size={10} color={severity === 'High' ? '#EF4444' : '#94A3B8'} />
-                  </View>
-                  <Text className={`font-bold text-[12px] ${severity === 'High' ? 'text-red-700' : 'text-slate-500'}`}>{t('scenarioSimulatorSeverityHigh')}</Text>
+                
+                <Pressable onPress={() => setSeverity('High')} className={`flex-1 flex-row items-center justify-center h-12 rounded-xl transition-all ${severity === 'High' ? 'bg-red-500 shadow-md shadow-red-500/30' : 'bg-slate-100'}`}>
+                  {severity === 'High' && <Feather name="alert-triangle" size={14} color="white" className="mr-1.5" />}
+                  <Text className={`font-black text-[12px] uppercase tracking-wider ${severity === 'High' ? 'text-white' : 'text-slate-400'}`}>{t('scenarioSimulatorSeverityHigh')}</Text>
                 </Pressable>
-
               </View>
             </View>
 

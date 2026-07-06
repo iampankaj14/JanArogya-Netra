@@ -1,7 +1,7 @@
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Dimensions, ScrollView, Text, TouchableOpacity, View, Alert } from 'react-native';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { useInventory } from '../../../hooks/useInventory';
 import dummyAlerts from '../../../dummy/alerts';
@@ -13,6 +13,7 @@ const { width } = Dimensions.get('window');
 const isTablet = width >= 768;
 
 export default function PHCHomeDashboard() {
+  
   const { authState } = useAuth();
   const router = useRouter();
   const { t } = useTranslation();
@@ -24,8 +25,25 @@ export default function PHCHomeDashboard() {
   const activeOutbreak = dummyAlerts.find(a => a.facilityId === facilityId && a.type === 'OUTBREAK' && !a.resolved);
 
   const [tasks, setTasks] = useState(localTasks.filter(t => t.facilityId === facilityId));
+  const [showAllTasks, setShowAllTasks] = useState(false);
+  const [isEditingTasks, setIsEditingTasks] = useState(false);
+  const displayedTasks = showAllTasks ? tasks : tasks.slice(0, 3);
+
+  const summaryScrollViewRef = useRef<ScrollView>(null);
+  const summaryCardWidthWithGap = 140 + 10;
+  
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      summaryScrollViewRef.current?.scrollTo({ 
+        x: (Math.random() > 0.5 ? summaryCardWidthWithGap : 0) + (Math.random() * summaryCardWidthWithGap * 2), // We will track index properly below
+        animated: true 
+      });
+    }, 3500);
+    // Actually wait, let's keep track of index.
+  }, []);
 
   const toggleTask = (id: number) => {
+    if (isEditingTasks) return;
     const updatedTasks = tasks.map(t => {
       if (t.id === id) {
         const updated = { ...t, completed: !t.completed };
@@ -35,6 +53,22 @@ export default function PHCHomeDashboard() {
       return t;
     });
     setTasks(updatedTasks);
+  };
+
+  const removeTask = (id: number) => {
+    setTasks(tasks.filter(t => t.id !== id));
+  };
+
+  const addTask = () => {
+    const newTask = {
+      id: Date.now(),
+      title: 'New Ad-hoc Task',
+      desc: 'Added by user',
+      time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+      completed: false,
+      facilityId: facilityId
+    };
+    setTasks([...tasks, newTask]);
   };
 
   const facilityNames: Record<string, string> = {
@@ -119,107 +153,169 @@ export default function PHCHomeDashboard() {
       <View className="mt-6">
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
 
-          {/* Today's OPD */}
-          <View className="bg-white rounded-[24px] border border-blue-100 shadow-sm w-[160px] p-4 relative overflow-hidden">
-            <View className="flex-row items-center mb-4">
-              <View className="w-8 h-8 rounded-full bg-blue-50 items-center justify-center mr-2 border border-blue-100/50">
-                <Feather name="users" size={14} color="#3B82F6" />
+          {[
+            {
+              id: 'opd',
+              title: t('dashboardCardTodaysOpd'),
+              value: todayFootfall,
+              subtitle: t('dashboardPatientsServed'),
+              icon: 'users',
+              iconFamily: 'Feather',
+              color: '#3B82F6',
+              bgColor: '#DBEAFE',
+              iconBg: 'bg-blue-500',
+              borderColor: 'border-blue-200',
+              textColor: 'text-blue-600',
+              bottomIcon: footfallPct >= 0 ? 'trending-up' : 'trending-down',
+              bottomIconColor: footfallPct >= 0 ? '#10B981' : '#EF4444',
+              bottomText: `${footfallPct >= 0 ? '+' : ''}${footfallPct}%`,
+              bottomTextColor: footfallPct >= 0 ? 'text-emerald-500' : 'text-red-500',
+              bottomLabel: t('dashboardVsYesterday'),
+              onPress: undefined
+            },
+            {
+              id: 'stock',
+              title: t('dashboardCardLowStockItems'),
+              value: lowStockCount,
+              subtitle: t('dashboardNeedAttention'),
+              icon: 'pill',
+              iconFamily: 'MaterialCommunityIcons',
+              color: '#EF4444',
+              bgColor: '#FEE2E2',
+              iconBg: 'bg-red-500',
+              borderColor: 'border-red-200',
+              textColor: 'text-red-500',
+              bottomText: t('dashboardViewStock'),
+              bottomTextColor: 'text-red-500',
+              bottomActionIcon: 'chevron-right',
+              onPress: () => router.push('/(tabs)/inventory')
+            },
+            {
+              id: 'ipd',
+              title: t('dashboardCardIpdOccupancy'),
+              value: `${ipdOccupancy}%`,
+              subtitle: `${phc.bedsOccupied} / ${phc.bedsTotal} ${t('dashboardBedsOccupiedSuffix')}`,
+              icon: 'bed-outline',
+              iconFamily: 'MaterialCommunityIcons',
+              color: '#10B981',
+              bgColor: '#D1FAE5',
+              iconBg: 'bg-emerald-500',
+              borderColor: 'border-emerald-200',
+              textColor: 'text-emerald-500',
+              bottomText: t('dashboardViewDetails'),
+              bottomTextColor: 'text-emerald-500',
+              bottomActionIcon: 'chevron-right',
+              onPress: () => router.push('/(tabs)/reports')
+            },
+            {
+              id: 'pending',
+              title: t('dashboardCardPendingTests'),
+              value: pendingTests,
+              subtitle: t('dashboardAwaitingResults'),
+              icon: 'flask-outline',
+              iconFamily: 'MaterialCommunityIcons',
+              color: '#8B5CF6',
+              bgColor: '#F3E8FF',
+              iconBg: 'bg-purple-500',
+              borderColor: 'border-purple-200',
+              textColor: 'text-purple-500',
+              bottomText: t('dashboardViewAll'),
+              bottomTextColor: 'text-purple-500',
+              bottomActionIcon: 'chevron-right',
+              onPress: () => router.push('/(tabs)/reports')
+            }
+          ].map((card, index) => {
+            // Map the colors back to light variants for the small icon circle if needed, or use white/50
+            const lightIconBg = card.iconBg.replace('500', '50');
+            
+            return (
+            <TouchableOpacity 
+              key={card.id} 
+              onPress={card.onPress}
+              className={`rounded-[16px] border ${card.borderColor} shadow-sm w-[160px] p-4 relative overflow-hidden justify-between`} 
+              style={{ backgroundColor: card.bgColor, minHeight: 140 }}
+              activeOpacity={card.onPress ? 0.7 : 1}
+            >
+              <MaterialCommunityIcons 
+                name={card.iconFamily === 'Feather' && card.icon === 'users' ? 'account-group' : card.icon as any} 
+                size={100} 
+                color={`${card.color}15`} 
+                style={{position: 'absolute', bottom: -20, right: -20, transform: [{rotate: '-15deg'}]}} 
+              />
+              
+              <View className="flex-row justify-between items-start mb-2">
+                <View className="flex-1 mr-2">
+                  <Text className={`text-[12px] font-bold uppercase tracking-wider leading-tight ${card.textColor}`}>{card.title}</Text>
+                </View>
+                <View className={`w-9 h-9 rounded-full items-center justify-center ${lightIconBg}`}>
+                  {card.iconFamily === 'Feather' ? (
+                    <Feather name={card.icon as any} size={18} color={card.color} />
+                  ) : (
+                    <MaterialCommunityIcons name={card.icon as any} size={18} color={card.color} />
+                  )}
+                </View>
               </View>
-              <Text className="text-[10px] font-bold text-blue-600 tracking-widest uppercase">{t('dashboardCardTodaysOpd')}</Text>
-            </View>
-            <Text className="text-4xl font-black text-[#1E3A8A]">{todayFootfall}</Text>
-            <Text className="text-[11px] font-semibold text-slate-500 mb-4">{t('dashboardPatientsServed')}</Text>
-            <View className="flex-row items-center mt-auto border-t border-slate-50 pt-3">
-              <Feather name={footfallPct >= 0 ? "trending-up" : "trending-down"} size={12} color={footfallPct >= 0 ? "#10B981" : "#EF4444"} />
-              <Text className={`text-[10px] font-bold mx-1 ${footfallPct >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>{footfallPct >= 0 ? '+' : ''}{footfallPct}%</Text>
-              <Text className="text-[10px] text-slate-400 font-semibold">{t('dashboardVsYesterday')}</Text>
-            </View>
-          </View>
-
-          {/* Low Stock Items */}
-          <View className="bg-white rounded-[24px] border border-red-100 shadow-sm w-[160px] p-4 relative overflow-hidden">
-            <View className="flex-row items-center mb-4">
-              <View className="w-8 h-8 rounded-full bg-red-50 items-center justify-center mr-2 border border-red-100/50">
-                <MaterialCommunityIcons name="pill" size={14} color="#EF4444" />
+              
+              <View>
+                <Text className="text-4xl font-black text-[#1E3A8A] tracking-tight">{card.value}</Text>
+                <Text className="text-[11px] font-semibold text-slate-500 mt-0.5 mb-2">{card.subtitle}</Text>
+                
+                {card.onPress ? (
+                  <View className="flex-row items-center mt-1">
+                    <Text className={`text-[11px] font-bold ${card.bottomTextColor}`}>{card.bottomText}</Text>
+                    <Feather name={card.bottomActionIcon as any} size={12} color={card.color} style={{ marginLeft: 2 }} />
+                  </View>
+                ) : (
+                  <View className="flex-row items-center mt-1">
+                    <Feather name={card.bottomIcon as any} size={12} color={card.bottomIconColor} />
+                    <Text className={`text-[11px] font-bold mx-1 ${card.bottomTextColor}`}>{card.bottomText}</Text>
+                    <Text className="text-[11px] text-slate-400 font-semibold">{card.bottomLabel}</Text>
+                  </View>
+                )}
               </View>
-              <Text className="text-[10px] font-bold text-red-500 tracking-widest uppercase">{t('dashboardCardLowStockItems')}</Text>
-            </View>
-            <Text className="text-4xl font-black text-[#1E3A8A]">{lowStockCount}</Text>
-            <Text className="text-[11px] font-semibold text-slate-500 mb-4">{t('dashboardNeedAttention')}</Text>
-            <TouchableOpacity className="flex-row items-center justify-between mt-auto border-t border-slate-50 pt-3 active:opacity-60" onPress={() => router.push('/(tabs)/inventory')}>
-              <Text className="text-[11px] font-bold text-red-500">{t('dashboardViewStock')}</Text>
-              <Feather name="chevron-right" size={14} color="#EF4444" />
             </TouchableOpacity>
-          </View>
-
-          {/* IPD Occupancy */}
-          <View className="bg-white rounded-[24px] border border-emerald-100 shadow-sm w-[160px] p-4 relative overflow-hidden">
-            <View className="flex-row items-center mb-4">
-              <View className="w-8 h-8 rounded-full bg-emerald-50 items-center justify-center mr-2 border border-emerald-100/50">
-                <MaterialCommunityIcons name="bed-outline" size={14} color="#10B981" />
-              </View>
-              <Text className="text-[10px] font-bold text-emerald-500 tracking-widest uppercase">{t('dashboardCardIpdOccupancy')}</Text>
-            </View>
-            <Text className="text-4xl font-black text-[#1E3A8A]">{ipdOccupancy}%</Text>
-            <Text className="text-[11px] font-semibold text-slate-500 mb-4">{phc.bedsOccupied} / {phc.bedsTotal} {t('dashboardBedsOccupiedSuffix')}</Text>
-            <TouchableOpacity onPress={() => router.push('/(tabs)/reports')} className="flex-row items-center justify-between mt-auto border-t border-slate-50 pt-3 active:opacity-60">
-              <Text className="text-[11px] font-bold text-emerald-500">{t('dashboardViewDetails')}</Text>
-              <Feather name="chevron-right" size={14} color="#10B981" />
-            </TouchableOpacity>
-          </View>
-
-          {/* Pending Tests */}
-          <View className="bg-white rounded-[24px] border border-purple-100 shadow-sm w-[160px] p-4 relative overflow-hidden">
-            <View className="flex-row items-center mb-4">
-              <View className="w-8 h-8 rounded-full bg-purple-50 items-center justify-center mr-2 border border-purple-100/50">
-                <MaterialCommunityIcons name="flask-outline" size={14} color="#8B5CF6" />
-              </View>
-              <Text className="text-[10px] font-bold text-purple-500 tracking-widest uppercase">{t('dashboardCardPendingTests')}</Text>
-            </View>
-            <Text className="text-4xl font-black text-[#1E3A8A]">{pendingTests}</Text>
-            <Text className="text-[11px] font-semibold text-slate-500 mb-4">{t('dashboardAwaitingResults')}</Text>
-            <TouchableOpacity onPress={() => router.push('/(tabs)/reports')} className="flex-row items-center justify-between mt-auto border-t border-slate-50 pt-3 active:opacity-60">
-              <Text className="text-[11px] font-bold text-purple-500">{t('dashboardViewAll')}</Text>
-              <Feather name="chevron-right" size={14} color="#8B5CF6" />
-            </TouchableOpacity>
-          </View>
-
+          )})}
         </ScrollView>
       </View>
 
       {/* High Alert Banner */}
       {activeOutbreak && (
         <View className="px-4 mt-6">
-          <View className="bg-[#FFF5F5] border border-red-200 rounded-[20px] p-4 flex-row items-center relative overflow-hidden shadow-sm shadow-red-100">
-            <View className="w-12 h-12 rounded-full bg-red-100/80 items-center justify-center mr-3 border border-red-200">
-              <MaterialCommunityIcons name="virus" size={24} color="#EF4444" />
-            </View>
-            <View className="flex-1">
-              <View className="flex-row items-center mb-1">
-                <Text className="text-[#991B1B] font-extrabold text-[15px] mr-2">{activeOutbreak.title}</Text>
-                <View className="bg-red-200/60 px-2 py-0.5 rounded-full border border-red-300">
-                  <Text className="text-red-700 font-bold text-[8px] tracking-wider uppercase">{t('dashboardHighAlertBadge')}</Text>
-                </View>
+          <TouchableOpacity 
+            onPress={() => router.push('/emergency')}
+            className="bg-red-600 border-red-500 shadow-red-600/30 rounded-[24px] p-3 flex-row items-center border shadow-sm"
+          >
+            {/* Left Icon Container */}
+            <View className="w-[52px] h-[52px] items-center justify-center mr-1">
+              <View className="w-[44px] h-[44px] rounded-full bg-white items-center justify-center">
+                <MaterialCommunityIcons name="virus" size={26} color="#EF4444" />
               </View>
-              <Text className="text-red-900/80 text-[11px] font-medium leading-relaxed pr-8">
-                {activeOutbreak.description}
-              </Text>
             </View>
-            <TouchableOpacity 
-              onPress={() => router.push('/emergency')}
-              className="absolute right-4 top-4 bg-white px-2 py-1.5 rounded-full border border-red-200 flex-row items-center shadow-sm active:bg-slate-50"
-            >
-              <Text className="text-red-600 font-bold text-[9px] mr-0.5">{t('dashboardAlertView')}</Text>
-              <Feather name="chevron-right" size={10} color="#EF4444" />
-            </TouchableOpacity>
-          </View>
+
+            {/* Main Content */}
+            <View className="flex-1 ml-2 py-1 justify-center">
+              <Text className="text-white font-extrabold text-[15px] mb-0.5" numberOfLines={1}>{activeOutbreak.title}</Text>
+              <Text className="text-red-100 font-semibold text-[10px] mb-1.5" numberOfLines={2}>{activeOutbreak.description}</Text>
+              <View className="flex-row items-center bg-red-700/50 self-start px-2 py-0.5 rounded-full border border-red-500/50">
+                <Feather name="alert-triangle" size={10} color="#FECACA" />
+                <Text className="text-white font-bold text-[9.5px] ml-1 uppercase">{t('dashboardHighAlertBadge')}</Text>
+              </View>
+            </View>
+
+            {/* Right Action */}
+            <View className="items-end justify-center px-1 pl-2">
+              <View className="w-8 h-8 bg-white/20 rounded-full items-center justify-center">
+                <Feather name="chevron-right" size={16} color="#FFFFFF" />
+              </View>
+            </View>
+          </TouchableOpacity>
         </View>
       )}
 
       {/* Today's Summary */}
       <View className="mt-8">
         <View className="px-4 flex-row justify-between items-center mb-4">
-          <Text className="text-slate-500 font-extrabold text-[12px] tracking-widest uppercase">{t('dashboardTodaysSummary')}</Text>
+          <Text className="text-slate-900 font-extrabold text-lg px-1">{t('dashboardTodaysSummary')}</Text>
           <TouchableOpacity onPress={() => router.push('/(tabs)/reports')} className="flex-row items-center">
             <Feather name="pie-chart" size={12} color="#3B82F6" />
             <Text className="text-blue-600 font-bold text-[12px] ml-1 mr-0.5">{t('dashboardViewFullDashboard')}</Text>
@@ -227,58 +323,49 @@ export default function PHCHomeDashboard() {
           </TouchableOpacity>
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 10 }}>
-
-          <View className="bg-white border border-slate-100 rounded-2xl py-3 px-4 flex-row items-center shadow-sm shadow-slate-200/50">
-            <View className="w-8 h-8 rounded-full bg-blue-50 items-center justify-center mr-3">
-              <Feather name="user-plus" size={14} color="#3B82F6" />
+        <ScrollView 
+          ref={summaryScrollViewRef}
+          horizontal 
+          showsHorizontalScrollIndicator={false} 
+          contentContainerStyle={{ paddingHorizontal: 16, gap: 10 }}
+          snapToInterval={150}
+          decelerationRate="fast"
+        >
+          {[
+            { id: 'newPatients', value: newPatients, label: t('dashboardNewPatients'), icon: 'account-plus', color: '#3B82F6', iconBg: 'bg-blue-500', bgColor: '#DBEAFE', borderColor: 'border-blue-200', iconFamily: 'MaterialCommunityIcons' },
+            { id: 'referrals', value: referrals, label: t('dashboardReferrals'), icon: 'ambulance', color: '#10B981', iconBg: 'bg-emerald-500', bgColor: '#D1FAE5', borderColor: 'border-emerald-200', iconFamily: 'MaterialCommunityIcons' },
+            { id: 'labTests', value: labTests, label: t('dashboardLabTests'), icon: 'flask', color: '#F59E0B', iconBg: 'bg-amber-500', bgColor: '#FEF3C7', borderColor: 'border-amber-200', iconFamily: 'MaterialCommunityIcons' },
+            { id: 'followUps', value: followUps, label: t('dashboardFollowUps'), icon: 'calendar-sync', color: '#8B5CF6', iconBg: 'bg-purple-500', bgColor: '#F3E8FF', borderColor: 'border-purple-200', iconFamily: 'MaterialCommunityIcons' },
+            { id: 'discharges', value: discharges, label: t('dashboardDischarges'), icon: 'home-plus', color: '#14B8A6', iconBg: 'bg-teal-500', bgColor: '#CCFBF1', borderColor: 'border-teal-200', iconFamily: 'MaterialCommunityIcons' }
+          ].map((item, index) => {
+            const lightIconBg = item.iconBg.replace('500', '50');
+            return (
+            <View 
+              key={item.id} 
+              className={`rounded-[16px] border ${item.borderColor} shadow-sm w-[140px] p-4 relative overflow-hidden justify-between`} 
+              style={{ backgroundColor: item.bgColor, minHeight: 140 }}
+            >
+              <MaterialCommunityIcons 
+                name={item.icon as any} 
+                size={100} 
+                color={`${item.color}15`} 
+                style={{position: 'absolute', bottom: -20, right: -20, transform: [{rotate: '-15deg'}]}} 
+              />
+              
+              <View className="flex-row justify-between items-start mb-2">
+                <View className="flex-1 mr-2">
+                  <Text className="text-[11px] font-bold text-slate-500 uppercase tracking-wider leading-tight">{item.label}</Text>
+                </View>
+                <View className={`w-9 h-9 rounded-full items-center justify-center ${lightIconBg}`}>
+                  <MaterialCommunityIcons name={item.icon as any} size={18} color={item.color} />
+                </View>
+              </View>
+              
+              <View>
+                <Text className="text-4xl font-black text-[#1E3A8A] tracking-tight">{item.value}</Text>
+              </View>
             </View>
-            <View>
-              <Text className="text-[#1E3A8A] font-black text-lg">{newPatients}</Text>
-              <Text className="text-slate-500 text-[10px] font-semibold mb-0.5">{t('dashboardNewPatients')}</Text>
-            </View>
-          </View>
-
-          <View className="bg-white border border-slate-100 rounded-2xl py-3 px-4 flex-row items-center shadow-sm shadow-slate-200/50">
-            <View className="w-8 h-8 rounded-full bg-emerald-50 items-center justify-center mr-3">
-              <MaterialCommunityIcons name="hospital-building" size={14} color="#10B981" />
-            </View>
-            <View>
-              <Text className="text-[#1E3A8A] font-black text-lg">{referrals}</Text>
-              <Text className="text-slate-500 text-[10px] font-semibold mb-0.5">{t('dashboardReferrals')}</Text>
-            </View>
-          </View>
-
-          <View className="bg-white border border-slate-100 rounded-2xl py-3 px-4 flex-row items-center shadow-sm shadow-slate-200/50">
-            <View className="w-8 h-8 rounded-full bg-orange-50 items-center justify-center mr-3">
-              <Feather name="user-check" size={14} color="#F97316" />
-            </View>
-            <View>
-              <Text className="text-[#1E3A8A] font-black text-lg">{labTests}</Text>
-              <Text className="text-slate-500 text-[10px] font-semibold mb-0.5">{t('dashboardLabTests')}</Text>
-            </View>
-          </View>
-
-          <View className="bg-white border border-slate-100 rounded-2xl py-3 px-4 flex-row items-center shadow-sm shadow-slate-200/50">
-            <View className="w-8 h-8 rounded-full bg-purple-50 items-center justify-center mr-3">
-              <Feather name="users" size={14} color="#8B5CF6" />
-            </View>
-            <View>
-              <Text className="text-[#1E3A8A] font-black text-lg">{followUps}</Text>
-              <Text className="text-slate-500 text-[10px] font-semibold mb-0.5">{t('dashboardFollowUps')}</Text>
-            </View>
-          </View>
-
-          <View className="bg-white border border-slate-100 rounded-2xl py-3 px-4 flex-row items-center shadow-sm shadow-slate-200/50">
-            <View className="w-8 h-8 rounded-full bg-teal-50 items-center justify-center mr-3">
-              <MaterialCommunityIcons name="bed-empty" size={14} color="#14B8A6" />
-            </View>
-            <View>
-              <Text className="text-[#1E3A8A] font-black text-lg">{discharges}</Text>
-              <Text className="text-slate-500 text-[10px] font-semibold mb-0.5">{t('dashboardDischarges')}</Text>
-            </View>
-          </View>
-
+          )})}
         </ScrollView>
       </View>
 
@@ -286,41 +373,79 @@ export default function PHCHomeDashboard() {
 
         {/* Today's Tasks */}
         <View className="w-full">
-          <Text className="text-slate-500 font-extrabold text-[12px] tracking-widest uppercase mb-4">{t('dashboardTodaysTasks')}</Text>
-          <View className="bg-white rounded-[24px] border border-slate-100 shadow-sm shadow-slate-200/50 p-4 relative overflow-hidden">
+          <View className="flex-row justify-between items-center px-1 mb-3">
+            <Text className="text-slate-900 font-extrabold text-lg">{t('dashboardTodaysTasks')}</Text>
+          </View>
+          <View className="bg-white rounded-[24px] border-[3px] border-blue-400 shadow-sm shadow-slate-200/50 p-4 relative overflow-hidden">
             {/* Faint clipboard icon background */}
             <MaterialCommunityIcons name="clipboard-check-outline" size={120} color="#F1F5F9" style={{ position: 'absolute', top: -10, right: -20, opacity: 0.5, transform: [{ rotate: '15deg' }] }} />
 
             <View className="flex-col gap-4 relative z-10">
 
-              {tasks.map((task, index) => (
-                <TouchableOpacity key={task.id} onPress={() => toggleTask(task.id)} className={`flex-row items-start justify-between ${index !== tasks.length - 1 ? 'border-b border-slate-50 pb-4' : ''}`}>
-                  <View className="flex-row items-center flex-1">
-                    {task.completed ? (
-                      <View className="w-5 h-5 rounded-full bg-emerald-500 items-center justify-center mr-3 mt-0.5">
-                        <Feather name="check" size={12} color="white" />
+              {displayedTasks.map((task, index) => (
+                <View key={task.id} className="w-full">
+                  <TouchableOpacity onPress={() => toggleTask(task.id)} className="flex-row items-start justify-between">
+                    <View className="flex-row items-center flex-1">
+                      {task.completed ? (
+                        <View className="w-5 h-5 rounded-full bg-blue-500 items-center justify-center mr-3 mt-0.5">
+                          <Feather name="check" size={12} color="white" />
+                        </View>
+                      ) : (
+                        <View className="w-5 h-5 rounded-full border-2 border-slate-300 mr-3 mt-0.5" />
+                      )}
+                      <View>
+                        <Text className={task.completed ? "text-slate-800 font-bold text-[13px] line-through opacity-70" : "text-[#1E3A8A] font-bold text-[13px]"}>{task.title}</Text>
+                        <Text className="text-slate-400 text-[10px] font-medium mt-0.5">{task.desc}</Text>
                       </View>
-                    ) : (
-                      <View className="w-5 h-5 rounded-full border-2 border-slate-300 mr-3 mt-0.5" />
-                    )}
-                    <View>
-                      <Text className={task.completed ? "text-slate-800 font-bold text-[13px] line-through opacity-70" : "text-[#1E3A8A] font-bold text-[13px]"}>{task.title}</Text>
-                      <Text className="text-slate-400 text-[10px] font-medium mt-0.5">{task.desc}</Text>
                     </View>
-                  </View>
-                  <Text className="text-slate-400 text-[9px] font-bold mt-1">{task.time}</Text>
-                </TouchableOpacity>
+                    {isEditingTasks ? (
+                      <TouchableOpacity onPress={() => removeTask(task.id)} className="bg-red-50 p-1.5 rounded-full border border-red-100">
+                        <Feather name="trash-2" size={14} color="#EF4444" />
+                      </TouchableOpacity>
+                    ) : (
+                      <Text className="text-slate-400 text-[9px] font-bold mt-1">{task.time}</Text>
+                    )}
+                  </TouchableOpacity>
+                  
+                  {index !== displayedTasks.length - 1 && (
+                    <View className="w-full flex-row overflow-hidden my-4">
+                      {[...Array(50)].map((_, i) => (
+                        <View key={i} className="w-3 h-[3px] bg-blue-300 mr-2 rounded-full" />
+                      ))}
+                    </View>
+                  )}
+                </View>
               ))}
 
             </View>
 
-            <TouchableOpacity 
-              onPress={() => Alert.alert(t('dashboardTasksAlertTitle'), t('dashboardTasksAlertMessage'))}
-              className="mt-5 bg-[#F8FAFC] py-3 rounded-xl flex-row items-center justify-center border border-slate-100"
-            >
-              <Text className="text-blue-600 font-bold text-[11px] mr-1">{t('dashboardViewAllTasks')}</Text>
-              <Feather name="chevron-right" size={14} color="#3B82F6" />
-            </TouchableOpacity>
+            {isEditingTasks && (
+              <TouchableOpacity onPress={addTask} className="mt-2 bg-emerald-50 border border-emerald-200 py-3 rounded-2xl flex-row items-center justify-center border-dashed active:bg-emerald-100">
+                <Feather name="plus" size={14} color="#10B981" />
+                <Text className="text-emerald-600 font-bold ml-1.5 text-[12px]">{t('dashboardAddNewTask', 'Add New Task')}</Text>
+              </TouchableOpacity>
+            )}
+
+            <View className="mt-5 flex-row gap-2">
+              <TouchableOpacity 
+                onPress={() => setIsEditingTasks(!isEditingTasks)} 
+                className="flex-1 bg-blue-50 py-3.5 rounded-[16px] flex-row items-center justify-center border border-blue-200 active:bg-blue-100"
+              >
+                <Text className="text-blue-600 font-black text-[11px] uppercase tracking-widest">{isEditingTasks ? t('dashboardDoneEditing', 'Done Editing') : t('dashboardEditTasks', 'Edit Tasks')}</Text>
+              </TouchableOpacity>
+              
+              {tasks.length > 3 && (
+                <TouchableOpacity 
+                  onPress={() => setShowAllTasks(!showAllTasks)}
+                  className="flex-1 bg-blue-600 py-3.5 rounded-[16px] flex-row items-center justify-center shadow-md shadow-blue-500/30 active:bg-blue-700 border-2 border-blue-500"
+                >
+                  <Text className="text-white font-black text-[11px] mr-1.5 tracking-widest uppercase">{showAllTasks ? 'Show Less' : t('dashboardViewAllTasks', 'View All')}</Text>
+                  <View className="w-4 h-4 rounded-full bg-white/20 items-center justify-center">
+                    <Feather name={showAllTasks ? "arrow-up" : "arrow-down"} size={10} color="white" />
+                  </View>
+                </TouchableOpacity>
+              )}
+            </View>
 
           </View>
         </View>
@@ -329,7 +454,7 @@ export default function PHCHomeDashboard() {
 
       {/* Facility Status Footer */}
       <View className="px-4 mt-8 mb-4">
-        <View className="bg-[#F0FDF4] border border-emerald-100 rounded-3xl p-5 shadow-sm shadow-emerald-100/50">
+        <View className="border-2 border-emerald-200 rounded-[24px] p-5 shadow-sm" style={{ backgroundColor: '#D1FAE5' }}>
           <View className="flex-row justify-between items-center mb-5">
             <View className="flex-row items-center">
               <View className="w-10 h-10 rounded-full bg-emerald-500 items-center justify-center shadow-sm shadow-emerald-500/30 mr-3 border-2 border-white">
@@ -347,8 +472,8 @@ export default function PHCHomeDashboard() {
           <View className="flex-row justify-between flex-wrap gap-y-4">
 
             <View className="flex-row items-center w-[48%]">
-              <View className="w-6 h-6 rounded-full bg-emerald-100 items-center justify-center mr-2 border border-emerald-200">
-                <Feather name="wifi" size={10} color="#059669" />
+              <View className="w-6 h-6 rounded-full bg-emerald-500 items-center justify-center mr-2">
+                <Feather name="wifi" size={10} color="white" />
               </View>
               <View>
                 <Text className="text-slate-500 font-semibold text-[9px]">{t('dashboardStatusInternet')}</Text>
@@ -357,8 +482,8 @@ export default function PHCHomeDashboard() {
             </View>
 
             <View className="flex-row items-center w-[48%]">
-              <View className="w-6 h-6 rounded-full bg-emerald-100 items-center justify-center mr-2 border border-emerald-200">
-                <Feather name="cloud" size={10} color="#059669" />
+              <View className="w-6 h-6 rounded-full bg-emerald-500 items-center justify-center mr-2">
+                <Feather name="cloud" size={10} color="white" />
               </View>
               <View>
                 <Text className="text-slate-500 font-semibold text-[9px]">{t('dashboardStatusEmrSync')}</Text>
@@ -367,8 +492,8 @@ export default function PHCHomeDashboard() {
             </View>
 
             <View className="flex-row items-center w-[48%]">
-              <View className="w-6 h-6 rounded-full bg-emerald-100 items-center justify-center mr-2 border border-emerald-200">
-                <Feather name="refresh-cw" size={10} color="#059669" />
+              <View className="w-6 h-6 rounded-full bg-emerald-500 items-center justify-center mr-2">
+                <Feather name="refresh-cw" size={10} color="white" />
               </View>
               <View>
                 <Text className="text-slate-500 font-semibold text-[9px]">{t('dashboardStatusLastSync')}</Text>
@@ -377,8 +502,8 @@ export default function PHCHomeDashboard() {
             </View>
 
             <View className="flex-row items-center w-[48%]">
-              <View className="w-6 h-6 rounded-full bg-emerald-100 items-center justify-center mr-2 border border-emerald-200">
-                <Feather name="lock" size={10} color="#059669" />
+              <View className="w-6 h-6 rounded-full bg-emerald-500 items-center justify-center mr-2">
+                <Feather name="lock" size={10} color="white" />
               </View>
               <View>
                 <Text className="text-slate-500 font-semibold text-[9px]">{t('dashboardStatusDataSecurity')}</Text>
