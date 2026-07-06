@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { View, Text, Pressable, ScrollView } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { useState } from 'react';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import BottomSheet from '../layout/BottomSheet';
 
 interface DropdownOption {
@@ -33,24 +33,24 @@ export function Dropdown({
     setIsOpen(false);
   };
 
-  const borderClass = error ? 'border-red-500 bg-red-50/10' : 'border-slate-200 bg-white';
+  const borderClass = error ? 'border-red-500 bg-red-50' : 'border-blue-200 bg-white';
 
   return (
     <View className="w-full mb-4">
       {label && (
-        <Text className="text-slate-700 font-bold text-xs mb-1.5 uppercase tracking-wide">
+        <Text className="text-brand-navy font-extrabold text-[13px] mb-2 uppercase tracking-wide">
           {label}
         </Text>
       )}
-      
+
       <Pressable
         onPress={() => setIsOpen(true)}
-        className={`flex-row items-center justify-between border rounded-lg h-12 px-3 ${borderClass}`}
+        className={`flex-row items-center justify-between border-2 rounded-2xl h-14 px-4 shadow-sm shadow-blue-500/10 ${borderClass}`}
       >
-        <Text className={`text-sm ${selectedOption ? 'text-slate-800' : 'text-gray-400'}`}>
+        <Text className={`text-[13px] font-bold ${selectedOption ? 'text-brand-navy' : 'text-slate-400'}`}>
           {selectedOption ? selectedOption.label : placeholder}
         </Text>
-        <Feather name="chevron-down" size={16} color="#6B7280" />
+        <Feather name="chevron-down" size={18} color="#94A3B8" />
       </Pressable>
 
       {error && (
@@ -66,9 +66,8 @@ export function Dropdown({
                 <Pressable
                   key={opt.value}
                   onPress={() => handleSelect(opt.value)}
-                  className={`py-3.5 px-4 border-b border-slate-50 flex-row justify-between items-center ${
-                    isSelected ? 'bg-blue-50/30' : 'active:bg-slate-50'
-                  }`}
+                  className={`py-3.5 px-4 border-b border-slate-50 flex-row justify-between items-center ${isSelected ? 'bg-blue-50/30' : 'active:bg-slate-50'
+                    }`}
                 >
                   <Text className={`text-sm ${isSelected ? 'text-blue-900 font-bold' : 'text-slate-700'}`}>
                     {opt.label}

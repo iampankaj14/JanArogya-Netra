@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, Pressable, ScrollView, TextInput, ActivityIndicator, Alert } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
@@ -6,9 +6,10 @@ import { Feather } from '@expo/vector-icons';
 import ScreenContainer from '@/components/ui/layout/ScreenContainer';
 import { Dropdown } from '@/components/ui/inputs/Dropdown';
 import { useTranslation } from '@/hooks/useTranslation';
-import { localPHCs, localMedicines } from '@/services/repositories/localDb';
+import { phcRepository } from '@/services/repositories/phcRepository';
 import { transfersRepository } from '@/services/repositories/transfersRepository';
-
+import { PHC } from '@/shared/types/phc';
+import { MedicineStock } from '@/shared/types/medicine';
 let Notifications: typeof import('expo-notifications') | null = null;
 try {
   Notifications = require('expo-notifications');
@@ -31,16 +32,36 @@ export default function ResourceRedistributionScreen() {
   const { t, language } = useTranslation();
   const { source, target, medicine, amount } = useLocalSearchParams();
   
-  const [sourceId, setSourceId] = useState<string>((source as string) || localPHCs[0]?.id);
-  const [targetId, setTargetId] = useState<string>((target as string) || localPHCs[1]?.id);
-  const [medicineId, setMedicineId] = useState<string>((medicine as string) || localMedicines[0]?.id);
+  const [sourceId, setSourceId] = useState<string>((source as string) || '');
+  const [targetId, setTargetId] = useState<string>((target as string) || '');
+  const [medicineId, setMedicineId] = useState<string>((medicine as string) || '');
   const [qty, setQty] = useState((amount as string) || '50');
   const [submitting, setSubmitting] = useState(false);
+  
+  const [allPhcs, setAllPhcs] = useState<PHC[]>([]);
+  const [medicines, setMedicines] = useState<MedicineStock[]>([]);
+
+  useEffect(() => {
+    phcRepository.getAllPHCs().then(data => {
+      setAllPhcs(data);
+      if (!sourceId && data.length > 0) setSourceId(data[0].id);
+      if (!targetId && data.length > 1) setTargetId(data[1].id);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (sourceId) {
+      phcRepository.getInventory(sourceId).then(data => {
+        setMedicines(data);
+        if (!medicineId && data.length > 0) setMedicineId(data[0].id);
+      });
+    }
+  }, [sourceId]);
 
   // Dynamic values
-  const sourcePhc = localPHCs.find(p => p.id === sourceId);
-  const targetPhc = localPHCs.find(p => p.id === targetId);
-  const medicineObj = localMedicines.find(m => m.id === medicineId);
+  const sourcePhc = allPhcs.find(p => p.id === sourceId);
+  const targetPhc = allPhcs.find(p => p.id === targetId);
+  const medicineObj = medicines.find(m => m.id === medicineId);
   
   const sourceName = sourcePhc ? (language === 'hi' && sourcePhc.nameHi ? sourcePhc.nameHi : sourcePhc.name) : t('redistributionDefaultSource');
   const targetName = targetPhc ? (language === 'hi' && targetPhc.nameHi ? targetPhc.nameHi : targetPhc.name) : t('redistributionDefaultTarget');
@@ -50,15 +71,15 @@ export default function ResourceRedistributionScreen() {
   const { authState } = useAuth();
   
   const currentBlock = authState?.role === 'BMO' 
-    ? (localPHCs.find(p => p.id === authState.facilityId)?.block)
+    ? (allPhcs.find(p => p.id === authState.facilityId)?.block)
     : null;
 
   const allowedPHCs = currentBlock 
-    ? localPHCs.filter(p => p.block === currentBlock)
-    : localPHCs;
+    ? allPhcs.filter(p => p.block === currentBlock)
+    : allPhcs;
 
   const phcOptions = allowedPHCs.map(p => ({ label: language === 'hi' && p.nameHi ? p.nameHi : p.name, value: p.id }));
-  const medicineOptions = localMedicines.map(m => ({ label: language === 'hi' && m.nameHi ? m.nameHi : m.name, value: m.id }));
+  const medicineOptions = medicines.map(m => ({ label: language === 'hi' && m.nameHi ? m.nameHi : m.name, value: m.id }));
 
   const handleSubmit = async () => {
     if (!sourcePhc || !targetPhc || !medicineObj) {
@@ -92,7 +113,7 @@ export default function ResourceRedistributionScreen() {
       }
 
       Alert.alert(t('redistributionAlertSuccessTitle'), t('redistributionAlertSuccessMsg'));
-      router.back();
+      if (router.canGoBack()) { router.back(); } else { router.push('/'); }
     } catch (e: any) {
       Alert.alert(t('redistributionAlertErrorTitle'), `${t('redistributionAlertErrorPrefix')} ${(e as Error).message}`);
     } finally {
@@ -106,7 +127,7 @@ export default function ResourceRedistributionScreen() {
       <View className="flex-row items-center justify-between mt-4 mb-6 px-1">
         <View className="flex-row items-center flex-1">
           <Pressable
-            onPress={() => router.back()}
+            onPress={() => { if (router.canGoBack()) { if (router.canGoBack()) { router.back(); } else { router.push('/'); } } else { router.push('/'); } }}
             className="w-11 h-11 rounded-full bg-white border border-slate-100 shadow-sm items-center justify-center mr-4 active:bg-slate-50"
           >
             <Feather name="arrow-left" size={22} color="#0F172A" />
@@ -162,12 +183,12 @@ export default function ResourceRedistributionScreen() {
         </View>
 
         {/* Main Form Container */}
-        <View className="bg-white border border-slate-100 shadow-sm p-5 rounded-3xl mb-6">
-          <View className="flex-row items-center mb-6">
-            <View className="w-8 h-8 rounded-md bg-blue-50 items-center justify-center mr-3 border border-blue-100">
-              <Feather name="package" size={16} color="#3B82F6" />
+        <View className="bg-white border-2 border-blue-200 shadow-sm shadow-blue-500/10 p-6 rounded-[32px] mb-6">
+          <View className="flex-row items-center mb-6 pb-4 border-b border-slate-100">
+            <View className="w-10 h-10 rounded-2xl bg-indigo-50 items-center justify-center mr-3 border border-indigo-100 shadow-sm shadow-indigo-500/10">
+              <Feather name="package" size={16} color="#4F46E5" />
             </View>
-            <Text className="text-brand-navy text-[17px] font-black tracking-tight">{t('redistributionFormTitle')}</Text>
+            <Text className="text-brand-navy text-[16px] font-black tracking-tight">{t('redistributionFormTitle')}</Text>
           </View>
           
           <View>
@@ -175,6 +196,7 @@ export default function ResourceRedistributionScreen() {
             {/* 1. Source Facility */}
             <View className="mb-6">
               <Dropdown
+                icon="home"
                 label={t('redistributionSourceLabel')}
                 selectedValue={sourceId}
                 onValueChange={setSourceId}
@@ -189,6 +211,7 @@ export default function ResourceRedistributionScreen() {
             {/* 2. Target Facility */}
             <View className="mb-6 mt-1">
               <Dropdown
+                icon="target"
                 label={t('redistributionTargetLabel')}
                 selectedValue={targetId}
                 onValueChange={setTargetId}
@@ -203,6 +226,7 @@ export default function ResourceRedistributionScreen() {
             {/* 3. Requested Medicine */}
             <View className="mb-6 mt-1">
               <Dropdown
+                icon="box"
                 label={t('redistributionMedicineLabel')}
                 selectedValue={medicineId}
                 onValueChange={setMedicineId}
@@ -216,11 +240,11 @@ export default function ResourceRedistributionScreen() {
 
             {/* 4. Quantity */}
             <View className="mb-8">
-              <Text className="text-brand-navy text-[11px] font-extrabold mb-2">{t('redistributionQuantityLabel')}</Text>
-              <View className="bg-blue-50/30 border border-blue-300 rounded-2xl px-4 py-2.5 flex-row items-center justify-between">
+              <Text className="text-brand-navy font-extrabold text-[13px] mb-2 uppercase tracking-wide">{t('redistributionQuantityLabel')}</Text>
+              <View className="bg-white border-2 border-blue-200 rounded-2xl h-14 px-4 shadow-sm shadow-blue-500/10 flex-row items-center justify-between">
                 <View className="flex-row items-center flex-1">
-                   <View className="w-7 h-7 rounded-md bg-blue-100 items-center justify-center mr-3">
-                     <Feather name="package" size={14} color="#3B82F6" />
+                   <View className="w-8 h-8 rounded-xl bg-white shadow-sm shadow-black/5 items-center justify-center mr-3 border border-slate-100">
+                     <Feather name="layers" size={14} color="#3B82F6" />
                    </View>
                    <TextInput 
                      value={qty}
@@ -250,7 +274,7 @@ export default function ResourceRedistributionScreen() {
             {/* Action Button */}
             <Pressable 
               onPress={handleSubmit}
-              className="w-full rounded-2xl py-4 flex-row justify-center items-center bg-[#8B5CF6] shadow-md shadow-purple-500/30"
+              className="w-full rounded-2xl py-4 flex-row justify-center items-center bg-blue-600 shadow-md shadow-blue-500/30"
               style={{ elevation: 3 }}
             >
               {submitting ? (

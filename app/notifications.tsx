@@ -88,7 +88,7 @@ export default function NotificationsScreen() {
           <Pressable
             onPress={() => {
               if (router.canGoBack()) {
-                router.back();
+                if (router.canGoBack()) { router.back(); } else { router.push('/'); }
               } else {
                 router.replace('/');
               }

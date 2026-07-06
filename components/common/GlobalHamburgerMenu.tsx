@@ -123,48 +123,48 @@ export function GlobalHamburgerMenu({ visible, onClose }: GlobalHamburgerMenuPro
             <View className="mb-8 relative">
               <MaterialCommunityIcons name="hexagram-outline" size={180} color="rgba(59,130,246,0.03)" style={{position: 'absolute', top: 20, right: -40, zIndex: -1}} />
               <MaterialCommunityIcons name="chart-bubble" size={140} color="rgba(16,185,129,0.03)" style={{position: 'absolute', bottom: -20, left: -20, zIndex: -1}} />
-                  <Pressable onPress={() => handleNavigate('/scenario-simulator')} className="bg-white rounded-2xl p-3 flex-row items-center border border-slate-100 shadow-sm shadow-black/5 active:bg-slate-50 mb-4">
-                    <View className="w-10 h-10 rounded-xl bg-blue-50 items-center justify-center mr-3">
+                  <Pressable onPress={() => handleNavigate('/scenario-simulator')} className="bg-blue-50 rounded-2xl p-3 flex-row items-center border border-blue-200 shadow-sm shadow-blue-500/10 active:bg-blue-100 mb-4">
+                    <View className="w-10 h-10 rounded-xl bg-white items-center justify-center mr-3 shadow-sm border border-blue-100">
                       <Feather name="sliders" size={18} color="#3B82F6" />
                     </View>
                     <View className="flex-1 pr-2">
                       <Text className="text-brand-navy font-extrabold text-[13px] mb-0.5">{t('menuScenarioSimulatorTitle')}</Text>
                       <Text className="text-slate-500 text-[9px] font-semibold">{t('menuScenarioSimulatorDesc')}</Text>
                     </View>
-                    <Feather name="chevron-right" size={16} color="#94A3B8" />
+                    <Feather name="chevron-right" size={16} color="#3B82F6" />
                   </Pressable>
 
-                  <Pressable onPress={() => handleNavigate('/resource-redistribution')} className="bg-white rounded-2xl p-3 flex-row items-center border border-slate-100 shadow-sm shadow-black/5 active:bg-slate-50 mb-4">
-                    <View className="w-10 h-10 rounded-xl bg-emerald-50 items-center justify-center mr-3">
+                  <Pressable onPress={() => handleNavigate('/resource-redistribution')} className="bg-emerald-50 rounded-2xl p-3 flex-row items-center border border-emerald-200 shadow-sm shadow-emerald-500/10 active:bg-emerald-100 mb-4">
+                    <View className="w-10 h-10 rounded-xl bg-white items-center justify-center mr-3 shadow-sm border border-emerald-100">
                       <Feather name="refresh-cw" size={18} color="#10B981" />
                     </View>
                     <View className="flex-1 pr-2">
                       <Text className="text-brand-navy font-extrabold text-[13px] mb-0.5">{t('menuStockTransferTitle')}</Text>
                       <Text className="text-slate-500 text-[9px] font-semibold">{t('menuStockTransferDesc')}</Text>
                     </View>
-                    <Feather name="chevron-right" size={16} color="#94A3B8" />
+                    <Feather name="chevron-right" size={16} color="#10B981" />
                   </Pressable>
 
-                  <Pressable onPress={() => handleNavigate('/resource-movement-tracker')} className="bg-white rounded-2xl p-3 flex-row items-center border border-slate-100 shadow-sm shadow-black/5 active:bg-slate-50 mb-4">
-                    <View className="w-10 h-10 rounded-xl bg-orange-50 items-center justify-center mr-3">
+                  <Pressable onPress={() => handleNavigate('/resource-movement-tracker')} className="bg-amber-50 rounded-2xl p-3 flex-row items-center border border-amber-200 shadow-sm shadow-amber-500/10 active:bg-amber-100 mb-4">
+                    <View className="w-10 h-10 rounded-xl bg-white items-center justify-center mr-3 shadow-sm border border-amber-100">
                       <Feather name="truck" size={18} color="#F59E0B" />
                     </View>
                     <View className="flex-1 pr-2">
                       <Text className="text-brand-navy font-extrabold text-[13px] mb-0.5">{t('menuLogisticsTrackerTitle')}</Text>
                       <Text className="text-slate-500 text-[9px] font-semibold">{t('menuLogisticsTrackerDesc')}</Text>
                     </View>
-                    <Feather name="chevron-right" size={16} color="#94A3B8" />
+                    <Feather name="chevron-right" size={16} color="#F59E0B" />
                   </Pressable>
 
-              <Pressable onPress={() => handleNavigate('/settings')} className="bg-white rounded-2xl p-3 flex-row items-center border border-slate-100 shadow-sm shadow-black/5 active:bg-slate-50">
-                <View className="w-10 h-10 rounded-xl bg-pink-50 items-center justify-center mr-3">
+              <Pressable onPress={() => handleNavigate('/settings')} className="bg-pink-50 rounded-2xl p-3 flex-row items-center border border-pink-200 shadow-sm shadow-pink-500/10 active:bg-pink-100">
+                <View className="w-10 h-10 rounded-xl bg-white items-center justify-center mr-3 shadow-sm border border-pink-100">
                   <Feather name="settings" size={18} color="#EC4899" />
                 </View>
                 <View className="flex-1 pr-2">
                   <Text className="text-brand-navy font-extrabold text-[13px] mb-0.5">{t('menuConsoleSettingsTitle')}</Text>
                   <Text className="text-slate-500 text-[9px] font-semibold">{t('menuConsoleSettingsDesc')}</Text>
                 </View>
-                <Feather name="chevron-right" size={16} color="#94A3B8" />
+                <Feather name="chevron-right" size={16} color="#EC4899" />
               </Pressable>
 
             </View>

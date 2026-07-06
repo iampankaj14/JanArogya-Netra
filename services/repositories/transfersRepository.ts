@@ -11,6 +11,21 @@ import {
   localPHCs,
 } from './localDb';
 
+// Firestore transfer docs may use the legacy shape (sourceId/targetId/date) instead of
+// the app's canonical TransferOrder shape (sourceFacilityId/targetFacilityId/timestamp).
+// Normalize at the boundary so the rest of the app only ever sees the canonical fields.
+const normalizeTransfer = (id: string, data: any): TransferOrder => ({
+  id,
+  recommendationId: data.recommendationId,
+  sourceFacilityId: data.sourceFacilityId ?? data.sourceId,
+  targetFacilityId: data.targetFacilityId ?? data.targetId,
+  medicineId: data.medicineId,
+  medicineName: data.medicineName,
+  quantity: data.quantity,
+  status: data.status,
+  timestamp: data.timestamp ?? data.date,
+});
+
 export const transfersRepository = {
   getTransfers: async (): Promise<TransferOrder[]> => {
     if (!isFirebaseConfigured) {
@@ -18,10 +33,7 @@ export const transfersRepository = {
     }
     try {
       const querySnapshot = await getDocs(collection(db, 'transfers'));
-      return querySnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as TransferOrder[];
+      return querySnapshot.docs.map((doc) => normalizeTransfer(doc.id, doc.data()));
     } catch (e) {
       throw new Error('DB/FETCH_ERROR');
     }

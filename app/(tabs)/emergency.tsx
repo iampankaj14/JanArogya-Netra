@@ -8,6 +8,7 @@ import { useDashboard } from '@/hooks/useDashboard';
 import { useTranslation } from '@/hooks/useTranslation';
 import { addLocalNotification } from '@/services/repositories/localDb';
 import { AlertItem } from '@/shared/types/alert';
+import { Toggle } from '../../components/ui/inputs/Toggle';
 
 export default function EmergencyScreen() {
   const router = useRouter();
@@ -46,7 +47,7 @@ export default function EmergencyScreen() {
       <View className="flex-row items-center justify-between mt-4 mb-6 px-1">
         <View className="flex-row items-center flex-1">
           <Pressable
-            onPress={() => router.back()}
+            onPress={() => { if (router.canGoBack()) { if (router.canGoBack()) { router.back(); } else { router.push('/'); } } else { router.push('/'); } }}
             className="w-11 h-11 rounded-full bg-white border border-slate-100 shadow-sm shadow-black/5 items-center justify-center mr-4 active:bg-slate-50"
           >
             <Feather name="arrow-left" size={22} color="#000" />
@@ -100,13 +101,7 @@ export default function EmergencyScreen() {
               {t('emergencyEscalateDesc')}
             </Text>
           </View>
-          <Switch
-            value={escalated}
-            onValueChange={handleEscalate}
-            trackColor={{ false: '#E2E8F0', true: '#EF4444' }}
-            thumbColor={'#FFFFFF'}
-            ios_backgroundColor="#E2E8F0"
-          />
+          <Toggle value={escalated} onValueChange={handleEscalate} />
         </View>
 
         {/* Critical Alerts List */}

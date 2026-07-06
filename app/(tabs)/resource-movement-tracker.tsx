@@ -50,14 +50,14 @@ export default function ResourceMovementTrackerScreen() {
       <View className="flex-row items-center justify-between mt-4 mb-6 px-1">
         <View className="flex-row items-center flex-1">
           <Pressable
-            onPress={() => router.back()}
+            onPress={() => { if (router.canGoBack()) { router.back(); } else { router.push('/'); } }}
             className="w-11 h-11 rounded-full bg-white border border-slate-100 shadow-sm items-center justify-center mr-4 active:bg-slate-50"
           >
             <Feather name="arrow-left" size={22} color="#0F172A" />
           </Pressable>
           <View className="flex-1 pr-2">
-            <Text className="text-brand-navy font-black text-[22px] tracking-tight mb-1">{t('movementTrackerTitle')}</Text>
-            <Text className="text-slate-500 text-[11px] font-semibold">{t('movementTrackerSubtitle')}</Text>
+            <Text className="text-brand-navy font-black text-[24px] tracking-tight mb-1">{t('movementTrackerTitle')}</Text>
+            <Text className="text-slate-500 text-[13px] font-semibold">{t('movementTrackerSubtitle')}</Text>
           </View>
         </View>
       </View>
@@ -70,8 +70,8 @@ export default function ResourceMovementTrackerScreen() {
           {/* Top text and illustration */}
           <View className="flex-row justify-between z-10 relative">
             <View className="flex-1 pr-4 pt-1">
-              <Text className="text-brand-navy font-black text-lg mb-2">{t('movementTrackerBannerTitle')}</Text>
-              <Text className="text-slate-500 text-[11px] font-semibold leading-relaxed">
+              <Text className="text-brand-navy font-black text-xl mb-2">{t('movementTrackerBannerTitle')}</Text>
+              <Text className="text-slate-500 text-[13px] font-semibold leading-relaxed">
                 {t('movementTrackerBannerDesc')}
               </Text>
             </View>
@@ -121,16 +121,16 @@ export default function ResourceMovementTrackerScreen() {
               onChangeText={setTrackingId}
               placeholder={t('movementTrackerSearchPlaceholder')}
               placeholderTextColor="#94A3B8"
-              className="flex-1 text-brand-navy font-bold text-[12px] h-10"
+              className="flex-1 text-brand-navy font-bold text-[14px] h-10"
             />
-            <Pressable onPress={handleSearch} className="bg-purple-500 rounded-xl px-5 h-10 items-center justify-center active:bg-purple-600 shadow-sm shadow-purple-500/20">
-              <Text className="text-white font-extrabold text-[12px]">{t('movementTrackerTrackNow')}</Text>
+            <Pressable onPress={handleSearch} className="bg-blue-600 rounded-xl px-5 h-10 items-center justify-center active:bg-blue-700 shadow-sm shadow-blue-500/20">
+              <Text className="text-white font-extrabold text-[14px]">{t('movementTrackerTrackNow')}</Text>
             </Pressable>
           </View>
           
           <View className="flex-row items-center mt-4 mb-1 pl-2">
             <Feather name="shield" size={10} color="#10B981" className="mr-2" />
-            <Text className="text-slate-500 font-bold text-[9px]">{t('movementTrackerSecureNotice')}</Text>
+            <Text className="text-slate-500 font-bold text-[11px]">{t('movementTrackerSecureNotice')}</Text>
           </View>
         </View>
 
@@ -138,19 +138,19 @@ export default function ResourceMovementTrackerScreen() {
         {/* Searched Shipment Result */}
         {searchedShipment && (
           <View className="mb-6">
-            <Text className="text-brand-navy font-black text-lg mb-4 px-1">{t('movementTrackerTrackedShipmentTitle')}</Text>
+            <Text className="text-brand-navy font-black text-xl mb-4 px-1">{t('movementTrackerTrackedShipmentTitle')}</Text>
             <View className="bg-white border border-blue-200 rounded-2xl p-4 shadow-sm flex-row items-center mb-3">
               <View className={`w-10 h-10 rounded-full items-center justify-center mr-3 ${searchedShipment.status === 'EN_ROUTE' ? 'bg-blue-100' : 'bg-emerald-100'}`}>
                 <Feather name={searchedShipment.status === 'EN_ROUTE' ? 'truck' : 'check'} size={18} color={searchedShipment.status === 'EN_ROUTE' ? '#3B82F6' : '#10B981'} />
               </View>
               <View className="flex-1">
-                <Text className="text-brand-navy font-extrabold text-[13px] mb-0.5">{searchedShipment.id}: {searchedShipment.medicineName}</Text>
-                <Text className="text-slate-500 font-semibold text-[10px]" numberOfLines={1}>
+                <Text className="text-brand-navy font-extrabold text-[15px] mb-0.5">{searchedShipment.id}: {searchedShipment.medicineName}</Text>
+                <Text className="text-slate-500 font-semibold text-[12px]" numberOfLines={1}>
                   {searchedShipment.sourceFacilityId.replace('phc_', '').replace('chc_', '')} <Feather name="arrow-right" size={10} /> {searchedShipment.targetFacilityId.replace('phc_', '').replace('chc_', '')} ({searchedShipment.quantity} units)
                 </Text>
               </View>
               <View className={`px-2 py-1 rounded-md ${searchedShipment.status === 'EN_ROUTE' ? 'bg-blue-50 border border-blue-100' : 'bg-emerald-50 border border-emerald-100'}`}>
-                <Text className={`font-bold text-[9px] ${searchedShipment.status === 'EN_ROUTE' ? 'text-blue-600' : 'text-emerald-600'}`}>
+                <Text className={`font-bold text-[11px] ${searchedShipment.status === 'EN_ROUTE' ? 'text-blue-600' : 'text-emerald-600'}`}>
                   {searchedShipment.status === 'EN_ROUTE' ? t('movementTrackerInTransit') : t('movementTrackerDelivered')}
                 </Text>
               </View>
@@ -160,12 +160,12 @@ export default function ResourceMovementTrackerScreen() {
 
 {/* Recent Shipments */}
         <View className="mb-6">
-          <Text className="text-brand-navy font-black text-lg mb-4 px-1">{t('movementTrackerRecentShipmentsTitle')}</Text>
+          <Text className="text-brand-navy font-black text-xl mb-4 px-1">{t('movementTrackerRecentShipmentsTitle')}</Text>
           
           {loading ? (
             <View className="items-center py-6">
               <ActivityIndicator size="small" color="#3B82F6" />
-              <Text className="text-slate-400 font-semibold text-[10px] mt-2">{t('movementTrackerLoadingShipments')}</Text>
+              <Text className="text-slate-400 font-semibold text-[12px] mt-2">{t('movementTrackerLoadingShipments')}</Text>
             </View>
           ) : recentShipments.length > 0 ? (
             <View className="space-y-3">
@@ -175,13 +175,13 @@ export default function ResourceMovementTrackerScreen() {
                     <Feather name={shipment.status === 'EN_ROUTE' ? 'truck' : 'clock'} size={18} color={shipment.status === 'EN_ROUTE' ? '#3B82F6' : '#F97316'} />
                   </View>
                   <View className="flex-1">
-                    <Text className="text-brand-navy font-extrabold text-[13px] mb-0.5">{shipment.id}: {shipment.medicineName}</Text>
-                    <Text className="text-slate-500 font-semibold text-[10px]" numberOfLines={1}>
+                    <Text className="text-brand-navy font-extrabold text-[15px] mb-0.5">{shipment.id}: {shipment.medicineName}</Text>
+                    <Text className="text-slate-500 font-semibold text-[12px]" numberOfLines={1}>
                       {shipment.sourceFacilityId.replace('phc_', '').replace('chc_', '')} <Feather name="arrow-right" size={10} /> {shipment.targetFacilityId.replace('phc_', '').replace('chc_', '')} ({shipment.quantity} units)
                     </Text>
                   </View>
                   <View className={`px-2 py-1 rounded-md ${shipment.status === 'EN_ROUTE' ? 'bg-blue-50 border border-blue-100' : 'bg-orange-50 border border-orange-100'}`}>
-                    <Text className={`font-bold text-[9px] ${shipment.status === 'EN_ROUTE' ? 'text-blue-600' : 'text-orange-600'}`}>
+                    <Text className={`font-bold text-[11px] ${shipment.status === 'EN_ROUTE' ? 'text-blue-600' : 'text-orange-600'}`}>
                       {shipment.status === 'EN_ROUTE' ? t('movementTrackerInTransit') : t('movementTrackerPending')}
                     </Text>
                   </View>
@@ -193,15 +193,15 @@ export default function ResourceMovementTrackerScreen() {
               <View className="w-12 h-12 rounded-full bg-white border border-slate-200 items-center justify-center mb-4 shadow-sm shadow-black/5">
                 <Feather name="package" size={20} color="#CBD5E1" />
               </View>
-              <Text className="text-slate-500 font-bold text-[12px] mb-1">{t('movementTrackerNoShipments')}</Text>
-              <Text className="text-slate-400 font-semibold text-[10px]">{t('movementTrackerEnterIdPrompt')}</Text>
+              <Text className="text-slate-500 font-bold text-[14px] mb-1">{t('movementTrackerNoShipments')}</Text>
+              <Text className="text-slate-400 font-semibold text-[12px]">{t('movementTrackerEnterIdPrompt')}</Text>
             </View>
           )}
         </View>
 
       {/* How It Works Section */}
         <View className="mb-8">
-          <Text className="text-brand-navy font-black text-lg mb-5 px-1">{t('movementTrackerHowItWorksTitle')}</Text>
+          <Text className="text-brand-navy font-black text-xl mb-5 px-1">{t('movementTrackerHowItWorksTitle')}</Text>
           <View className="flex-row justify-between items-start">
             
             {/* Step 1 */}
@@ -209,8 +209,8 @@ export default function ResourceMovementTrackerScreen() {
               <View className="w-14 h-14 rounded-full bg-purple-50 items-center justify-center border border-purple-100 mb-3 shadow-sm">
                 <Feather name="box" size={20} color="#A855F7" />
               </View>
-              <Text className="text-brand-navy font-black text-[10px] text-center mb-1">{t('movementTrackerStep1Title')}</Text>
-              <Text className="text-slate-500 text-[9px] font-semibold text-center leading-3 px-1">{t('movementTrackerStep1Desc')}</Text>
+              <Text className="text-brand-navy font-black text-[12px] text-center mb-1">{t('movementTrackerStep1Title')}</Text>
+              <Text className="text-slate-500 text-[11px] font-semibold text-center leading-3 px-1">{t('movementTrackerStep1Desc')}</Text>
             </View>
             <Feather name="chevron-right" size={12} color="#CBD5E1" className="mt-5" />
 
@@ -222,8 +222,8 @@ export default function ResourceMovementTrackerScreen() {
                   <Feather name="search" size={10} color="#3B82F6" />
                 </View>
               </View>
-              <Text className="text-brand-navy font-black text-[10px] text-center mb-1">{t('movementTrackerStep2Title')}</Text>
-              <Text className="text-slate-500 text-[9px] font-semibold text-center leading-3 px-1">{t('movementTrackerStep2Desc')}</Text>
+              <Text className="text-brand-navy font-black text-[12px] text-center mb-1">{t('movementTrackerStep2Title')}</Text>
+              <Text className="text-slate-500 text-[11px] font-semibold text-center leading-3 px-1">{t('movementTrackerStep2Desc')}</Text>
             </View>
             <Feather name="chevron-right" size={12} color="#CBD5E1" className="mt-5" />
 
@@ -235,8 +235,8 @@ export default function ResourceMovementTrackerScreen() {
                   <Feather name="map-pin" size={12} color="#10B981" />
                 </View>
               </View>
-              <Text className="text-brand-navy font-black text-[10px] text-center mb-1">{t('movementTrackerStep3Title')}</Text>
-              <Text className="text-slate-500 text-[9px] font-semibold text-center leading-3 px-1">{t('movementTrackerStep3Desc')}</Text>
+              <Text className="text-brand-navy font-black text-[12px] text-center mb-1">{t('movementTrackerStep3Title')}</Text>
+              <Text className="text-slate-500 text-[11px] font-semibold text-center leading-3 px-1">{t('movementTrackerStep3Desc')}</Text>
             </View>
             <Feather name="chevron-right" size={12} color="#CBD5E1" className="mt-5" />
 
@@ -248,8 +248,8 @@ export default function ResourceMovementTrackerScreen() {
                   <Feather name="check-circle" size={10} color="#F97316" />
                 </View>
               </View>
-              <Text className="text-brand-navy font-black text-[10px] text-center mb-1">{t('movementTrackerStep4Title')}</Text>
-              <Text className="text-slate-500 text-[9px] font-semibold text-center leading-3 px-1">{t('movementTrackerStep4Desc')}</Text>
+              <Text className="text-brand-navy font-black text-[12px] text-center mb-1">{t('movementTrackerStep4Title')}</Text>
+              <Text className="text-slate-500 text-[11px] font-semibold text-center leading-3 px-1">{t('movementTrackerStep4Desc')}</Text>
             </View>
 
           </View>
@@ -257,7 +257,7 @@ export default function ResourceMovementTrackerScreen() {
 
         {/* What You Can Track Section */}
         <View className="mb-8">
-          <Text className="text-brand-navy font-black text-lg mb-4 px-1">{t('movementTrackerWhatYouCanTrackTitle')}</Text>
+          <Text className="text-brand-navy font-black text-xl mb-4 px-1">{t('movementTrackerWhatYouCanTrackTitle')}</Text>
           <View className="flex-row flex-wrap justify-between">
             
             <View className="w-[48%] bg-purple-50/50 border border-purple-100 rounded-2xl p-3 flex-row items-center mb-3">
@@ -265,8 +265,8 @@ export default function ResourceMovementTrackerScreen() {
                 <Feather name="box" size={16} color="#9333EA" />
               </View>
               <View className="flex-1">
-                <Text className="text-purple-800 font-extrabold text-[10px] mb-0.5">{t('movementTrackerMedicalSupplies')}</Text>
-                <Text className="text-purple-600/70 font-bold text-[8px] leading-3">{t('movementTrackerMedicalSuppliesDesc')}</Text>
+                <Text className="text-purple-800 font-extrabold text-[12px] mb-0.5">{t('movementTrackerMedicalSupplies')}</Text>
+                <Text className="text-purple-600/70 font-bold text-[10px] leading-3">{t('movementTrackerMedicalSuppliesDesc')}</Text>
               </View>
             </View>
 
@@ -275,8 +275,8 @@ export default function ResourceMovementTrackerScreen() {
                 <Feather name="map" size={16} color="#2563EB" />
               </View>
               <View className="flex-1">
-                <Text className="text-blue-700 font-extrabold text-[10px] mb-0.5">{t('movementTrackerLiveLocation')}</Text>
-                <Text className="text-blue-600/70 font-bold text-[8px] leading-3">{t('movementTrackerLiveLocationDesc')}</Text>
+                <Text className="text-blue-700 font-extrabold text-[12px] mb-0.5">{t('movementTrackerLiveLocation')}</Text>
+                <Text className="text-blue-600/70 font-bold text-[10px] leading-3">{t('movementTrackerLiveLocationDesc')}</Text>
               </View>
             </View>
 
@@ -285,8 +285,8 @@ export default function ResourceMovementTrackerScreen() {
                 <Feather name="clock" size={16} color="#10B981" />
               </View>
               <View className="flex-1">
-                <Text className="text-emerald-700 font-extrabold text-[10px] mb-0.5">{t('movementTrackerEtaUpdates')}</Text>
-                <Text className="text-emerald-600/70 font-bold text-[8px] leading-3">{t('movementTrackerEtaUpdatesDesc')}</Text>
+                <Text className="text-emerald-700 font-extrabold text-[12px] mb-0.5">{t('movementTrackerEtaUpdates')}</Text>
+                <Text className="text-emerald-600/70 font-bold text-[10px] leading-3">{t('movementTrackerEtaUpdatesDesc')}</Text>
               </View>
             </View>
 
@@ -295,8 +295,8 @@ export default function ResourceMovementTrackerScreen() {
                 <Feather name="bell" size={16} color="#F97316" />
               </View>
               <View className="flex-1">
-                <Text className="text-orange-700 font-extrabold text-[10px] mb-0.5">{t('movementTrackerStatusAlerts')}</Text>
-                <Text className="text-orange-600/70 font-bold text-[8px] leading-3">{t('movementTrackerStatusAlertsDesc')}</Text>
+                <Text className="text-orange-700 font-extrabold text-[12px] mb-0.5">{t('movementTrackerStatusAlerts')}</Text>
+                <Text className="text-orange-600/70 font-bold text-[10px] leading-3">{t('movementTrackerStatusAlertsDesc')}</Text>
               </View>
             </View>
 
@@ -306,14 +306,14 @@ export default function ResourceMovementTrackerScreen() {
         {/* Promo Banner */}
         <View className="bg-blue-50/60 border border-blue-100 rounded-[28px] p-5 flex-row items-center overflow-hidden relative shadow-sm mb-8">
           <View className="flex-1 pr-14 z-10">
-            <Text className="text-brand-navy font-black text-base mb-3 tracking-tight">{t('movementTrackerPromoTitle')}</Text>
-            <Text className="text-slate-500 font-semibold text-[10px] leading-4 mb-4">
+            <Text className="text-brand-navy font-black text-lg mb-3 tracking-tight">{t('movementTrackerPromoTitle')}</Text>
+            <Text className="text-slate-500 font-semibold text-[12px] leading-4 mb-4">
               {t('movementTrackerPromoDesc')}
             </Text>
             
             <View className="border border-blue-200 rounded-full px-3 py-1.5 flex-row items-center self-start">
               <Feather name="info" size={10} color="#3B82F6" className="mr-1.5" />
-              <Text className="text-blue-600 font-bold text-[10px]">{t('movementTrackerLearnMore')}</Text>
+              <Text className="text-blue-600 font-bold text-[12px]">{t('movementTrackerLearnMore')}</Text>
             </View>
           </View>
 

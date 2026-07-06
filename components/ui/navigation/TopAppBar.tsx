@@ -1,5 +1,6 @@
 import { Feather } from '@expo/vector-icons';
 import { Image, Pressable, View, Text } from 'react-native';
+import { useRouter } from 'expo-router';
 import NotificationBell from './NotificationBell';
 import ProfileAvatar from './ProfileAvatar';
 import { useAuth } from '../../../context/AuthContext';
@@ -18,6 +19,7 @@ export function TopAppBar({
   onProfilePress,
 }: TopAppBarProps) {
   const { authState } = useAuth();
+  const router = useRouter();
   const roleDisplay = authState?.role === 'DHO' ? 'Chief Medical Officer' : authState?.role === 'BMO' ? 'Block Medical Officer' : 'PHC Officer';
 
   return (
@@ -32,13 +34,16 @@ export function TopAppBar({
         </Pressable>
 
         {/* Center: Identity & Logo */}
-        <View className="flex-col items-center justify-center flex-1 mt-1">
+        <Pressable 
+          className="flex-col items-center justify-center flex-1 mt-1 active:opacity-60"
+          onPress={() => router.push({ pathname: '/(tabs)/situation-room', params: { scrollToTop: Date.now().toString() } })}
+        >
           <Image
             source={require('../../../assets/images/janarogya_logo_text.png')}
             style={{ width: 140, height: 26 }}
             resizeMode="contain"
           />
-        </View>
+        </Pressable>
 
         {/* Right: Actions */}
         <View className="flex-row items-center gap-2">

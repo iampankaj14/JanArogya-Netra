@@ -6,25 +6,31 @@ import ScreenContainer from '@/components/ui/layout/ScreenContainer';
 import { Dropdown } from '@/components/ui/inputs/Dropdown';
 import { useTranslation } from '@/hooks/useTranslation';
 import { ScenarioSimulationResult } from '@/shared/types/ai';
-import { localPHCs, localMedicines } from '@/services/repositories/localDb';
+import { phcRepository } from '@/services/repositories/phcRepository';
+import { PHC } from '@/shared/types/phc';
 import geminiService from '@/services/ai/geminiService';
 
 export default function ScenarioSimulatorScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  
+
   const [scenario, setScenario] = useState('Dengue Outbreak Surge');
   const [severity, setSeverity] = useState('High');
   const [region, setRegion] = useState('Gautam Budh Nagar');
   const [timeWindow, setTimeWindow] = useState('Next 7 Days');
-  
+
   const [simulating, setSimulating] = useState(false);
   const [result, setResult] = useState<ScenarioSimulationResult | null>(null);
+  const [allPhcs, setAllPhcs] = useState<PHC[]>([]);
+
+  React.useEffect(() => {
+    phcRepository.getAllPHCs().then(setAllPhcs).catch(console.error);
+  }, []);
 
   const handleRunSimulation = async () => {
     setSimulating(true);
     setResult(null);
-    
+
     try {
       const simResult = await geminiService.simulateScenario(scenario, { severity, region, timeWindow });
       setResult(simResult);
@@ -42,7 +48,7 @@ export default function ScenarioSimulatorScreen() {
       <View className="flex-row items-center justify-between mt-4 mb-6 px-1">
         <View className="flex-row items-center flex-1">
           <Pressable
-            onPress={() => router.back()}
+            onPress={() => { if (router.canGoBack()) { if (router.canGoBack()) { router.back(); } else { router.push('/'); } } else { router.push('/'); } }}
             className="w-11 h-11 rounded-full bg-white border border-slate-100 shadow-sm shadow-black/5 items-center justify-center mr-4 active:bg-slate-50"
           >
             <Feather name="arrow-left" size={22} color="#000" />
@@ -55,41 +61,41 @@ export default function ScenarioSimulatorScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 60 }}>
-        
+
         {/* Promo Banner */}
         <View className="bg-blue-50/80 border border-blue-100 rounded-3xl p-5 mb-6 flex-row items-center justify-between overflow-hidden relative">
           <View className="flex-1 pr-4 z-10">
             <Text className="text-brand-navy font-black text-[15px] mb-2 leading-tight">{t('scenarioSimulatorPromoTitle')}</Text>
             <Text className="text-slate-500 text-[9px] font-semibold leading-4 mb-4">{t('scenarioSimulatorPromoDesc')}</Text>
-            
+
             <View className="bg-white border border-blue-100 rounded-full px-2.5 py-1.5 flex-row items-center self-start">
               <Feather name="aperture" size={10} color="#3B82F6" className="mr-1" />
               <Text className="text-blue-600 font-bold text-[8px] uppercase tracking-wider">{t('scenarioSimulatorPoweredBy')}</Text>
             </View>
           </View>
-          
+
           {/* Dashboard / Shield Illustration built with Views */}
           <View className="w-28 h-24 bg-blue-100/50 rounded-xl justify-center items-center relative z-10 border-2 border-white shadow-sm mr-2">
             <View className="w-24 h-16 bg-blue-400 rounded-lg overflow-hidden border border-blue-300 relative">
-               <View className="flex-row p-1 h-full">
-                  <View className="w-1/2 h-full bg-white/20 rounded pl-1 pt-1 border border-white/30 mr-1">
-                     <View className="w-full flex-row items-end h-8 space-x-1 pl-1">
-                       <View className="w-1.5 h-3 bg-white rounded-t-sm" />
-                       <View className="w-1.5 h-5 bg-white rounded-t-sm" />
-                       <View className="w-1.5 h-7 bg-white rounded-t-sm" />
-                     </View>
+              <View className="flex-row p-1 h-full">
+                <View className="w-1/2 h-full bg-white/20 rounded pl-1 pt-1 border border-white/30 mr-1">
+                  <View className="w-full flex-row items-end h-8 space-x-1 pl-1">
+                    <View className="w-1.5 h-3 bg-white rounded-t-sm" />
+                    <View className="w-1.5 h-5 bg-white rounded-t-sm" />
+                    <View className="w-1.5 h-7 bg-white rounded-t-sm" />
                   </View>
-                  <View className="w-1/2 space-y-1">
-                    <View className="flex-1 bg-white/20 rounded border border-white/30 items-center justify-center">
-                       <View className="w-3 h-3 bg-white rounded-full items-center justify-center">
-                         <View className="w-1.5 h-1.5 bg-blue-400 rounded-full" />
-                       </View>
-                    </View>
-                    <View className="flex-1 bg-white/20 rounded border border-white/30 items-center justify-center">
-                       <View className="w-4 h-4 rounded-full border-2 border-white items-center justify-center" />
+                </View>
+                <View className="w-1/2 space-y-1">
+                  <View className="flex-1 bg-white/20 rounded border border-white/30 items-center justify-center">
+                    <View className="w-3 h-3 bg-white rounded-full items-center justify-center">
+                      <View className="w-1.5 h-1.5 bg-blue-400 rounded-full" />
                     </View>
                   </View>
-               </View>
+                  <View className="flex-1 bg-white/20 rounded border border-white/30 items-center justify-center">
+                    <View className="w-4 h-4 rounded-full border-2 border-white items-center justify-center" />
+                  </View>
+                </View>
+              </View>
             </View>
             {/* Monitor Stand */}
             <View className="w-8 h-2 bg-blue-300" />
@@ -97,22 +103,22 @@ export default function ScenarioSimulatorScreen() {
 
             {/* Overlapping Shield */}
             <View className="absolute -left-3 -bottom-2 w-14 h-16 bg-blue-500 rounded-xl items-center justify-center shadow-lg border-2 border-white" style={{ borderBottomLeftRadius: 30, borderBottomRightRadius: 30 }}>
-               <Feather name="plus" size={24} color="#FFF" />
+              <Feather name="plus" size={24} color="#FFF" />
             </View>
           </View>
         </View>
 
         {/* Simulation Parameters */}
-        <View className="bg-white border border-slate-100 shadow-sm p-5 rounded-3xl mb-6">
-          <View className="flex-row items-center mb-5">
-            <View className="w-8 h-8 rounded-full bg-blue-50 items-center justify-center mr-2 border border-blue-100">
-              <Feather name="sliders" size={14} color="#3B82F6" />
+        <View className="bg-white border-2 border-blue-200 shadow-sm shadow-blue-500/10 p-6 rounded-[32px] mb-6">
+          <View className="flex-row items-center mb-6 pb-4 border-b border-slate-100">
+            <View className="w-10 h-10 rounded-2xl bg-indigo-50 items-center justify-center mr-3 border border-indigo-100 shadow-sm shadow-indigo-500/10">
+              <Feather name="sliders" size={16} color="#4F46E5" />
             </View>
-            <Text className="text-brand-navy text-[15px] font-black">{t('scenarioSimulatorParamsTitle')}</Text>
+            <Text className="text-brand-navy text-[16px] font-black tracking-tight">{t('scenarioSimulatorParamsTitle')}</Text>
           </View>
           
           <View>
-            
+
             {/* Scenario */}
             <View className="mb-6">
               <Dropdown
@@ -130,31 +136,31 @@ export default function ScenarioSimulatorScreen() {
 
             {/* Severity */}
             <View className="mb-6">
-              <Text className="text-brand-navy text-[11px] font-extrabold mb-2">{t('scenarioSimulatorSeverityLabel')}</Text>
+              <Text className="text-brand-navy font-extrabold text-[13px] mb-2 uppercase tracking-wide">{t('scenarioSimulatorSeverityLabel')}</Text>
               <View className="flex-row space-x-2">
-                
+
                 {/* Low */}
-                <Pressable onPress={() => setSeverity('Low')} className={`flex-1 flex-row items-center justify-center py-2.5 rounded-xl border ${severity === 'Low' ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 bg-white'}`}>
-                  <View className="w-3 h-3 rounded-full bg-emerald-100 items-center justify-center mr-2">
-                    <View className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <Pressable onPress={() => setSeverity('Low')} className={`flex-1 flex-row items-center justify-center h-14 rounded-2xl border-2 ${severity === 'Low' ? 'border-emerald-400 bg-emerald-50 shadow-sm shadow-emerald-500/20' : 'border-slate-200 bg-white'}`}>
+                  <View className={`w-3 h-3 rounded-full items-center justify-center mr-2 ${severity === 'Low' ? 'bg-emerald-100' : 'bg-slate-100'}`}>
+                    <View className={`w-1.5 h-1.5 rounded-full ${severity === 'Low' ? 'bg-emerald-500' : 'bg-slate-300'}`} />
                   </View>
-                  <Text className={`font-bold text-[11px] ${severity === 'Low' ? 'text-emerald-700' : 'text-slate-600'}`}>{t('scenarioSimulatorSeverityLow')}</Text>
+                  <Text className={`font-bold text-[12px] ${severity === 'Low' ? 'text-emerald-700' : 'text-slate-500'}`}>{t('scenarioSimulatorSeverityLow')}</Text>
                 </Pressable>
 
                 {/* Medium */}
-                <Pressable onPress={() => setSeverity('Medium')} className={`flex-1 flex-row items-center justify-center py-2.5 rounded-xl border ${severity === 'Medium' ? 'border-orange-500 bg-orange-50' : 'border-slate-200 bg-white'}`}>
-                  <View className="w-3 h-3 rounded-full bg-orange-100 items-center justify-center mr-2">
-                    <View className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                <Pressable onPress={() => setSeverity('Medium')} className={`flex-1 flex-row items-center justify-center h-14 rounded-2xl border-2 ${severity === 'Medium' ? 'border-orange-400 bg-orange-50 shadow-sm shadow-orange-500/20' : 'border-slate-200 bg-white'}`}>
+                  <View className={`w-3 h-3 rounded-full items-center justify-center mr-2 ${severity === 'Medium' ? 'bg-orange-100' : 'bg-slate-100'}`}>
+                    <View className={`w-1.5 h-1.5 rounded-full ${severity === 'Medium' ? 'bg-orange-500' : 'bg-slate-300'}`} />
                   </View>
-                  <Text className={`font-bold text-[11px] ${severity === 'Medium' ? 'text-orange-700' : 'text-slate-600'}`}>{t('scenarioSimulatorSeverityMedium')}</Text>
+                  <Text className={`font-bold text-[12px] ${severity === 'Medium' ? 'text-orange-700' : 'text-slate-500'}`}>{t('scenarioSimulatorSeverityMedium')}</Text>
                 </Pressable>
 
                 {/* High */}
-                <Pressable onPress={() => setSeverity('High')} className={`flex-1 flex-row items-center justify-center py-2.5 rounded-xl border ${severity === 'High' ? 'border-red-400 bg-red-50' : 'border-slate-200 bg-white'}`}>
-                  <View className="w-4 h-4 rounded-full bg-red-100 items-center justify-center mr-1">
-                    <Feather name="bar-chart-2" size={10} color="#EF4444" />
+                <Pressable onPress={() => setSeverity('High')} className={`flex-1 flex-row items-center justify-center h-14 rounded-2xl border-2 ${severity === 'High' ? 'border-red-400 bg-red-50 shadow-sm shadow-red-500/20' : 'border-slate-200 bg-white'}`}>
+                  <View className={`w-4 h-4 rounded-full items-center justify-center mr-1.5 ${severity === 'High' ? 'bg-red-100' : 'bg-slate-100'}`}>
+                    <Feather name="bar-chart-2" size={10} color={severity === 'High' ? '#EF4444' : '#94A3B8'} />
                   </View>
-                  <Text className={`font-bold text-[11px] ${severity === 'High' ? 'text-red-600' : 'text-slate-600'}`}>{t('scenarioSimulatorSeverityHigh')}</Text>
+                  <Text className={`font-bold text-[12px] ${severity === 'High' ? 'text-red-700' : 'text-slate-500'}`}>{t('scenarioSimulatorSeverityHigh')}</Text>
                 </Pressable>
 
               </View>
@@ -190,9 +196,9 @@ export default function ScenarioSimulatorScreen() {
             </View>
 
             {/* Action Button */}
-            <Pressable 
+            <Pressable
               onPress={handleRunSimulation}
-              className="w-full rounded-2xl py-3.5 flex-row justify-center items-center bg-[#9370DB] shadow-md shadow-purple-500/30"
+              className="w-full rounded-2xl py-3.5 flex-row justify-center items-center bg-blue-600 shadow-md shadow-blue-500/30"
               style={{ elevation: 3 }}
             >
               {simulating ? (
@@ -211,7 +217,7 @@ export default function ScenarioSimulatorScreen() {
         {/* Results output view */}
         {result && (
           <View className="bg-white border border-slate-100 shadow-sm rounded-3xl p-5 mb-6">
-            
+
             {/* Header */}
             <View className="flex-row items-center justify-between mb-5">
               <View className="flex-row items-center">
@@ -235,20 +241,20 @@ export default function ScenarioSimulatorScreen() {
                   </View>
                   <Text className="text-emerald-800 font-extrabold text-[13px]">{t('scenarioSimulatorImpactAssessmentTitle')}</Text>
                 </View>
-              <View className="bg-emerald-100/50 rounded-full px-2 py-1">
+                <View className="bg-emerald-100/50 rounded-full px-2 py-1">
                   <Text className="text-emerald-700 font-extrabold text-[9px]">{t('scenarioSimulatorHighRiskDetected')}</Text>
                 </View>
               </View>
               <Text className="text-slate-600 font-semibold text-[10px] leading-relaxed">
-                {result.suggestedTransfers.length > 0 
-                  ? result.suggestedTransfers[0].reasoning 
+                {result.suggestedTransfers.length > 0
+                  ? result.suggestedTransfers[0].reasoning
                   : t('scenarioSimulatorDefaultImpactText')}
               </Text>
             </View>
 
             {/* 3 Stat Cards Row */}
             <View className="flex-row justify-between mb-4 space-x-2">
-              
+
               {/* Card 1: Red */}
               <View className="flex-1 bg-red-50/50 border border-red-50 rounded-2xl p-3 items-center">
                 <View className="w-8 h-8 rounded-full bg-red-100/50 items-center justify-center mb-1">
@@ -302,28 +308,29 @@ export default function ScenarioSimulatorScreen() {
                 <View className="space-y-2">
                   {result.suggestedTransfers.slice(0, 3).map((rec, i) => {
                     return (
-                    <View key={rec.id || i} className="flex-row items-start justify-between mb-2">
-                      <View className="flex-row items-start flex-1 pr-2">
-                        <Feather name="check-circle" size={10} color="#3B82F6" className="mt-0.5 mr-2" />
-                        <Text className="text-brand-navy font-semibold text-[9px] leading-3 flex-1">{rec.title || t('scenarioSimulatorTransferFallback').replace('{quantity}', String(rec.quantity)).replace('{item}', rec.item)}</Text>
+                      <View key={rec.id || i} className="flex-row items-start justify-between mb-2">
+                        <View className="flex-row items-start flex-1 pr-2">
+                          <Feather name="check-circle" size={10} color="#3B82F6" className="mt-0.5 mr-2" />
+                          <Text className="text-brand-navy font-semibold text-[9px] leading-3 flex-1">{rec.title || t('scenarioSimulatorTransferFallback').replace('{quantity}', String(rec.quantity)).replace('{item}', rec.item)}</Text>
+                        </View>
+                        <Pressable
+                          onPress={() => {
+                            const sourceId = allPhcs.find(p => p.id === rec.sourceFacility || p.name === rec.sourceFacility)?.id || '';
+                            const targetId = allPhcs.find(p => p.id === rec.targetFacility || p.name === rec.targetFacility)?.id || '';
+                            const medicineId = 'med_1'; // Simplified for demo
+                            router.push({
+                              pathname: '/(tabs)/resource-redistribution',
+                              params: { draft: 'true', source: sourceId, target: targetId, medicine: medicineId, qty: rec.quantity.toString() }
+                            });
+                          }}
+                          className="bg-blue-100 rounded-full px-2 py-1 items-center justify-center border border-blue-200 shadow-sm active:bg-blue-200 flex-row"
+                        >
+                          <Text className="text-blue-700 font-bold text-[8px] mr-1">{t('scenarioSimulatorDraftButton')}</Text>
+                          <Feather name="arrow-right" size={8} color="#1D4ED8" />
+                        </Pressable>
                       </View>
-                      <Pressable 
-                        onPress={() => {
-                          const sourceId = localPHCs.find(p => p.id === rec.sourceFacility || p.name === rec.sourceFacility)?.id || '';
-                          const targetId = localPHCs.find(p => p.id === rec.targetFacility || p.name === rec.targetFacility)?.id || '';
-                          const medicineId = localMedicines.find(m => m.id === rec.item || m.name.toLowerCase().includes(rec.item.toLowerCase()) || rec.item.toLowerCase().includes(m.name.toLowerCase()))?.id || '';
-                          router.push({
-                            pathname: '/(tabs)/resource-redistribution',
-                            params: { draft: 'true', source: sourceId, target: targetId, medicine: medicineId, qty: rec.quantity.toString() }
-                          });
-                        }}
-                        className="bg-blue-100 rounded-full px-2 py-1 items-center justify-center border border-blue-200 shadow-sm active:bg-blue-200 flex-row"
-                      >
-                        <Text className="text-blue-700 font-bold text-[8px] mr-1">{t('scenarioSimulatorDraftButton')}</Text>
-                        <Feather name="arrow-right" size={8} color="#1D4ED8" />
-                      </Pressable>
-                    </View>
-                  )})}
+                    )
+                  })}
                   {result.suggestedTransfers.length === 0 && (
                     <View className="flex-row items-start">
                       <Feather name="check-circle" size={10} color="#3B82F6" className="mt-0.5 mr-2" />
@@ -335,31 +342,31 @@ export default function ScenarioSimulatorScreen() {
 
               {/* Clipboard Illustration */}
               <View className="absolute -right-2 -bottom-2 w-24 h-24 bg-blue-200/40 rounded-xl justify-center items-center z-0 border border-white">
-                 <View className="w-14 h-16 bg-white rounded-lg border border-blue-200 items-center py-2 shadow-sm relative">
-                   {/* Clip */}
-                   <View className="w-6 h-2 bg-slate-300 rounded-full absolute -top-1" />
-                   
-                   {/* Lines */}
-                   <View className="w-full px-2 mt-2 space-y-1.5">
-                     <View className="flex-row items-center">
-                       <Feather name="check-square" size={8} color="#3B82F6" />
-                       <View className="flex-1 h-1 bg-slate-200 rounded-full ml-1" />
-                     </View>
-                     <View className="flex-row items-center">
-                       <Feather name="check-square" size={8} color="#3B82F6" />
-                       <View className="flex-1 h-1 bg-slate-200 rounded-full ml-1" />
-                     </View>
-                     <View className="flex-row items-center">
-                       <Feather name="square" size={8} color="#CBD5E1" />
-                       <View className="flex-1 h-1 bg-slate-200 rounded-full ml-1" />
-                     </View>
-                   </View>
+                <View className="w-14 h-16 bg-white rounded-lg border border-blue-200 items-center py-2 shadow-sm relative">
+                  {/* Clip */}
+                  <View className="w-6 h-2 bg-slate-300 rounded-full absolute -top-1" />
 
-                   {/* Check Shield Overlap */}
-                   <View className="absolute -bottom-3 -right-3 w-10 h-10 bg-blue-500 rounded-xl items-center justify-center shadow-lg border-2 border-white" style={{ borderBottomLeftRadius: 20, borderBottomRightRadius: 20 }}>
-                     <Feather name="check" size={18} color="#FFF" />
-                   </View>
-                 </View>
+                  {/* Lines */}
+                  <View className="w-full px-2 mt-2 space-y-1.5">
+                    <View className="flex-row items-center">
+                      <Feather name="check-square" size={8} color="#3B82F6" />
+                      <View className="flex-1 h-1 bg-slate-200 rounded-full ml-1" />
+                    </View>
+                    <View className="flex-row items-center">
+                      <Feather name="check-square" size={8} color="#3B82F6" />
+                      <View className="flex-1 h-1 bg-slate-200 rounded-full ml-1" />
+                    </View>
+                    <View className="flex-row items-center">
+                      <Feather name="square" size={8} color="#CBD5E1" />
+                      <View className="flex-1 h-1 bg-slate-200 rounded-full ml-1" />
+                    </View>
+                  </View>
+
+                  {/* Check Shield Overlap */}
+                  <View className="absolute -bottom-3 -right-3 w-10 h-10 bg-blue-500 rounded-xl items-center justify-center shadow-lg border-2 border-white" style={{ borderBottomLeftRadius: 20, borderBottomRightRadius: 20 }}>
+                    <Feather name="check" size={18} color="#FFF" />
+                  </View>
+                </View>
               </View>
 
             </View>

@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Toggle } from '../components/ui/inputs/Toggle';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -30,7 +31,7 @@ export default function SettingsScreen() {
 
   const handleBack = () => {
     if (router.canGoBack()) {
-      router.back();
+      if (router.canGoBack()) { router.back(); } else { router.push('/'); }
     } else {
       router.replace('/');
     }
@@ -103,12 +104,7 @@ export default function SettingsScreen() {
                 <Text className="text-slate-500 text-[11px] font-medium leading-tight">Sync data in background for real-time updates.</Text>
               </View>
             </View>
-            <Switch
-              value={dataSync}
-              onValueChange={setDataSync}
-              trackColor={{ false: '#E2E8F0', true: '#3B82F6' }}
-              thumbColor={'#FFFFFF'}
-            />
+            <Toggle value={dataSync} onValueChange={setDataSync} />
           </View>
 
           {/* Critical Outbreak Alerts */}
@@ -122,12 +118,7 @@ export default function SettingsScreen() {
                 <Text className="text-slate-500 text-[11px] font-medium leading-tight">Get notified instantly for critical outbreaks.</Text>
               </View>
             </View>
-            <Switch
-              value={alertSounds}
-              onValueChange={setAlertSounds}
-              trackColor={{ false: '#E2E8F0', true: '#3B82F6' }}
-              thumbColor={'#FFFFFF'}
-            />
+            <Toggle value={alertSounds} onValueChange={setAlertSounds} />
           </View>
 
           {/* AI Recommendation Auto Refresh */}
@@ -141,12 +132,7 @@ export default function SettingsScreen() {
                 <Text className="text-slate-500 text-[11px] font-medium leading-tight">Automatically refresh AI insights and recommendations.</Text>
               </View>
             </View>
-            <Switch
-              value={autoRefresh}
-              onValueChange={setAutoRefresh}
-              trackColor={{ false: '#E2E8F0', true: '#3B82F6' }}
-              thumbColor={'#FFFFFF'}
-            />
+            <Toggle value={autoRefresh} onValueChange={setAutoRefresh} />
           </View>
 
           {/* Offline Mode */}
@@ -160,12 +146,7 @@ export default function SettingsScreen() {
                 <Text className="text-slate-500 text-[11px] font-medium leading-tight">Cache latest PHC & medicine data for offline access.</Text>
               </View>
             </View>
-            <Switch
-              value={offlineMode}
-              onValueChange={setOfflineMode}
-              trackColor={{ false: '#E2E8F0', true: '#3B82F6' }}
-              thumbColor={'#FFFFFF'}
-            />
+            <Toggle value={offlineMode} onValueChange={setOfflineMode} />
           </View>
 
           {/* Netra AI Audio Response (New Option) */}
@@ -179,12 +160,7 @@ export default function SettingsScreen() {
                 <Text className="text-slate-500 text-[11px] font-medium leading-tight">Toggle voice output for Netra AI responses.</Text>
               </View>
             </View>
-            <Switch
-              value={audioEnabled}
-              onValueChange={toggleAudio}
-              trackColor={{ false: '#E2E8F0', true: '#3B82F6' }}
-              thumbColor={'#FFFFFF'}
-            />
+            <Toggle value={audioEnabled} onValueChange={toggleAudio} />
           </View>
         </View>
 

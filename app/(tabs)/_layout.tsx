@@ -7,7 +7,8 @@ import { NetraAIAssistant } from '../../components/common/NetraAIAssistant';
 import TopAppBar from '../../components/ui/navigation/TopAppBar';
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from '@/hooks/useTranslation';
-import { localAlerts } from '@/services/repositories/localDb';
+import { alertsRepository } from '@/services/repositories/alertsRepository';
+import { phcRepository } from '@/services/repositories/phcRepository';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -21,17 +22,22 @@ export default function TabLayout() {
   const [showNetra, setShowNetra] = useState(false);
   const router = useRouter();
   const segments = useSegments();
+  const [unreadCount, setUnreadCount] = useState(0);
 
-  const unreadCount = localAlerts.filter(a => {
-    if (a.resolved) return false;
-    if (authState?.role === 'PHC' && a.facilityId !== authState.facilityId) return false;
-    if (authState?.role === 'BMO') {
-      const phc = require('@/dummy/phcs').dummyPHCs.find((p: any) => p.id === a.facilityId);
-      const userPhc = require('@/dummy/phcs').dummyPHCs.find((p: any) => p.id === authState.facilityId);
-      if (phc && userPhc && phc.block !== userPhc.block) return false;
-    }
-    return true;
-  }).length;
+  useEffect(() => {
+    if (!authState) return;
+    
+    const fetchUnreadCount = async () => {
+      try {
+        const { localNotifications } = require('@/services/repositories/localDb');
+        setUnreadCount(localNotifications.length);
+      } catch (e) {
+        console.error('Failed to fetch unread alerts', e);
+      }
+    };
+    
+    fetchUnreadCount();
+  }, [authState]);
 
   // Strict Route Guarding
   useEffect(() => {
@@ -131,8 +137,17 @@ export default function TabLayout() {
 
     return (
       <View style={styles.tabBarContainer}>
-        {/* Floating Dock */}
-        <View className="bg-white border border-slate-100/50 py-1.5 px-2 rounded-[32px] mx-6 mb-6 shadow-xl">
+        {/* Premium Floating Dock */}
+        <View 
+          className="bg-white border border-slate-200/80 py-1.5 px-2 rounded-[36px] mx-6 mb-8"
+          style={{
+            shadowColor: '#64748B',
+            shadowOffset: { width: 0, height: 12 },
+            shadowOpacity: 0.25,
+            shadowRadius: 24,
+            elevation: 24
+          }}
+        >
           <View className="flex-row justify-between items-center relative">
 
             {/* Smooth Sliding Background Indicator */}
@@ -145,7 +160,7 @@ export default function TabLayout() {
                 transform: [{
                   translateX: slideAnim.interpolate({
                     inputRange: [0, 1, 2, 3],
-                    outputRange: ['0%', '100%', '200%', '300%'] // Moves by its own width
+                    outputRange: ['0%', '100%', '200%', '300%']
                   })
                 }],
                 backgroundColor: 'rgba(26, 99, 198, 0.18)', // Brand blue with stronger opacity
@@ -200,15 +215,13 @@ export default function TabLayout() {
                     />
                   </View>
                   <Text
-                    className={`text-[10px] font-extrabold mt-1 ${isFocused ? (route.name === 'emergency' ? 'text-red-500' : 'text-[#0E62CC]') : 'text-slate-400'}`}
+                    className={`text-[10px] font-extrabold mt-1 tracking-wider ${isFocused ? (route.name === 'emergency' ? 'text-red-500' : 'text-[#0E62CC]') : 'text-slate-400'}`}
                   >
                     {label}
                   </Text>
                 </Pressable>
               );
             })}
-
-
 
           </View>
         </View>

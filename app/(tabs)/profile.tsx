@@ -5,6 +5,8 @@ import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Image, Pressable, ScrollView, Switch, Text, View } from 'react-native';
+import { Toggle } from '../../components/ui/inputs/Toggle';
+import { localNotifications } from '@/services/repositories/localDb';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -32,7 +34,7 @@ export default function ProfileScreen() {
         <View className="flex-row justify-between items-center mb-6 pl-1">
           <View className="flex-1 pr-4">
             <Text className="text-brand-navy font-black text-2xl mb-1 tracking-tight">{t('profileTitle')}</Text>
-            <Text className="text-slate-500 text-[11px] font-semibold leading-4 pr-4">{t('profileSubtitle')}</Text>
+            <Text className="text-slate-500 text-[16px] font-semibold leading-4 pr-4">{t('profileSubtitle')}</Text>
           </View>
           <Image
             source={require('../../data/profile/profile_page.png')}
@@ -81,15 +83,15 @@ export default function ProfileScreen() {
           </View>
 
           {/* Overlapping Stats Card */}
-          <View className="bg-white rounded-[24px] mx-4 -mt-10 p-3 shadow-sm shadow-black/10 border border-slate-100 flex-row justify-between items-center">
+          <View className="bg-white rounded-[24px] mx-4 -mt-10 p-3 shadow-sm shadow-black/10 border-2 border-blue-200 flex-row justify-between items-center">
             {/* Stat 1 */}
             <View className="flex-1 flex-row items-center justify-center border-r border-slate-50">
               <View className="w-8 h-8 rounded-full bg-purple-50 items-center justify-center mr-1">
                 <Feather name="shield" size={14} color="#8B5CF6" />
               </View>
               <View>
-                <Text className="text-slate-400 text-[7px] font-bold">{t('profileStatRoleLabel')}</Text>
-                <Text className="text-brand-navy font-black text-[11px]">{role}</Text>
+                <Text className="text-slate-400 text-[12px] font-bold">{t('profileStatRoleLabel')}</Text>
+                <Text className="text-brand-navy font-black text-[16px]">{role}</Text>
               </View>
             </View>
             {/* Stat 2 */}
@@ -98,8 +100,8 @@ export default function ProfileScreen() {
                 <Feather name="home" size={14} color="#10B981" />
               </View>
               <View>
-                <Text className="text-slate-400 text-[7px] font-bold">{role === 'PHC' ? t('profileStatBedsManaged') : t('profileStatPhcsManaged')}</Text>
-                <Text className="text-brand-navy font-black text-[11px]">{role === 'PHC' ? '18' : (role === 'BMO' ? '8' : '24')}</Text>
+                <Text className="text-slate-400 text-[12px] font-bold">{role === 'PHC' ? t('profileStatBedsManaged') : t('profileStatPhcsManaged')}</Text>
+                <Text className="text-brand-navy font-black text-[16px]">{role === 'PHC' ? '18' : (role === 'BMO' ? '8' : '24')}</Text>
               </View>
             </View>
             {/* Stat 3 */}
@@ -108,8 +110,8 @@ export default function ProfileScreen() {
                 <Feather name="users" size={14} color="#F59E0B" />
               </View>
               <View>
-                <Text className="text-slate-400 text-[7px] font-bold">{t('profileStatTeamMembers')}</Text>
-                <Text className="text-brand-navy font-black text-[11px]">{role === 'PHC' ? '14' : (role === 'BMO' ? '45' : '128')}</Text>
+                <Text className="text-slate-400 text-[12px] font-bold">{t('profileStatTeamMembers')}</Text>
+                <Text className="text-brand-navy font-black text-[16px]">{role === 'PHC' ? '14' : (role === 'BMO' ? '45' : '128')}</Text>
               </View>
             </View>
             {/* Stat 4 */}
@@ -118,8 +120,8 @@ export default function ProfileScreen() {
                 <Feather name="calendar" size={14} color="#3B82F6" />
               </View>
               <View>
-                <Text className="text-slate-400 text-[7px] font-bold">{t('profileStatMemberSince')}</Text>
-                <Text className="text-brand-navy font-black text-[11px]">{t('profileStatMemberSinceValue')}</Text>
+                <Text className="text-slate-400 text-[12px] font-bold">{t('profileStatMemberSince')}</Text>
+                <Text className="text-brand-navy font-black text-[16px]">{t('profileStatMemberSinceValue')}</Text>
               </View>
             </View>
           </View>
@@ -135,7 +137,7 @@ export default function ProfileScreen() {
             <Feather name="chevron-up" size={18} color="#94A3B8" />
           </View>
 
-          <View className="bg-white rounded-3xl border border-slate-100 shadow-sm shadow-black/5 p-4">
+          <View className="bg-white rounded-3xl border-2 border-blue-200 shadow-sm shadow-black/5 p-4">
 
             {/* Language Toggle */}
             <View className="flex-row items-center justify-between mb-4">
@@ -148,12 +150,7 @@ export default function ProfileScreen() {
                   <Text className="text-slate-500 text-[9px]">{t('profileLanguageDesc')}</Text>
                 </View>
               </View>
-              <Switch 
-                value={language === 'hi'} 
-                onValueChange={(val) => setLanguage(val ? 'hi' : 'en')} 
-                trackColor={{ false: '#E2E8F0', true: '#3B82F6' }} 
-                thumbColor="#FFF" 
-              />
+              <Toggle value={language === 'hi'} onValueChange={(val) => setLanguage(val ? 'hi' : 'en')} />
             </View>
             <View className="h-[1px] bg-slate-50 mb-4 ml-12" />
 
@@ -168,7 +165,7 @@ export default function ProfileScreen() {
                   <Text className="text-slate-500 text-[9px]">{t('profileOutbreakAlarmsDesc')}</Text>
                 </View>
               </View>
-              <Switch value={pushNotifs} onValueChange={setPushNotifs} trackColor={{ false: '#E2E8F0', true: '#3B82F6' }} thumbColor="#FFF" />
+              <Toggle value={pushNotifs} onValueChange={setPushNotifs} />
             </View>
           </View>
         </View>
@@ -183,7 +180,7 @@ export default function ProfileScreen() {
             <Feather name="chevron-up" size={18} color="#94A3B8" />
           </View>
 
-          <View className="bg-white rounded-3xl border border-slate-100 shadow-sm shadow-black/5 p-4">
+          <View className="bg-white rounded-3xl border-2 border-blue-200 shadow-sm shadow-black/5 p-4">
             {/* Item 1 */}
             <Pressable onPress={() => router.push('/notifications')} className="flex-row items-center justify-between mb-4 active:opacity-70">
               <View className="flex-row items-center flex-1">
@@ -196,9 +193,11 @@ export default function ProfileScreen() {
                 </View>
               </View>
               <View className="flex-row items-center">
-                <View className="bg-red-500 rounded-full w-5 h-5 items-center justify-center mr-2">
-                  <Text className="text-white text-[10px] font-bold">3</Text>
-                </View>
+                {localNotifications.length > 0 && (
+                  <View className="bg-red-500 rounded-full min-w-[20px] h-5 px-1 items-center justify-center mr-2">
+                    <Text className="text-white text-[10px] font-bold">{localNotifications.length}</Text>
+                  </View>
+                )}
                 <Feather name="chevron-right" size={18} color="#94A3B8" />
               </View>
             </Pressable>
@@ -219,25 +218,11 @@ export default function ProfileScreen() {
             </Pressable>
             <View className="h-[1px] bg-slate-50 mb-4 ml-12" />
 
-            {/* Item 3 */}
-            <Pressable onPress={() => Alert.alert(t('profileHelpDeskAlertTitle'), t('profileHelpDeskAlertMessage'))} className="flex-row items-center justify-between mb-4 active:opacity-70">
-              <View className="flex-row items-center flex-1">
-                <View className="w-10 h-10 rounded-full bg-purple-50 items-center justify-center mr-3 border border-purple-100">
-                  <Feather name="help-circle" size={18} color="#8B5CF6" />
-                </View>
-                <View className="flex-1 pr-2">
-                  <Text className="text-brand-navy font-bold text-[13px] mb-0.5">{t('profileHelpDeskTitle')}</Text>
-                  <Text className="text-slate-500 text-[9px]">{t('profileHelpDeskDesc')}</Text>
-                </View>
-              </View>
-              <Feather name="chevron-right" size={18} color="#94A3B8" />
-            </Pressable>
-            <View className="h-[1px] bg-slate-50 mb-4 ml-12" />
 
             {/* Item 4 */}
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center flex-1">
-                <View className="w-10 h-10 rounded-full bg-slate-50 items-center justify-center mr-3 border border-slate-100">
+                <View className="w-10 h-10 rounded-full bg-slate-50 items-center justify-center mr-3 border-2 border-blue-200">
                   <Feather name="info" size={18} color="#64748B" />
                 </View>
                 <View className="flex-1 pr-2">

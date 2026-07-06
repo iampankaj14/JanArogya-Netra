@@ -48,7 +48,7 @@ function buildInitialRecommendations(): AIRecommendation[] {
       item: 'Dengue NS1 Antigen Test Kit',
       quantity: 50,
       confidence: 0.94,
-      reasoning: `PHC Barola currently has ${dengueBarolaRec?.currentStock || 300} kits in stock. PHC Badalpur is facing a critical dengue outbreak with only ${dengueBadalpurRec?.currentStock || 15} kits remaining.`,
+      reasoning: `Critical shortage at destination.`,
       timestamp: new Date().toISOString(),
     },
     {
@@ -59,7 +59,7 @@ function buildInitialRecommendations(): AIRecommendation[] {
       item: 'Paracetamol 650mg',
       quantity: 200,
       confidence: 0.98,
-      reasoning: `PHC Badalpur stock is depleted. CHC Bisrakh has a surplus and can dispatch immediately.`,
+      reasoning: `Surplus available for dispatch.`,
       timestamp: new Date().toISOString(),
     },
     {
@@ -70,7 +70,7 @@ function buildInitialRecommendations(): AIRecommendation[] {
       item: 'IV Fluids (NS)',
       quantity: 100,
       confidence: 0.89,
-      reasoning: `CHC Bhangel is facing a shortage of Normal Saline. CHC Dadri has 500+ units available.`,
+      reasoning: `High demand at target.`,
       timestamp: new Date().toISOString(),
     },
     {
@@ -81,7 +81,7 @@ function buildInitialRecommendations(): AIRecommendation[] {
       item: 'Amoxicillin 250mg',
       quantity: 150,
       confidence: 0.91,
-      reasoning: `Pediatric ward at CHC Dadri needs antibiotics. UPHC Surajpur has excess stock.`,
+      reasoning: `Preventive transfer highly recommended.`,
       timestamp: new Date().toISOString(),
     },
     {
@@ -92,7 +92,7 @@ function buildInitialRecommendations(): AIRecommendation[] {
       item: 'Azithromycin 500mg',
       quantity: 100,
       confidence: 0.85,
-      reasoning: `UPHC Harola is running low on broad-spectrum antibiotics. Transfer from Bisrakh recommended.`,
+      reasoning: `Urgent stock redistribution needed.`,
       timestamp: new Date().toISOString(),
     }
   ];

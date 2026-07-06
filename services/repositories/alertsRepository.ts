@@ -1,7 +1,8 @@
 // services/repositories/alertsRepository.ts (Integrated with Firebase Firestore)
-import { collection, doc, getDocs, getDoc, updateDoc, onSnapshot, query, where, addDoc } from 'firebase/firestore';
+import { collection, doc, getDocs, getDoc, updateDoc, onSnapshot, query, addDoc } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from '../firebase/firebaseConfig';
 import { AlertItem } from '@/shared/types/alert';
+import { AlertType, AlertPriority } from '@/constants/alertTypes';
 import { AIRecommendation } from '@/shared/types/ai';
 import {
   localAlerts,
@@ -12,9 +13,60 @@ import {
   localPHCs,
   addLocalNotification,
 } from './localDb';
+import { phcRepository } from './phcRepository';
 
 // Simple pub-sub for local mock notifications
 let localAlertListeners: ((alerts: AlertItem[]) => void)[] = [];
+
+// Firestore alert docs use a legacy shape (type: "stock"/"staff", severity, date, read)
+// that doesn't match the app's canonical AlertItem contract. Normalize at the boundary
+// so the rest of the app can keep using type/priority/timestamp/resolved everywhere.
+const ALERT_TYPE_MAP: Record<string, AlertType> = {
+  stock: 'SHORTAGE',
+  staff: 'ABSENCE',
+  outbreak: 'OUTBREAK',
+  shortage: 'SHORTAGE',
+  absence: 'ABSENCE',
+  supply_chain: 'SUPPLY_CHAIN',
+  weather: 'WEATHER',
+  facility: 'FACILITY',
+};
+
+const CANONICAL_ALERT_TYPES: AlertType[] = ['OUTBREAK', 'SHORTAGE', 'ABSENCE', 'SUPPLY_CHAIN', 'WEATHER', 'FACILITY'];
+
+const normalizeAlertType = (rawType: unknown): AlertType => {
+  const raw = String(rawType ?? '');
+  if (CANONICAL_ALERT_TYPES.includes(raw as AlertType)) return raw as AlertType;
+  return ALERT_TYPE_MAP[raw.toLowerCase()] ?? 'FACILITY';
+};
+
+const normalizeAlertPriority = (rawPriority: unknown): AlertPriority => {
+  const key = String(rawPriority ?? '').toUpperCase();
+  return (['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as const).includes(key as AlertPriority)
+    ? (key as AlertPriority)
+    : 'MEDIUM';
+};
+
+const normalizeAlert = (id: string, data: any, facilityNameById: Record<string, string>): AlertItem => ({
+  id,
+  title: data.title ?? '',
+  type: normalizeAlertType(data.type),
+  priority: normalizeAlertPriority(data.priority ?? data.severity),
+  facilityId: data.facilityId,
+  facilityName: data.facilityName ?? facilityNameById[data.facilityId] ?? data.facilityId,
+  description: data.description ?? '',
+  timestamp: data.timestamp ?? data.date ?? '',
+  resolved: data.resolved ?? data.read === true,
+});
+
+const getFacilityNameMap = async (): Promise<Record<string, string>> => {
+  try {
+    const phcs = await phcRepository.getAllPHCs();
+    return Object.fromEntries(phcs.map((p) => [p.id, p.name]));
+  } catch {
+    return {};
+  }
+};
 
 export const alertsRepository = {
   getAlerts: async (): Promise<AlertItem[]> => {
@@ -22,9 +74,10 @@ export const alertsRepository = {
       return localAlerts;
     }
     try {
+      const facilityNameById = await getFacilityNameMap();
       const q = query(collection(db, 'alerts'));
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as AlertItem[];
+      return querySnapshot.docs.map((doc) => normalizeAlert(doc.id, doc.data(), facilityNameById));
     } catch (e) {
       throw new Error('DB/FETCH_ERROR');
     }
@@ -35,9 +88,8 @@ export const alertsRepository = {
       return localAlerts.filter((a) => !a.resolved);
     }
     try {
-      const q = query(collection(db, 'alerts'), where('resolved', '==', false));
-      const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as AlertItem[];
+      const all = await alertsRepository.getAlerts();
+      return all.filter((a) => !a.resolved);
     } catch (e) {
       throw new Error('DB/FETCH_ERROR');
     }
@@ -52,17 +104,28 @@ export const alertsRepository = {
       };
     }
 
+    let unsubscribed = false;
+    let facilityNameById: Record<string, string> = {};
+    getFacilityNameMap().then((map) => {
+      facilityNameById = map;
+    });
+
     const q = query(collection(db, 'alerts'));
-    return onSnapshot(
+    const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        const list = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as AlertItem[];
+        if (unsubscribed) return;
+        const list = snapshot.docs.map((doc) => normalizeAlert(doc.id, doc.data(), facilityNameById));
         callback(list);
       },
       (error) => {
         console.error('Firestore subscribe alerts error', error);
       }
     );
+    return () => {
+      unsubscribed = true;
+      unsubscribe();
+    };
   },
 
   // Notify local listeners when in mock mode

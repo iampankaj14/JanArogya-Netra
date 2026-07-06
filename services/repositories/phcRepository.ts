@@ -21,7 +21,7 @@ export const phcRepository = {
       return localPHCs;
     }
     try {
-      const querySnapshot = await getDocs(collection(db, 'facilities'));
+      const querySnapshot = await getDocs(collection(db, 'phcs'));
       return querySnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
@@ -42,7 +42,7 @@ export const phcRepository = {
     }
 
     try {
-      let q = query(collection(db, 'facilities'));
+      let q = query(collection(db, 'phcs'));
       if (filterBlock) {
         q = query(q, where('block', '==', filterBlock));
       }
@@ -70,7 +70,7 @@ export const phcRepository = {
     }
 
     try {
-      const docRef = doc(db, 'facilities', phcId);
+      const docRef = doc(db, 'phcs', phcId);
       const docSnap = await getDoc(docRef);
       if (!docSnap.exists()) {
         throw new Error('FACILITY/NOT_FOUND');
@@ -93,7 +93,7 @@ export const phcRepository = {
     }
 
     try {
-      const ref = doc(db, 'facilities', phcId);
+      const ref = doc(db, 'phcs', phcId);
       await updateDoc(ref, { healthScore: score });
     } catch (error) {
       throw new Error('DB/MUTATION_FAILED');
@@ -145,6 +145,31 @@ export const phcRepository = {
     } catch (error: any) {
       if (error.message === 'FACILITY/NOT_FOUND') throw error;
       throw new Error('DB/MUTATION_FAILED');
+    }
+  },
+
+  // Add new medicine to inventory
+  addMedicine: async (medicine: MedicineStock): Promise<MedicineStock> => {
+    if (!isFirebaseConfigured) {
+      const { addLocalMedicine } = require('./localDb');
+      addLocalMedicine(medicine);
+      return medicine;
+    }
+
+    try {
+      const docRef = doc(db, 'inventory', medicine.id);
+      await updateDoc(docRef, medicine as any); // using updateDoc or setDoc but it's new
+      return medicine;
+    } catch (error) {
+      // If it doesn't exist we should use setDoc
+      try {
+        const { setDoc } = require('firebase/firestore');
+        const docRef = doc(db, 'inventory', medicine.id);
+        await setDoc(docRef, medicine);
+        return medicine;
+      } catch (err) {
+         throw new Error('DB/MUTATION_FAILED');
+      }
     }
   },
 
@@ -211,7 +236,7 @@ export const phcRepository = {
 
       // Also update doctorAvailable status in the facilities collection
       if (role === 'PHC_MO') {
-        const phcRef = doc(db, 'facilities', facilityId);
+        const phcRef = doc(db, 'phcs', facilityId);
         await updateDoc(phcRef, { doctorAvailable: present });
       }
 

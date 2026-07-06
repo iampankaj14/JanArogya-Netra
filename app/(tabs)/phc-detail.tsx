@@ -246,7 +246,7 @@ export default function PHCDetailScreen() {
           <Pressable
             onPress={() => {
               if (router.canGoBack()) {
-                router.back();
+                if (router.canGoBack()) { router.back(); } else { router.push('/'); }
               } else {
                 router.push('/(tabs)/district-map');
               }

@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import ScreenContainer from '@/components/ui/layout/ScreenContainer';
 import { useTranslation } from '@/hooks/useTranslation';
+import { Toggle } from '../../components/ui/inputs/Toggle';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -20,7 +21,7 @@ export default function SettingsScreen() {
       <View className="flex-row items-center justify-between mt-4 mb-6 px-1">
         <View className="flex-row items-center flex-1">
           <Pressable
-            onPress={() => router.back()}
+            onPress={() => { if (router.canGoBack()) { if (router.canGoBack()) { router.back(); } else { router.push('/'); } } else { router.push('/'); } }}
             className="w-11 h-11 rounded-full bg-white border border-slate-100 shadow-sm items-center justify-center mr-4 active:bg-slate-50"
           >
             <Feather name="arrow-left" size={22} color="#0F172A" />
@@ -88,12 +89,12 @@ export default function SettingsScreen() {
         </View>
 
         {/* Settings Options Card */}
-        <View className="bg-white border border-slate-100 shadow-sm rounded-3xl p-5 mb-6 space-y-4">
+        <View className="mb-6">
           
           {/* Background Sync */}
-          <View className="flex-row items-center justify-between border-b border-slate-50 pb-4">
+          <View className="flex-row items-center justify-between bg-blue-50 border border-blue-200 shadow-sm shadow-blue-500/10 rounded-2xl p-4 mb-4">
             <View className="flex-row items-center flex-1 pr-4">
-              <View className="w-10 h-10 rounded-full bg-blue-50 border border-blue-100 items-center justify-center mr-4">
+              <View className="w-10 h-10 rounded-xl bg-white border border-blue-100 items-center justify-center mr-4 shadow-sm">
                 <Feather name="refresh-cw" size={18} color="#2563EB" />
               </View>
               <View className="flex-1">
@@ -101,18 +102,13 @@ export default function SettingsScreen() {
                 <Text className="text-slate-500 text-[9px] font-semibold leading-3">{t('settingsBackgroundSyncDesc')}</Text>
               </View>
             </View>
-            <Switch
-              value={backgroundSync}
-              onValueChange={setBackgroundSync}
-              trackColor={{ false: '#E2E8F0', true: '#3B82F6' }}
-              thumbColor={'#FFFFFF'}
-            />
+            <Toggle value={backgroundSync} onValueChange={setBackgroundSync} />
           </View>
 
           {/* Critical Outbreak Alerts */}
-          <View className="flex-row items-center justify-between border-b border-slate-50 pb-4">
+          <View className="flex-row items-center justify-between bg-red-50 border border-red-200 shadow-sm shadow-red-500/10 rounded-2xl p-4 mb-4">
             <View className="flex-row items-center flex-1 pr-4">
-              <View className="w-10 h-10 rounded-full bg-red-50 border border-red-100 items-center justify-center mr-4">
+              <View className="w-10 h-10 rounded-xl bg-white border border-red-100 items-center justify-center mr-4 shadow-sm">
                 <Feather name="bell" size={18} color="#EF4444" />
               </View>
               <View className="flex-1">
@@ -120,18 +116,13 @@ export default function SettingsScreen() {
                 <Text className="text-slate-500 text-[9px] font-semibold leading-3">{t('settingsCriticalAlertsDesc')}</Text>
               </View>
             </View>
-            <Switch
-              value={criticalAlerts}
-              onValueChange={setCriticalAlerts}
-              trackColor={{ false: '#E2E8F0', true: '#3B82F6' }}
-              thumbColor={'#FFFFFF'}
-            />
+            <Toggle value={criticalAlerts} onValueChange={setCriticalAlerts} />
           </View>
 
           {/* AI Recommendation Auto Refresh */}
-          <View className="flex-row items-center justify-between border-b border-slate-50 pb-4">
+          <View className="flex-row items-center justify-between bg-purple-50 border border-purple-200 shadow-sm shadow-purple-500/10 rounded-2xl p-4 mb-4">
             <View className="flex-row items-center flex-1 pr-4">
-              <View className="w-10 h-10 rounded-full bg-purple-50 border border-purple-100 items-center justify-center mr-4">
+              <View className="w-10 h-10 rounded-xl bg-white border border-purple-100 items-center justify-center mr-4 shadow-sm">
                 <MaterialCommunityIcons name="robot-outline" size={20} color="#8B5CF6" />
               </View>
               <View className="flex-1">
@@ -139,18 +130,13 @@ export default function SettingsScreen() {
                 <Text className="text-slate-500 text-[9px] font-semibold leading-3">{t('settingsAutoRefreshDesc')}</Text>
               </View>
             </View>
-            <Switch
-              value={autoRefresh}
-              onValueChange={setAutoRefresh}
-              trackColor={{ false: '#E2E8F0', true: '#3B82F6' }}
-              thumbColor={'#FFFFFF'}
-            />
+            <Toggle value={autoRefresh} onValueChange={setAutoRefresh} />
           </View>
 
           {/* Offline Mode */}
-          <View className="flex-row items-center justify-between">
+          <View className="flex-row items-center justify-between bg-emerald-50 border border-emerald-200 shadow-sm shadow-emerald-500/10 rounded-2xl p-4">
             <View className="flex-row items-center flex-1 pr-4">
-              <View className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-100 items-center justify-center mr-4">
+              <View className="w-10 h-10 rounded-xl bg-white border border-emerald-100 items-center justify-center mr-4 shadow-sm">
                 <Feather name="download-cloud" size={18} color="#10B981" />
               </View>
               <View className="flex-1">
@@ -158,12 +144,7 @@ export default function SettingsScreen() {
                 <Text className="text-slate-500 text-[9px] font-semibold leading-3">{t('settingsOfflineModeDesc')}</Text>
               </View>
             </View>
-            <Switch
-              value={offlineMode}
-              onValueChange={setOfflineMode}
-              trackColor={{ false: '#E2E8F0', true: '#3B82F6' }}
-              thumbColor={'#FFFFFF'}
-            />
+            <Toggle value={offlineMode} onValueChange={setOfflineMode} />
           </View>
 
         </View>
@@ -237,7 +218,7 @@ export default function SettingsScreen() {
         <Pressable 
           onPress={() => {
             Alert.alert(t('settingsSaveAlertTitle'), t('settingsSaveAlertMessage'));
-            router.back();
+            if (router.canGoBack()) { router.back(); } else { router.push('/'); }
           }}
           className="w-full rounded-2xl py-4 flex-row justify-center items-center bg-[#7C3AED] shadow-md shadow-purple-500/30 mb-3"
           style={{ elevation: 3 }}

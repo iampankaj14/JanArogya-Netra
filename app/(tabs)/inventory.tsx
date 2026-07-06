@@ -1,10 +1,11 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Modal, Alert, ActivityIndicator } from 'react-native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
-import { localMedicines, addLocalMedicine } from '@/services/repositories/localDb';
-import { dummyPHCs } from '@/dummy/phcs';
+import { phcRepository } from '@/services/repositories/phcRepository';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import Skeleton from '@/components/ui/feedback/Skeleton';
+import { MedicineStock } from '@/shared/types/medicine';
 import geminiService from '@/services/ai/geminiService';
 import { useTranslation } from '@/hooks/useTranslation';
 
@@ -28,8 +29,28 @@ export default function InventoryScreen() {
   const [newItemStock, setNewItemStock] = useState('');
 
   const assignedFacilityId = authState?.facilityId || 'phc_barola';
-  const facilityMedicines = localMedicines.filter(m => m.facilityId === assignedFacilityId);
-  const phcName = dummyPHCs.find(p => p.id === assignedFacilityId)?.name || t('inventoryDefaultPhcName');
+  const [facilityMedicines, setFacilityMedicines] = useState<MedicineStock[]>([]);
+  const [phcName, setPhcName] = useState(t('inventoryDefaultPhcName'));
+  const [inventoryLoading, setInventoryLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchInventory = async () => {
+      try {
+        const inventory = await phcRepository.getInventory(assignedFacilityId);
+        setFacilityMedicines(inventory);
+        
+        const phc = await phcRepository.getPHC(assignedFacilityId);
+        if (phc) {
+          setPhcName(phc.name);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setInventoryLoading(false);
+      }
+    };
+    fetchInventory();
+  }, [assignedFacilityId, refreshKey]);
 
   const totalItems = facilityMedicines.length;
   const outOfStock = facilityMedicines.filter(m => m.currentStock === 0).length;
@@ -37,7 +58,8 @@ export default function InventoryScreen() {
   const lowStock = lowStockList.length;
   const inStock = totalItems - outOfStock - lowStock;
 
-  const uniqueMedicines = Array.from(new Map(localMedicines.map(m => [m.name, m])).values());
+  // We don't have all medicines universally since we moved to backend, so we only extract categories from what we have.
+  const uniqueMedicines = Array.from(new Map(facilityMedicines.map(m => [m.name, m])).values());
 
   // Filter for rendering items
   const filteredMedicines = facilityMedicines.filter(m => {
@@ -72,13 +94,14 @@ export default function InventoryScreen() {
       lastUpdated: new Date().toISOString(),
       facilityId: assignedFacilityId
     };
-    addLocalMedicine(newItem);
-    setRefreshKey(prev => prev + 1);
-    setIsAddModalVisible(false);
-    setNewItemName('');
-    setNewItemStock('');
-    setNewItemUnit('');
-    setNewItemType('ANTIBIOTICS');
+    phcRepository.addMedicine(newItem as any).then(() => {
+      setRefreshKey(prev => prev + 1);
+      setIsAddModalVisible(false);
+      setNewItemName('');
+      setNewItemStock('');
+      setNewItemUnit('');
+      setNewItemType('ANTIBIOTICS');
+    });
   };
 
   const handleScanMedicine = async () => {
@@ -144,7 +167,7 @@ export default function InventoryScreen() {
               <View className="w-12 h-12 rounded-full bg-blue-600 items-center justify-center mb-3 shadow-md shadow-blue-500/30">
                 <Feather name="box" size={20} color="white" />
               </View>
-              <Text className="text-2xl font-black text-slate-800">{totalItems}</Text>
+              {inventoryLoading ? <Skeleton width={40} height={30} className="mb-1 rounded" /> : <Text className="text-2xl font-black text-slate-800">{totalItems}</Text>}
               <Text className="text-slate-500 text-[10px] font-bold mb-4">{t('inventoryTotalItems')}</Text>
               <TouchableOpacity className="bg-blue-100/80 px-4 py-1.5 rounded-full border border-blue-200">
                 <Text className="text-blue-600 font-bold text-[10px]">{t('inventoryViewAll')}</Text>
@@ -152,11 +175,11 @@ export default function InventoryScreen() {
             </View>
 
             {/* In Stock */}
-            <View className="bg-[#F0FDF4] border border-emerald-100 rounded-2xl w-[115px] p-4 items-center relative shadow-sm shadow-emerald-100/50">
+            <View className="bg-[#ECFDF5] border border-emerald-100 rounded-2xl w-[115px] p-4 items-center relative shadow-sm shadow-emerald-100/50">
               <View className="w-12 h-12 rounded-full bg-emerald-500 items-center justify-center mb-3 shadow-md shadow-emerald-500/30">
-                <MaterialCommunityIcons name="clipboard-check-outline" size={20} color="white" />
+                <Feather name="check-circle" size={20} color="white" />
               </View>
-              <Text className="text-2xl font-black text-slate-800">{inStock}</Text>
+              {inventoryLoading ? <Skeleton width={40} height={30} className="mb-1 rounded" /> : <Text className="text-2xl font-black text-slate-800">{inStock}</Text>}
               <Text className="text-slate-500 text-[10px] font-bold mb-4">{t('inventoryInStock')}</Text>
               <View className="bg-emerald-100/80 px-3 py-1.5 rounded-full border border-emerald-200">
                 <Text className="text-emerald-700 font-bold text-[10px]">{t('inventorySufficient')}</Text>
@@ -164,11 +187,11 @@ export default function InventoryScreen() {
             </View>
 
             {/* Low Stock */}
-            <View className="bg-[#FFFBEB] border border-orange-100 rounded-2xl w-[115px] p-4 items-center relative shadow-sm shadow-orange-100/50">
-              <View className="w-12 h-12 rounded-full bg-orange-400 items-center justify-center mb-3 shadow-md shadow-orange-500/30">
+            <View className="bg-[#FFFBEB] border border-amber-100 rounded-2xl w-[115px] p-4 items-center relative shadow-sm shadow-amber-100/50">
+              <View className="w-12 h-12 rounded-full bg-amber-500 items-center justify-center mb-3 shadow-md shadow-amber-500/30">
                 <Feather name="alert-triangle" size={20} color="white" />
               </View>
-              <Text className="text-2xl font-black text-slate-800">{lowStock}</Text>
+              {inventoryLoading ? <Skeleton width={40} height={30} className="mb-1 rounded" /> : <Text className="text-2xl font-black text-slate-800">{lowStock}</Text>}
               <Text className="text-slate-500 text-[10px] font-bold mb-4">{t('inventoryLowStock')}</Text>
               <View className="bg-orange-100/80 px-3 py-1.5 rounded-full border border-orange-200">
                 <Text className="text-orange-600 font-bold text-[10px]">{t('inventoryReorderSoon')}</Text>
@@ -178,9 +201,9 @@ export default function InventoryScreen() {
             {/* Out of Stock */}
             <View className="bg-[#FEF2F2] border border-red-100 rounded-2xl w-[115px] p-4 items-center relative shadow-sm shadow-red-100/50">
               <View className="w-12 h-12 rounded-full bg-red-500 items-center justify-center mb-3 shadow-md shadow-red-500/30">
-                <MaterialCommunityIcons name="cube-off-outline" size={22} color="white" />
+                <Feather name="x-octagon" size={20} color="white" />
               </View>
-              <Text className="text-2xl font-black text-slate-800">{outOfStock}</Text>
+              {inventoryLoading ? <Skeleton width={40} height={30} className="mb-1 rounded" /> : <Text className="text-2xl font-black text-slate-800">{outOfStock}</Text>}
               <Text className="text-slate-500 text-[10px] font-bold mb-4">{t('inventoryOutOfStock')}</Text>
               <View className="bg-red-100/80 px-2 py-1.5 rounded-full border border-red-200">
                 <Text className="text-red-700 font-bold text-[9px] tracking-tight">{t('inventoryNeedAttention')}</Text>
