@@ -5,7 +5,9 @@ import { Feather } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
 import PHCCard from '@/components/ui/cards/PHCCard';
 import EmptyState from '@/components/ui/feedback/EmptyState';
-import { localPHCs } from '@/services/repositories/localDb';
+import Skeleton from '@/components/ui/feedback/Skeleton';
+import { phcRepository } from '@/services/repositories/phcRepository';
+import { PHC } from '@/shared/types/phc';
 import { useTranslation } from '@/hooks/useTranslation';
 
 export default function PHCsScreen() {
@@ -19,12 +21,27 @@ export default function PHCsScreen() {
   const isPHC = authState?.role === 'PHC';
   const assignedFacilityId = authState?.facilityId;
 
-  // 1. Role-based Base Filtering
-  const roleFilteredPHCs = localPHCs.filter((phc) => {
-    if (isBMO && phc.block !== assignedFacilityId) return false;
-    if (isPHC && phc.id !== assignedFacilityId) return false;
-    return true;
-  });
+  const [roleFilteredPHCs, setRoleFilteredPHCs] = useState<PHC[]>([]);
+  const [phcsLoading, setPhcsLoading] = useState(true);
+
+  React.useEffect(() => {
+    const fetchPhcs = async () => {
+      try {
+        const allPhcs = await phcRepository.getAllPHCs();
+        const filtered = allPhcs.filter((phc) => {
+          if (isBMO && phc.block !== assignedFacilityId) return false;
+          if (isPHC && phc.id !== assignedFacilityId) return false;
+          return true;
+        });
+        setRoleFilteredPHCs(filtered);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setPhcsLoading(false);
+      }
+    };
+    fetchPhcs();
+  }, [isBMO, isPHC, assignedFacilityId]);
 
   // Calculate dynamic metrics
   const totalCount = roleFilteredPHCs.length;
@@ -112,7 +129,7 @@ export default function PHCsScreen() {
             >
               <Image source={require('@/data/phc/metric icon/total_phc.png')} className="w-10 h-10 mr-3" style={{ width: 40, height: 40 }} resizeMode="contain" />
               <View>
-                <Text className="text-2xl font-black text-slate-800 leading-none">{totalCount}</Text>
+                {phcsLoading ? <Skeleton width={40} height={24} className="mb-1" /> : <Text className="text-2xl font-black text-slate-800 leading-none">{totalCount}</Text>}
                 <Text className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">{t('phcsMetricTotalLabel')}</Text>
                 <Text className="text-[8px] text-slate-400">{isBMO ? t('phcsMetricYourBlock') : isPHC ? t('phcsMetricYourFacility') : t('phcsMetricAllBlocks')}</Text>
               </View>
@@ -126,7 +143,7 @@ export default function PHCsScreen() {
             >
               <Image source={require('@/data/phc/metric icon/fine.png')} className="w-10 h-10 mr-3" style={{ width: 40, height: 40 }} resizeMode="contain" />
               <View>
-                <Text className="text-2xl font-black text-slate-800 leading-none">{operationalCount}</Text>
+                {phcsLoading ? <Skeleton width={40} height={24} className="mb-1" /> : <Text className="text-2xl font-black text-slate-800 leading-none">{operationalCount}</Text>}
                 <Text className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">{t('phcsMetricOperationalLabel')}</Text>
                 <Text className="text-[8px] text-slate-400">{`${totalCount > 0 ? Math.round((operationalCount/totalCount)*100) : 0}${t('phcsMetricOfTotalSuffix')}`}</Text>
               </View>
@@ -140,7 +157,7 @@ export default function PHCsScreen() {
             >
               <Image source={require('@/data/phc/metric icon/need.png')} className="w-10 h-10 mr-3" style={{ width: 40, height: 40 }} resizeMode="contain" />
               <View>
-                <Text className="text-2xl font-black text-slate-800 leading-none">{attentionCount}</Text>
+                {phcsLoading ? <Skeleton width={40} height={24} className="mb-1" /> : <Text className="text-2xl font-black text-slate-800 leading-none">{attentionCount}</Text>}
                 <Text className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">{t('phcsMetricAttentionLabel')}</Text>
                 <Text className="text-[8px] text-slate-400">{`${totalCount > 0 ? Math.round((attentionCount/totalCount)*100) : 0}${t('phcsMetricOfTotalSuffix')}`}</Text>
               </View>
@@ -154,21 +171,26 @@ export default function PHCsScreen() {
             >
               <Image source={require('@/data/phc/metric icon/critical.png')} className="w-10 h-10 mr-3" style={{ width: 40, height: 40 }} resizeMode="contain" />
               <View>
-                <Text className="text-2xl font-black text-slate-800 leading-none">{criticalCount}</Text>
+                {phcsLoading ? <Skeleton width={40} height={24} className="mb-1" /> : <Text className="text-2xl font-black text-slate-800 leading-none">{criticalCount}</Text>}
                 <Text className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">{t('phcsMetricCriticalLabel')}</Text>
                 <Text className="text-[8px] text-slate-400">{`${totalCount > 0 ? Math.round((criticalCount/totalCount)*100) : 0}${t('phcsMetricOfTotalSuffix')}`}</Text>
               </View>
             </TouchableOpacity>
-
           </View>
         </View>
 
-        {/* LIST */}
-        <View className="px-4 mt-2">
-          {filteredPHCs.length === 0 ? (
-            <EmptyState title={t('phcsEmptyTitle')} description={t('phcsEmptyDescription')} />
-          ) : (
-            filteredPHCs.map((item) => (
+        {/* LIST SECTION */}
+        <View className="px-4">
+          <Text className="text-xs font-bold text-black tracking-widest uppercase mb-3 ml-1">PHCS FACILITY</Text>
+          
+          {phcsLoading ? (
+            <View className="gap-3">
+              <Skeleton width="100%" height={120} className="rounded-2xl" />
+              <Skeleton width="100%" height={120} className="rounded-2xl" />
+              <Skeleton width="100%" height={120} className="rounded-2xl" />
+            </View>
+          ) : filteredPHCs.length > 0 ? (
+            filteredPHCs.map(item => (
               <View key={item.id} className="mb-4">
                 <PHCCard
                   id={item.id}
@@ -185,6 +207,8 @@ export default function PHCsScreen() {
                 />
               </View>
             ))
+          ) : (
+            <EmptyState title={t('phcsEmptyTitle')} description={t('phcsEmptyDescription')} />
           )}
         </View>
 

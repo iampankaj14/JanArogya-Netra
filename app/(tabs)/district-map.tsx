@@ -1,13 +1,12 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, Platform } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import ScreenContainer from '@/components/ui/layout/ScreenContainer';
 import { useAuth } from '@/context/AuthContext';
 import { useTranslation } from '@/hooks/useTranslation';
-import ScreenContainer from '@/components/ui/layout/ScreenContainer';
-import { dummyPHCs } from '@/dummy/phcs';
-import { localPHCs } from '@/services/repositories/localDb';
+import { phcRepository } from '@/services/repositories/phcRepository';
 import { PHC } from '@/shared/types/phc';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Image, Platform, Pressable, ScrollView, Text, TextInput, View, TouchableOpacity, LayoutAnimation } from 'react-native';
 import { WebView } from 'react-native-webview';
 
 // Mock User Location (Center of Gautam Buddha Nagar)
@@ -22,39 +21,62 @@ function getFacilityStatus(phc: PHC): FacilityStatus {
   return 'Operational';
 }
 
-function getStatusColor(status: FacilityStatus) {
-  switch(status) {
-    case 'Operational': return { core: '#10B981', bg: 'rgba(16,185,129,0.2)', sign: '+' };
-    case 'Limited Services': return { core: '#3B82F6', bg: 'rgba(59,130,246,0.2)', sign: '+' };
-    case 'Sub Center': return { core: '#F59E0B', bg: 'rgba(245,158,11,0.2)', sign: '+' };
-    case 'Closed': return { core: '#EF4444', bg: 'rgba(239,68,68,0.2)', sign: '×' };
+function getStatusDetails(status: FacilityStatus) {
+  switch (status) {
+    case 'Operational':
+      return { core: '#10B981', bg: 'rgba(16,185,129,0.2)', sign: '+', textClass: 'text-emerald-700', bgClass: 'bg-emerald-100', img: require('@/data/phc/phc illustration/green1.png') };
+    case 'Limited Services':
+      return { core: '#3B82F6', bg: 'rgba(59,130,246,0.2)', sign: '+', textClass: 'text-blue-700', bgClass: 'bg-blue-100', img: require('@/data/phc/phc illustration/green1.png') };
+    case 'Sub Center':
+      return { core: '#F59E0B', bg: 'rgba(245,158,11,0.2)', sign: '+', textClass: 'text-amber-700', bgClass: 'bg-amber-100', img: require('@/data/phc/phc illustration/yellow1.png') };
+    case 'Closed':
+      return { core: '#EF4444', bg: 'rgba(239,68,68,0.2)', sign: '×', textClass: 'text-red-700', bgClass: 'bg-red-100', img: require('@/data/phc/phc illustration/red1.png') };
   }
+}
+
+// Calculate distance mock
+function getDistanceMock(phcId: string): string {
+  // Just deterministic mock based on id length or char code for visual variety
+  const num = (phcId.charCodeAt(0) % 5) + 1 + (phcId.charCodeAt(1) % 10) / 10;
+  return `${num.toFixed(1)} km away`;
 }
 
 export default function DistrictMapScreen() {
   const router = useRouter();
   const { authState } = useAuth();
   const { t, language } = useTranslation();
-  
-  const currentBlock = authState?.role === 'BMO' 
-    ? (localPHCs.find(p => p.id === authState.facilityId)?.block || 'Bisrakh')
+
+  const [allPhcs, setAllPhcs] = useState<PHC[]>([]);
+  const currentBlock = authState?.role === 'BMO'
+    ? (allPhcs.find(p => p.id === authState.facilityId)?.block || 'Bisrakh')
     : null;
 
   const [search, setSearch] = useState('');
   const [isLegendExpanded, setIsLegendExpanded] = useState(true);
 
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  const toggleTray = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setIsCollapsed(!isCollapsed);
+  };
+
+  useEffect(() => {
+    phcRepository.getAllPHCs().then(setAllPhcs).catch(console.error);
+  }, []);
+
   // Filtered PHC markers
   const filteredPHCs = useMemo(() => {
-    return localPHCs.filter(phc => {
+    return allPhcs.filter(phc => {
       if (currentBlock && phc.block !== currentBlock) return false;
       return phc.name.toLowerCase().includes(search.toLowerCase()) ||
-             phc.block.toLowerCase().includes(search.toLowerCase());
+        phc.block.toLowerCase().includes(search.toLowerCase());
     }).map(phc => {
-       const status = getFacilityStatus(phc);
-       const colors = getStatusColor(status);
-       return { ...phc, status, colors };
+      const status = getFacilityStatus(phc);
+      const details = getStatusDetails(status);
+      return { ...phc, status, colors: { core: details.core, bg: details.bg, sign: details.sign } };
     });
-  }, [currentBlock, search]);
+  }, [allPhcs, currentBlock, search]);
 
   const getMapHtml = () => `
     <!DOCTYPE html>
@@ -132,11 +154,10 @@ export default function DistrictMapScreen() {
                 } else {
                   window.parent.postMessage({ type: 'PHC_CLICK', id: phc.id }, '*');
                 }
-             }, 300); // slight delay to allow popup to show before routing
+             }, 300);
           });
         });
 
-        // Add custom zoom controls that react native will trigger (if needed)
         window.zoomIn = function() { map.zoomIn(); }
         window.zoomOut = function() { map.zoomOut(); }
         window.recenter = function() { map.setView([${USER_LOCATION.latitude}, ${USER_LOCATION.longitude}], 11); }
@@ -179,11 +200,11 @@ export default function DistrictMapScreen() {
   return (
     <ScreenContainer scrollable={false} padding={false}>
       <View className="flex-1 relative bg-[#F1EFE9]">
-        
+
         {Platform.OS === 'web' ? (
-          <iframe 
+          <iframe
             ref={iframeRef as any}
-            srcDoc={getMapHtml()} 
+            srcDoc={getMapHtml()}
             style={{ width: '100%', height: '100%', border: 'none', position: 'absolute' }}
             title="map"
             sandbox="allow-scripts allow-same-origin allow-popups"
@@ -198,18 +219,18 @@ export default function DistrictMapScreen() {
             bounces={false}
             scrollEnabled={false}
             onMessage={(event) => {
-               const phcId = event.nativeEvent.data;
-               router.push({ pathname: '/(tabs)/phc-detail', params: { id: phcId } });
+              const phcId = event.nativeEvent.data;
+              router.push({ pathname: '/(tabs)/phc-detail', params: { id: phcId } });
             }}
           />
         )}
 
         {/* Top Search Bar */}
-        <View className="absolute top-4 left-4 right-4 z-50 flex-row items-center space-x-3 pointer-events-none">
-          <View className="flex-1 bg-white rounded-[24px] px-4 py-3.5 flex-row items-center shadow-sm border border-slate-100 pointer-events-auto">
+        <View className="absolute top-4 left-4 right-4 z-50 flex-row items-center pointer-events-none">
+          <View className="flex-1 bg-white rounded-full px-4 py-3 flex-row items-center shadow-sm border border-slate-100 pointer-events-auto">
             <Feather name="search" size={18} color="#94A3B8" className="mr-3" />
             <TextInput
-              className="flex-1 text-slate-800 text-[15px] font-medium"
+              className="flex-1 text-slate-800 text-[14px] font-medium"
               placeholder={t('districtMapSearchPlaceholder')}
               placeholderTextColor="#94A3B8"
               value={search}
@@ -218,86 +239,97 @@ export default function DistrictMapScreen() {
           </View>
         </View>
 
-        {/* Legend Overlay with Toggle functionality */}
-        <View className="absolute top-24 left-4 bg-white/95 rounded-[24px] p-5 shadow-md w-52 z-40 border border-slate-100">
-          <Pressable 
-            onPress={() => setIsLegendExpanded(!isLegendExpanded)}
-            className="flex-row items-center justify-between"
-          >
-            <Text className="text-slate-900 font-bold text-sm">{t('districtMapLegendTitle')}</Text>
-            <Feather name={isLegendExpanded ? "chevron-up" : "chevron-down"} size={18} color="#64748B" />
-          </Pressable>
-          
-          {isLegendExpanded && (
-            <View>
-              <View className="space-y-3 mt-4 mb-5">
-                <View className="flex-row items-center gap-3">
-                  <View className="w-8 h-8 rounded-full items-center justify-center" style={{ backgroundColor: 'rgba(16,185,129,0.2)' }}>
-                    <View className="w-[14px] h-[14px] rounded-full items-center justify-center border-[1.5px] border-white" style={{ backgroundColor: '#10B981' }}>
-                      <Text className="text-white font-bold" style={{ fontSize: 9, lineHeight: 10 }}>+</Text>
-                    </View>
-                  </View>
-                  <Text className="text-slate-600 font-medium text-xs">{t('districtMapLegendOperational')}</Text>
-                </View>
-                <View className="flex-row items-center gap-3">
-                  <View className="w-8 h-8 rounded-full items-center justify-center" style={{ backgroundColor: 'rgba(59,130,246,0.2)' }}>
-                    <View className="w-[14px] h-[14px] rounded-full items-center justify-center border-[1.5px] border-white" style={{ backgroundColor: '#3B82F6' }}>
-                      <Text className="text-white font-bold" style={{ fontSize: 9, lineHeight: 10 }}>+</Text>
-                    </View>
-                  </View>
-                  <Text className="text-slate-600 font-medium text-xs">{t('districtMapLegendLimited')}</Text>
-                </View>
-                <View className="flex-row items-center gap-3">
-                  <View className="w-8 h-8 rounded-full items-center justify-center" style={{ backgroundColor: 'rgba(245,158,11,0.2)' }}>
-                    <View className="w-[14px] h-[14px] rounded-full items-center justify-center border-[1.5px] border-white" style={{ backgroundColor: '#F59E0B' }}>
-                      <Text className="text-white font-bold" style={{ fontSize: 9, lineHeight: 10 }}>+</Text>
-                    </View>
-                  </View>
-                  <Text className="text-slate-600 font-medium text-xs">{t('districtMapLegendSubCenter')}</Text>
-                </View>
-                <View className="flex-row items-center gap-3">
-                  <View className="w-8 h-8 rounded-full items-center justify-center" style={{ backgroundColor: 'rgba(239,68,68,0.2)' }}>
-                    <View className="w-[14px] h-[14px] rounded-full items-center justify-center border-[1.5px] border-white" style={{ backgroundColor: '#EF4444' }}>
-                      <Text className="text-white font-bold" style={{ fontSize: 9, lineHeight: 10 }}>×</Text>
-                    </View>
-                  </View>
-                  <Text className="text-slate-600 font-medium text-xs">{t('districtMapLegendClosed')}</Text>
-                </View>
-              </View>
-
-              <View className="h-[1px] w-full bg-slate-100 mb-3" />
-              
-              <Text className="text-slate-500 font-medium text-xs mb-1">{t('districtMapTotalFacilitiesLabel')}</Text>
-              <Text className="text-[#208AEF] font-bold text-2xl">{filteredPHCs.length}</Text>
-            </View>
-          )}
-        </View>
-
         {/* Map Controls */}
-        <View className="absolute top-24 right-4 space-y-4 items-center z-40 mt-1">
-          <Pressable 
+        <View className="absolute top-24 right-4 space-y-3 items-center z-40 mt-1">
+          <Pressable
             onPress={() => sendMapCommand('RECENTER')}
-            className="w-[52px] h-[52px] bg-white rounded-full items-center justify-center shadow-md border border-slate-50"
+            className="w-11 h-11 bg-white rounded-full items-center justify-center shadow-md border border-slate-50"
           >
-            <MaterialCommunityIcons name="crosshairs-gps" size={24} color="#208AEF" />
+            <MaterialCommunityIcons name="crosshairs-gps" size={20} color="#208AEF" />
           </Pressable>
-          <View className="bg-white rounded-full shadow-md border border-slate-50 overflow-hidden w-10">
-            <Pressable 
+          <View className="bg-white rounded-full shadow-md border border-slate-50 overflow-hidden w-11">
+            <Pressable
               onPress={() => sendMapCommand('ZOOM_IN')}
-              className="w-10 h-10 items-center justify-center border-b border-slate-100 active:bg-slate-50"
+              className="w-11 h-11 items-center justify-center border-b border-slate-100 active:bg-slate-50"
             >
-              <Feather name="plus" size={18} color="#64748B" />
+              <Feather name="plus" size={20} color="#64748B" />
             </Pressable>
-            <Pressable 
+            <Pressable
               onPress={() => sendMapCommand('ZOOM_OUT')}
-              className="w-10 h-10 items-center justify-center active:bg-slate-50"
+              className="w-11 h-11 items-center justify-center active:bg-slate-50"
             >
-              <Feather name="minus" size={18} color="#64748B" />
+              <Feather name="minus" size={20} color="#64748B" />
             </Pressable>
           </View>
         </View>
 
+        {/* Nearby Facilities Bottom Tray */}
+        <View style={{ position: 'absolute', bottom: 85, left: 0, right: 0, zIndex: 50 }}>
+          <View className="bg-white rounded-t-3xl shadow-[0_-4px_15px_rgba(0,0,0,0.05)] pt-3">
+            <Pressable onPress={toggleTray} className="pb-2">
+                <View className="w-10 h-1 bg-slate-200 rounded-full self-center mb-4" />
 
+                <View className="flex-row items-center justify-between px-5 mb-4">
+                  <View className="flex-row items-center">
+                    <View className="w-8 h-8 rounded-full bg-rose-50 items-center justify-center border border-rose-100">
+                      <MaterialCommunityIcons name="hospital-marker" size={16} color="#E11D48" />
+                    </View>
+                    <Text className="text-slate-800 font-extrabold text-sm ml-2.5">Nearby Facilities</Text>
+                  </View>
+                  <View className="bg-slate-800 px-3 py-1.5 rounded-full flex-row items-center border border-slate-700 shadow-sm pointer-events-none">
+                    <Text className="text-white font-bold text-[10px] uppercase tracking-wider mr-1">View All</Text>
+                    <Feather name="chevron-right" size={12} color="white" />
+                  </View>
+                </View>
+              </Pressable>
+
+            {!isCollapsed && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingHorizontal: 20, gap: 12, paddingBottom: 24 }}
+              >
+            {allPhcs.slice(0, 5).map((phc, idx) => {
+              const status = getFacilityStatus(phc);
+              const details = getStatusDetails(status);
+              const distance = getDistanceMock(phc.id);
+
+              return (
+                <Pressable
+                  key={idx}
+                  style={{ borderColor: details.core, borderWidth: 1.5 }}
+                  className="w-36 bg-white rounded-[20px] overflow-hidden shadow-sm active:opacity-90"
+                  onPress={() => router.push({ pathname: '/(tabs)/phc-detail', params: { id: phc.id } })}
+                >
+                  <View className="h-24 bg-slate-50 relative overflow-hidden items-center justify-center">
+                    <Image source={details.img} className="w-[110px] h-[110px] opacity-90 mt-4" resizeMode="contain" />
+
+                    {/* Status Badge Over Image */}
+                    <View className="absolute top-2.5 left-2.5 w-6 h-6 rounded-full items-center justify-center shadow-sm" style={{ backgroundColor: details.bg }}>
+                      <View className="w-3 h-3 rounded-full items-center justify-center border-[1.5px] border-white" style={{ backgroundColor: details.core }}>
+                        <Text className="text-white font-bold" style={{ fontSize: 8, lineHeight: 9 }}>{details.sign}</Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  <View className="p-3 bg-white border-t border-slate-50">
+                    <Text className="font-black text-slate-800 text-[13px] mb-1 tracking-tight" numberOfLines={1}>{phc.name}</Text>
+                    <View className="flex-row items-center mb-2.5">
+                      <Feather name="map-pin" size={10} color="#94A3B8" />
+                      <Text className="text-[10px] text-slate-500 font-bold ml-1">{distance}</Text>
+                    </View>
+
+                    <View className={`self-start px-2 py-0.5 rounded-full border border-white/50 ${details.bgClass}`}>
+                      <Text className={`font-black text-[9px] uppercase tracking-wider ${details.textClass}`}>{status}</Text>
+                    </View>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+            )}
+          </View>
+        </View>
 
       </View>
     </ScreenContainer>

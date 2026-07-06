@@ -2,9 +2,9 @@ import ErrorState from '@/components/ui/feedback/ErrorState';
 import ScreenContainer from '@/components/ui/layout/ScreenContainer';
 import { Feather, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { FlatList, Image, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
+import { FlatList, Image, Pressable, ScrollView, Text, useWindowDimensions, View, Animated, Easing } from 'react-native';
 import Svg, { Defs, Path, Pattern, Stop, LinearGradient as SvgLinearGradient } from 'react-native-svg';
 
 import PHCHomeDashboard from '@/components/features/dashboard/PHCHomeDashboard';
@@ -126,10 +126,31 @@ export default function SituationRoomScreen() {
   const isBMO = authState?.role === 'BMO';
   const isPHC = authState?.role === 'PHC';
 
-  const { showAllTrends: showAllTrendsParam } = useLocalSearchParams();
+  const { showAllTrends: showAllTrendsParam, scrollToTop } = useLocalSearchParams();
+  const mainScrollViewRef = useRef<ScrollView>(null);
+
+  useEffect(() => {
+    if (scrollToTop) {
+      mainScrollViewRef.current?.scrollTo({ y: 0, animated: true });
+    }
+  }, [scrollToTop]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const alerts = hookAlerts;
+
+  const graphAnim = useRef(new Animated.Value(0)).current;
+
+  useFocusEffect(
+    useCallback(() => {
+      graphAnim.setValue(0);
+      Animated.timing(graphAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+        easing: Easing.out(Easing.cubic)
+      }).start();
+    }, [graphAnim])
+  );
   const [showAllTrends, setShowAllTrends] = useState(showAllTrendsParam === 'true');
   const [isLogisticsOpen, setIsLogisticsOpen] = useState(false);
   
@@ -387,7 +408,7 @@ export default function SituationRoomScreen() {
 
   return (
     <ScreenContainer padding={false} withSafeArea={false}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 16, paddingBottom: 130 }} className="bg-[#F2F7FD]">
+      <ScrollView ref={mainScrollViewRef} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 16, paddingBottom: 130 }} className="bg-[#F2F7FD]">
 
         {/* Netra Daily Briefing (Hero Card) */}
         <View className="mb-2.5">
@@ -470,7 +491,13 @@ export default function SituationRoomScreen() {
               </View>
             </View>
             {/* Faint Sparkline Background Approximation */}
-            <View className="absolute bottom-0 left-0 right-0 h-[45px] overflow-hidden rounded-b-[24px]">
+            <Animated.View 
+              className="absolute bottom-0 left-0 right-0 h-[45px] overflow-hidden rounded-b-[24px]"
+              style={{
+                opacity: graphAnim,
+                transform: [{ translateY: graphAnim.interpolate({ inputRange: [0, 1], outputRange: [15, 0] }) }]
+              }}
+            >
               <Svg height="100%" width="100%" viewBox="0 0 100 40" preserveAspectRatio="none">
                 <Defs>
                   <SvgLinearGradient id="gradBlue" x1="0" y1="0" x2="0" y2="1">
@@ -500,7 +527,7 @@ export default function SituationRoomScreen() {
                   transform: [{ translateX: -3.5 }, { translateY: -3.5 }]
                 }}
               />
-            </View>
+            </Animated.View>
           </View>
 
           {/* AI Recommendations */}
@@ -521,7 +548,13 @@ export default function SituationRoomScreen() {
               </View>
             </View>
             {/* Faint Sparkline Background Approximation */}
-            <View className="absolute bottom-0 left-0 right-0 h-[45px] overflow-hidden rounded-b-[24px]">
+            <Animated.View 
+              className="absolute bottom-0 left-0 right-0 h-[45px] overflow-hidden rounded-b-[24px]"
+              style={{
+                opacity: graphAnim,
+                transform: [{ translateY: graphAnim.interpolate({ inputRange: [0, 1], outputRange: [15, 0] }) }]
+              }}
+            >
               <Svg height="100%" width="100%" viewBox="0 0 100 40" preserveAspectRatio="none">
                 <Defs>
                   <SvgLinearGradient id="gradGreen" x1="0" y1="0" x2="0" y2="1">
@@ -551,7 +584,7 @@ export default function SituationRoomScreen() {
                   transform: [{ translateX: -3.5 }, { translateY: -3.5 }]
                 }}
               />
-            </View>
+            </Animated.View>
           </View>
         </View>
 
@@ -582,7 +615,7 @@ export default function SituationRoomScreen() {
                         width: 44, 
                         height: 44, 
                         borderRadius: 22, 
-                        backgroundColor: diseaseIcons[outbreak.disease]?.bg || '#FEE2E2',
+                        backgroundColor: '#FFFFFF',
                         alignItems: 'center',
                         justifyContent: 'center'
                       }}
@@ -590,7 +623,7 @@ export default function SituationRoomScreen() {
                       <MaterialCommunityIcons 
                         name={diseaseIcons[outbreak.disease]?.name || 'virus'} 
                         size={24} 
-                        color={diseaseIcons[outbreak.disease]?.color || '#EF4444'} 
+                        color="#DC2626" 
                       />
                     </View>
                   </View>
@@ -630,88 +663,100 @@ export default function SituationRoomScreen() {
 
         {/* Disease Trends Section */}
         <View className="mb-8 px-1">
-          <View className="flex-row justify-between items-center mb-3">
-            <Text className="text-brand-navy font-extrabold text-lg">{t('situationRoomDiseaseTrends')}</Text>
-            <Pressable onPress={() => setShowAllTrends(!showAllTrends)} className="flex-row items-center py-1 px-2">
-              <Text className="text-blue-600 font-bold text-xs mr-1">{showAllTrends ? t('situationRoomShowLess') : t('situationRoomViewAll')}</Text>
-              <Feather name={showAllTrends ? 'chevron-up' : 'chevron-down'} size={14} color="#2563EB" />
+          {/* Header Area */}
+          <View className="flex-row justify-between items-center mb-3 ml-2 pr-1">
+            <Text className="text-brand-navy font-extrabold text-[15px]">{t('situationRoomDiseaseTrends')}</Text>
+            
+            <Pressable 
+              className="bg-[#EF4444] rounded-[6px] px-2.5 py-1.5 flex-row items-center shadow-sm shadow-red-200"
+              onPress={() => setShowAllTrends(!showAllTrends)}
+            >
+              <Text className="text-white font-bold text-[9px] mr-1">{showAllTrends ? t('situationRoomShowLess') || 'View Less' : 'View All'}</Text>
+              <MaterialCommunityIcons name={showAllTrends ? "chevron-up" : "chevron-down"} size={10} color="white" />
             </Pressable>
           </View>
 
-          <View className="bg-white rounded-[24px] shadow-sm shadow-slate-200/50 border border-slate-100 overflow-hidden px-4 py-2">
-            {diseaseTrendsData.slice(0, showAllTrends ? diseaseTrendsData.length : 4).map((trend, index) => {
-              // Generate sparkline with smaller width/height matching the layout
-              const sparkline = generateSparkline(trend.data, 90, 30);
-              return (
-                <View key={trend.id} className={`flex-row items-center py-4 ${index !== 0 ? 'border-t border-slate-50' : ''}`}>
+          <View className="bg-white rounded-[12px] shadow-sm shadow-slate-200/50 border border-slate-100 overflow-hidden">
+            <View className="px-3 pb-3 pt-3">
+              {diseaseTrendsData.slice(0, showAllTrends ? diseaseTrendsData.length : 4).map((trend, index) => {
+                const sparkline = generateSparkline(trend.data, 90, 30);
+                
+                const rowBgColor = trend.isUp ? 'bg-red-50' : 'bg-emerald-50';
+                const rowBorderColor = trend.isUp ? 'border-red-200' : 'border-emerald-200';
+                const leftBarColor = trend.isUp ? 'bg-[#EF4444]' : 'bg-[#10B981]';
+                const badgeIcon = trend.isUp ? 'trending-up' : 'trending-down';
+                const badgeColor = trend.isUp ? '#EF4444' : '#10B981';
+                
+                const mainIcon = diseaseIcons[trend.disease]?.name || 'virus';
+                const iconBgColor = trend.isUp ? '#FEE2E2' : '#D1FAE5'; // Red-100 or Emerald-100
+                const iconColor = trend.isUp ? '#EF4444' : '#10B981'; // Red-500 or Emerald-500
 
-                  {/* Left Image Icon */}
-                  <View className="w-10 h-10 items-center justify-center mr-3">
-                    <View 
-                      style={{ 
-                        width: 34, 
-                        height: 34, 
-                        borderRadius: 17, 
-                        backgroundColor: diseaseIcons[trend.disease]?.bg || '#FEE2E2',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                    >
-                      <MaterialCommunityIcons 
-                        name={diseaseIcons[trend.disease]?.name || 'virus'} 
-                        size={18} 
-                        color={diseaseIcons[trend.disease]?.color || '#EF4444'} 
-                      />
+                return (
+                  <View key={trend.id} className={`${rowBgColor} rounded-[12px] mb-3 shadow-sm shadow-slate-200/50 border ${rowBorderColor} flex-row overflow-hidden p-2.5 items-center relative`}>
+                    
+                    {/* Left Colored Bar */}
+                    <View className={`absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full ${leftBarColor}`} />
+                    
+                    {/* Square Icon Container */}
+                    <View className="ml-2 w-[40px] h-[40px] rounded-[10px] items-center justify-center mr-3 relative" style={{ backgroundColor: iconBgColor }}>
+                      <MaterialCommunityIcons name={mainIcon} size={20} color={iconColor} />
+                      <View className="absolute -bottom-1 -right-1 bg-white rounded-full p-[2px] shadow-sm">
+                        <MaterialCommunityIcons name={badgeIcon} size={10} color={badgeColor} />
+                      </View>
                     </View>
+                    
+                    {/* Middle Info: Name & Sparkline */}
+                    <View className="flex-1 pr-2 flex-row items-center">
+                      <View className="w-[85px] mr-1">
+                        <Text className="text-brand-navy font-black text-[12px] tracking-tight" numberOfLines={2}>{translateDynamic(trend.disease, language)}</Text>
+                      </View>
+
+                      {/* Sparkline Graph */}
+                      <View className="flex-1 h-[30px] relative">
+                        <Svg height="100%" width="100%" viewBox="0 0 100 40" preserveAspectRatio="none">
+                          <Defs>
+                            <SvgLinearGradient id={`grad-${trend.id}`} x1="0" y1="0" x2="0" y2="1">
+                              <Stop offset="0" stopColor={trend.color} stopOpacity="0.25" />
+                              <Stop offset="1" stopColor={trend.color} stopOpacity="0.0" />
+                            </SvgLinearGradient>
+                          </Defs>
+                          <Path d={sparkline.areaPath} fill={`url(#grad-${trend.id})`} />
+                          <Path d={sparkline.path} fill="none" stroke={trend.color} strokeWidth="2" strokeLinejoin="round" />
+                        </Svg>
+                        {/* Dot */}
+                        <View
+                          style={{
+                            position: 'absolute',
+                            width: 5, height: 5, borderRadius: 2.5, backgroundColor: trend.color,
+                            left: `${sparkline.lastPoint.x}%`,
+                            top: `${(sparkline.lastPoint.y / 40) * 100}%`,
+                            transform: [{ translateX: -2.5 }, { translateY: -2.5 }]
+                          }}
+                        />
+                      </View>
+                    </View>
+
+                    {/* Vertical Dashed Divider */}
+                    <View className="h-[30px] border-l border-dashed border-black mx-1.5" />
+
+                    {/* Stats Area */}
+                    <View 
+                      className={`items-center justify-center w-[40px] border rounded-[10px] py-1 shadow-sm ${
+                        trend.isUp 
+                          ? 'bg-red-500 border-red-400 shadow-red-500/30' 
+                          : 'bg-emerald-500 border-emerald-400 shadow-emerald-500/30'
+                      }`}
+                    >
+                      <Text className="text-white font-black text-[14px] leading-tight text-center px-1" numberOfLines={1} adjustsFontSizeToFit>{trend.cases}</Text>
+                      <Text className={`font-bold text-[7px] mt-0.5 ${trend.isUp ? 'text-red-100' : 'text-emerald-100'}`}>
+                        {language === 'hi' ? 'मामले' : 'CASES'}
+                      </Text>
+                    </View>
+
                   </View>
-
-                  {/* Disease Name */}
-                  <View className="w-[85px]">
-                    <Text className="text-brand-navy font-extrabold text-[14px]" numberOfLines={1}>{translateDynamic(trend.disease, language)}</Text>
-                  </View>
-
-                  {/* Sparkline Graph */}
-                  <View className="flex-1 h-[30px] mx-2 relative">
-                    <Svg height="100%" width="100%" viewBox="0 0 100 40" preserveAspectRatio="none">
-                      <Defs>
-                        <SvgLinearGradient id={`grad-${trend.id}`} x1="0" y1="0" x2="0" y2="1">
-                          <Stop offset="0" stopColor={trend.color} stopOpacity="0.25" />
-                          <Stop offset="1" stopColor={trend.color} stopOpacity="0.0" />
-                        </SvgLinearGradient>
-                      </Defs>
-                      <Path d={sparkline.areaPath} fill={`url(#grad-${trend.id})`} />
-                      <Path d={sparkline.path} fill="none" stroke={trend.color} strokeWidth="2" strokeLinejoin="round" />
-                    </Svg>
-                    {/* Perfectly Round Dot via View */}
-                    <View
-                      style={{
-                        position: 'absolute',
-                        width: 5, height: 5, borderRadius: 2.5, backgroundColor: trend.color,
-                        left: `${sparkline.lastPoint.x}%`,
-                        top: `${(sparkline.lastPoint.y / 40) * 100}%`,
-                        transform: [{ translateX: -2.5 }, { translateY: -2.5 }]
-                      }}
-                    />
-                  </View>
-
-                  {/* Vertical Dashed Divider */}
-                  <View className="h-[30px] border-l border-dashed border-slate-200 mx-2" />
-
-                  {/* Stats Area */}
-                  <View className="items-center w-[45px]">
-                    <Text className="text-brand-navy font-black text-[16px] leading-tight">{trend.cases}</Text>
-                    <Text className="text-slate-500 font-bold text-[9px]">{t('situationRoomCases')}</Text>
-                  </View>
-
-                  {/* Trend Pill */}
-                  <View className="ml-1 px-1.5 py-1 rounded-full flex-row items-center justify-center w-[48px]" style={{ backgroundColor: trend.bg }}>
-                    <Text style={{ color: trend.color }} className="font-extrabold text-[9px]">{trend.trend}</Text>
-                    <Feather name={trend.isUp ? 'arrow-up' : 'arrow-down'} size={10} color={trend.color} style={{ marginLeft: 1 }} />
-                  </View>
-
-                </View>
-              );
-            })}
+                );
+              })}
+            </View>
           </View>
         </View>
 
@@ -746,87 +791,100 @@ export default function SituationRoomScreen() {
               <View
                 key={request.id}
                 style={{ width: cardWidthWithGap - 12 }}
-                className="rounded-[24px] shadow-sm shadow-blue-200/50 border border-white/60 overflow-hidden bg-white"
+                className="bg-[#DADAFC] rounded-[28px] p-4 shadow-sm border border-[#C5C5EA] overflow-hidden"
               >
-                <LinearGradient
-                  colors={['#E8F2FC', '#D4E6FA']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={{ width: '100%' }}
-                >
-                  <View className="p-4 relative">
-                    {/* Header Row */}
-                    <View className="flex-row justify-between items-center mb-4 relative z-10">
-                      <View className="flex-row items-center">
-                        {/* Netra Logo */}
-                        <View className="w-10 h-10 rounded-[12px] bg-white/70 border border-white items-center justify-center mr-3 overflow-hidden">
-                          <Image source={require('../../data/netra.png')} style={{width: 24, height: 24}} resizeMode="contain" />
-                        </View>
-                        <View>
-                          <Text className="text-slate-600 font-bold text-[11px] mb-0.5">{t('situationRoomNetraRecommendation')}</Text>
-                          <Text className="text-brand-navy font-black text-[15px]">{language === 'hi' ? (request.type === 'Redistribute Stock' ? 'स्टॉक पुनर्वितरित करें' : request.type) : request.type}</Text>
-                        </View>
-                      </View>
-                      {/* Glass Pill */}
-                      <View className="bg-white/70 border border-white px-2.5 py-1 rounded-full">
-                        <Text className="text-blue-700 font-extrabold text-[10px]">{request.confidence} {t('situationRoomConfidenceSuffix')}</Text>
-                      </View>
+                {/* Header Row */}
+                <View className="flex-row items-center mb-4 z-10">
+                  {/* Netra Logo */}
+                  <View className="w-[60px] h-[60px] rounded-full bg-white items-center justify-center mr-3 border-[3px] border-[#E8EBF6] shadow-sm">
+                    <Image source={require('../../data/netra.png')} style={{width: 36, height: 36}} resizeMode="contain" />
+                  </View>
+                  <View className="flex-1 justify-center">
+                    <Text className="text-[#6366F1] font-bold text-[10px] mb-0.5">✨ Netra AI Recommendation</Text>
+                    <Text className="text-brand-navy font-black text-[15px] leading-tight" numberOfLines={2}>
+                      {language === 'hi' 
+                        ? (request.type === 'Redistribute Stock' ? 'स्टॉक\nपुनर्वितरित करें' : request.type) 
+                        : request.type.replace('Redistribute ', 'Redistribute\n')}
+                    </Text>
+                  </View>
+                  {/* Confidence Pill */}
+                  <View className="bg-[#DCFCE7] border border-[#BBF7D0] px-2 py-1 rounded-[8px] flex-row items-center">
+                    <MaterialIcons name="check-circle" size={12} color="#15803D" />
+                    <Text className="text-[#15803D] font-bold text-[9px] ml-1">{request.confidence} {t('situationRoomConfidenceSuffix') || 'Confidence'}</Text>
+                  </View>
+                </View>
+
+                {/* Facilities Flow */}
+                <View className="flex-row items-center justify-between mb-4 z-10">
+                  {/* Source Facility Glass Card (Green) */}
+                  <View className="bg-[#F0FDF4] rounded-[16px] p-3 flex-1 flex-row items-center border border-[#DCFCE7] shadow-sm shadow-green-100">
+                    <View className="w-[38px] h-[38px] rounded-[12px] bg-[#22C55E] items-center justify-center mr-2">
+                      <MaterialCommunityIcons name="hospital-building" size={20} color="white" />
                     </View>
-
-                    {/* Facilities Flow */}
-                    <View className="flex-row items-center justify-between mb-4 relative z-10">
-                      {/* Source Facility Glass Card */}
-                      <View className="bg-white/60 rounded-[16px] p-2 flex-1 flex-row items-center border border-white">
-                        <View className="w-8 h-8 rounded-lg bg-blue-50 items-center justify-center mr-2 border border-white">
-                          <MaterialIcons name="local-hospital" size={20} color="#2563EB" />
-                        </View>
-                        <View className="flex-1">
-                          <Text className="text-slate-500 font-bold text-[9px] mb-0.5">{t('situationRoomSourceFacility')}</Text>
-                          <Text className="text-brand-navy font-bold text-[11px]" numberOfLines={1}>{translateDynamic(request.source, language)}</Text>
-                        </View>
-                      </View>
-
-                      {/* Arrow */}
-                      <View className="w-6 items-center justify-center">
-                        <MaterialIcons name="arrow-right-alt" size={24} color="#2563EB" />
-                      </View>
-
-                      {/* Target Facility Glass Card */}
-                      <View className="bg-white/60 rounded-[16px] p-2 flex-1 flex-row items-center border border-white">
-                        <View className="w-8 h-8 rounded-lg bg-green-50 items-center justify-center mr-2 border border-white">
-                          <MaterialIcons name="local-hospital" size={20} color="#16A34A" />
-                        </View>
-                        <View className="flex-1">
-                          <Text className="text-slate-500 font-bold text-[9px] mb-0.5">{t('situationRoomTargetFacility')}</Text>
-                          <Text className="text-brand-navy font-bold text-[11px]" numberOfLines={1}>{translateDynamic(request.target, language)}</Text>
-                        </View>
-                      </View>
-                    </View>
-
-                    {/* Reasoning */}
-                    <View className="mb-4 relative z-10">
-                      <View className="flex-row items-center mb-1">
-                        <MaterialIcons name="tips-and-updates" size={16} color="#4F46E5" style={{ marginRight: 4 }} />
-                        <Text className="text-indigo-600 font-black text-[10px] tracking-widest uppercase">{t('situationRoomReasoningLabel')}</Text>
-                      </View>
-                      <Text className="text-slate-700 font-semibold text-[11px] leading-relaxed pr-10" numberOfLines={2}>
-                        {request.reason}
+                    <View className="flex-1">
+                      <Text className="text-[#15803D] font-extrabold text-[8px] uppercase tracking-wider mb-0.5">Source</Text>
+                      <Text className="text-brand-navy font-bold text-[12px] mb-1" numberOfLines={1}>
+                        {translateDynamic(request.source, language).replace(/_/g, ' ').toUpperCase()}
                       </Text>
-                    </View>
-
-                    {/* Action Buttons with Liquid Glass feel */}
-                    <View className="flex-row gap-3 relative z-10">
-
-                      <Pressable
-                        onPress={() => handleApproveMission(request.id)}
-                        className="flex-1 py-3 rounded-xl bg-blue-600/90 border border-blue-400 items-center justify-center flex-row shadow-lg shadow-blue-500/40"
-                      >
-                        <MaterialIcons name="check-circle" size={18} color="white" style={{ marginRight: 6 }} />
-                        <Text className="text-white font-extrabold text-[12px]">{t('situationRoomApproveRequest')}</Text>
-                      </Pressable>
+                      <View className="bg-green-100 px-1.5 py-0.5 rounded-[4px] self-start">
+                        <Text className="text-[#15803D] font-bold text-[8px]">In Stock</Text>
+                      </View>
                     </View>
                   </View>
-                </LinearGradient>
+
+                  {/* Arrow */}
+                  <View className="w-6 h-6 rounded-full bg-white items-center justify-center mx-1.5 shadow-sm shadow-black/5 border border-slate-100 z-20">
+                    <Feather name="arrow-right" size={12} color="#6366F1" />
+                  </View>
+
+                  {/* Target Facility Glass Card (Red) */}
+                  <View className="bg-[#FEF2F2] rounded-[16px] p-3 flex-1 flex-row items-center border border-[#FEE2E2] shadow-sm shadow-red-100">
+                    <View className="w-[38px] h-[38px] rounded-[12px] bg-[#EF4444] items-center justify-center mr-2">
+                      <MaterialCommunityIcons name="hospital-building" size={20} color="white" />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-red-700 font-extrabold text-[8px] uppercase tracking-wider mb-0.5">Target</Text>
+                      <Text className="text-brand-navy font-bold text-[12px] mb-1" numberOfLines={1}>
+                        {translateDynamic(request.target, language).replace(/_/g, ' ').toUpperCase()}
+                      </Text>
+                      <View className="bg-red-100 px-1.5 py-0.5 rounded-[4px] self-start">
+                        <Text className="text-red-700 font-bold text-[8px]">Critical</Text>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Reasoning */}
+                <View className="mb-4 z-10 rounded-[16px] p-2 flex-row items-center">
+                  <View className="w-[36px] h-[36px] rounded-full bg-[#E0E7FF] items-center justify-center mr-3">
+                    <MaterialCommunityIcons name="lightbulb-on-outline" size={18} color="#6366F1" />
+                  </View>
+                  <View className="flex-1 pr-2 justify-center">
+                    <Text className="text-[#6366F1] font-black text-[9px] tracking-widest uppercase mb-1.5">{t('situationRoomReasoningLabel')}</Text>
+                    {request.type === 'Redistribute Stock' ? (
+                      <View>
+                        <Text className="text-slate-600 font-medium text-[10px] mb-0.5">• Target is critically low.</Text>
+                        <Text className="text-slate-600 font-medium text-[10px]">• Source has surplus stock.</Text>
+                      </View>
+                    ) : (
+                      <Text className="text-slate-600 font-medium text-[10.5px] leading-tight pr-2" numberOfLines={4}>• {request.reason}</Text>
+                    )}
+                  </View>
+                  <View className="w-[150px] items-end justify-center -my-2 -mr-10">
+                    <Image source={require('../../assets/images/reasoning_illustration.png')} style={{width: 150, height: 100}} resizeMode="contain" />
+                  </View>
+                </View>
+
+                {/* Action Buttons */}
+                <View className="z-10">
+                  <Pressable
+                    onPress={() => handleApproveMission(request.id)}
+                    className="w-full py-3.5 rounded-[14px] bg-[#6366F1] items-center justify-center flex-row shadow-md shadow-indigo-500/30 active:bg-indigo-600"
+                  >
+                    <Feather name="check-circle" size={16} color="white" style={{ marginRight: 8 }} />
+                    <Text className="text-white font-bold text-[14px]">{t('situationRoomApproveRequest')}</Text>
+                  </Pressable>
+                </View>
               </View>
               ))}
             </ScrollView>
@@ -846,63 +904,123 @@ export default function SituationRoomScreen() {
 
         {/* Logistics & Dispatch Queue */}
         <View className="mb-8 px-1">
-          <View className="bg-white rounded-[24px] shadow-sm shadow-slate-200/50 border border-slate-100 overflow-hidden">
-            <View className="px-4 py-2">
-              {/* Header (Clickable for dropdown) */}
-              <Pressable
-                onPress={() => {
-                  if (logisticsRequests.length > 3) {
-                    setIsLogisticsOpen(!isLogisticsOpen);
-                  }
-                }}
-                className="py-4 flex-row justify-between items-center relative z-10"
-              >
-                <Text className="text-brand-navy font-extrabold text-[15px]">{t('situationRoomLogisticsQueueTitle')}</Text>
-                {logisticsRequests.length > 3 && (
-                  <View className="flex-row items-center">
-                    <Text className="text-blue-600 font-bold text-xs mr-1">{isLogisticsOpen ? t('situationRoomShowLess') : t('situationRoomViewAll')}</Text>
-                    <Feather name={isLogisticsOpen ? "chevron-up" : "chevron-down"} size={16} color="#2563EB" />
-                  </View>
-                )}
-              </Pressable>
+          {/* Header Area (Outside Card) */}
+          <View className="flex-row justify-between items-center mb-3 ml-2 pr-1">
+            <Text className="text-brand-navy font-extrabold text-[15px]">{t('situationRoomLogisticsQueueTitle')}</Text>
+            
+            <Pressable 
+              className="bg-[#6366F1] rounded-[6px] px-2.5 py-1.5 flex-row items-center shadow-sm shadow-indigo-200"
+              onPress={() => setIsLogisticsOpen(!isLogisticsOpen)}
+            >
+              <Text className="text-white font-bold text-[9px] mr-1">{isLogisticsOpen ? t('situationRoomShowLess') || 'View Less' : 'View All'}</Text>
+              <MaterialCommunityIcons name={isLogisticsOpen ? "chevron-up" : "chevron-down"} size={10} color="white" />
+            </Pressable>
+          </View>
 
-              {/* Border line separating header from list */}
-              <View className="border-t border-slate-100 mb-2 relative z-10" />
+          <View className="bg-white rounded-[12px] shadow-sm shadow-slate-200/50 border border-slate-100 overflow-hidden">
+            {/* Items List */}
+            <View className="px-3 pb-3 pt-3">
+              {(isLogisticsOpen ? logisticsRequests : logisticsRequests.slice(0, 3)).map((item, index) => {
+                const isPending = item.status.toLowerCase() === 'pending';
+                const isDelivered = item.status.toLowerCase() === 'delivered';
+                const isEnRoute = !isPending && !isDelivered; // Treat others as en-route
+                
+                const leftBarColor = isPending ? 'bg-[#F97316]' : (isDelivered ? 'bg-[#10B981]' : 'bg-[#3B82F6]');
+                const badgeIcon = isPending ? 'timer-sand' : (isDelivered ? 'check-circle' : 'truck-fast');
+                const badgeColor = isPending ? '#F97316' : (isDelivered ? '#10B981' : '#3B82F6');
+                
+                const mainIcon = item.item.toLowerCase().includes('kit') ? 'package-variant-closed' : item.item.toLowerCase().includes('tablet') || item.item.toLowerCase().includes('paracetamol') || item.item.toLowerCase().includes('amoxicillin') ? 'pill' : 'medical-bag';
+                const iconBgColor = isPending ? '#FFEDD5' : (isDelivered ? '#DCFCE7' : '#DBEAFE');
+                const iconColor = isPending ? '#EA580C' : (isDelivered ? '#059669' : '#2563EB');
 
-              {/* Items List */}
-              <View className="pb-2 relative z-10">
-                {(isLogisticsOpen ? logisticsRequests : logisticsRequests.slice(0, 3)).map((item, index) => {
-                  const statusColors: Record<string, string> = {
-                    'pending': '#F59E0B',
-                    'approved': '#3B82F6',
-                    'en_route': '#10B981',
-                    'delivered': '#64748B'
-                  };
-                  return (
-                    <View key={item.id} className="flex-row items-center mb-4">
-                      {/* Left Icon */}
-                      <View 
-                        style={{ backgroundColor: logisticsIcons[item.item]?.bg || '#F3F4F6' }}
-                        className="w-10 h-10 rounded-full items-center justify-center mr-3"
-                      >
-                        <MaterialCommunityIcons 
-                          name={logisticsIcons[item.item]?.name || 'package-variant-closed'} 
-                          size={18} 
-                          color={logisticsIcons[item.item]?.color || '#6B7280'} 
-                        />
-                      </View>
-                      
-                      <View className="flex-1">
-                        <Text className="text-brand-navy font-bold text-[13px]">{translateDynamic(item.item, language)}</Text>
-                        <Text className="text-slate-500 font-semibold text-[11px] mt-0.5">{translateDynamic(item.from, language)} → {translateDynamic(item.to, language)}</Text>
-                      </View>
-                      <View className="items-end">
-                        <Text className="text-brand-navy font-black text-[13px]">{item.quantity}</Text>
-                        <Text style={{ color: statusColors[item.status] }} className="font-bold text-[10px] uppercase">{translateDynamic(item.status, language)}</Text>
+                const rowBgColor = isPending ? 'bg-orange-50' : (isDelivered ? 'bg-emerald-50' : 'bg-blue-50');
+                const rowBorderColor = isPending ? 'border-orange-200' : (isDelivered ? 'border-emerald-200' : 'border-blue-300');
+
+                return (
+                  <View key={item.id} className={`${rowBgColor} rounded-[12px] mb-3 shadow-sm shadow-slate-200/50 border ${rowBorderColor} flex-row overflow-hidden p-2.5 items-center relative`}>
+                    {/* Left Colored Bar */}
+                    <View className={`absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full ${leftBarColor}`} />
+                    
+                    {/* Square Icon Container */}
+                    <View className="ml-2 w-[40px] h-[40px] rounded-[10px] items-center justify-center mr-3 relative" style={{ backgroundColor: iconBgColor }}>
+                      <MaterialCommunityIcons name={mainIcon} size={20} color={iconColor} />
+                      <View className="absolute -bottom-1 -right-1 bg-white rounded-full p-[2px] shadow-sm">
+                        <MaterialCommunityIcons name={badgeIcon} size={10} color={badgeColor} />
                       </View>
                     </View>
-                  );
-                })}
+                    
+                    {/* Middle Info */}
+                    <View className="flex-1 pr-2">
+                      <Text className="text-brand-navy font-black text-[14px] tracking-tight mb-1" numberOfLines={1}>{translateDynamic(item.item, language)}</Text>
+                      
+                      <View className="flex-row items-center flex-wrap gap-1.5">
+                        <View className="flex-row items-center mr-1">
+                          <Text className="text-slate-500 font-semibold text-[8px] uppercase">{translateDynamic(item.from, language).replace(/_/g, ' ')}</Text>
+                          <MaterialCommunityIcons name="arrow-right" size={10} color="#94A3B8" style={{ marginHorizontal: 2 }} />
+                          <Text className="text-slate-500 font-semibold text-[8px] uppercase">{translateDynamic(item.to, language).replace(/_/g, ' ')}</Text>
+                        </View>
+
+                        <View className="flex-row items-center gap-1.5 mt-1">
+                          <View className="bg-slate-50 rounded-[4px] px-1.5 py-0.5 flex-row items-center border border-slate-100">
+                            <MaterialCommunityIcons name="calendar-text-outline" size={10} color="#94A3B8" />
+                            <Text className="text-slate-500 font-semibold text-[8px] ml-1">ID: {`DSP-${8920 + index}`}</Text>
+                          </View>
+                          <View className="bg-slate-50 rounded-[4px] px-1.5 py-0.5 flex-row items-center border border-slate-100">
+                            <MaterialCommunityIcons name="clock-outline" size={10} color="#94A3B8" />
+                            <Text className="text-slate-500 font-semibold text-[8px] ml-1">{isDelivered ? 'Yesterday' : 'Today'}, {10 + index}:{isPending ? '45' : '30'} {isDelivered ? 'PM' : 'AM'}</Text>
+                          </View>
+                        </View>
+                      </View>
+                    </View>
+                    
+                    {/* Vertical Dashed Divider */}
+                    <View className="h-[30px] border-l border-dashed border-black mx-1.5" />
+
+                    {/* Stats Area */}
+                    <View 
+                      className={`items-center justify-center w-[40px] border rounded-[10px] py-1 shadow-sm ${
+                        isPending 
+                          ? 'bg-orange-500 border-orange-400 shadow-orange-500/30' 
+                          : isDelivered 
+                            ? 'bg-emerald-500 border-emerald-400 shadow-emerald-500/30'
+                            : 'bg-blue-500 border-blue-400 shadow-blue-500/30'
+                      }`}
+                    >
+                      <Text className="text-white font-black text-[14px] leading-tight">{item.quantity}</Text>
+                      <Text className={`font-bold text-[7px] mt-0.5 ${isPending ? 'text-orange-100' : isDelivered ? 'text-emerald-100' : 'text-blue-100'}`}>
+                        {item.item.toLowerCase().includes('kit') ? 'KITS' : 'TABS'}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+
+            {/* Footer */}
+            <View className="bg-white px-3 py-3 border-t border-slate-100 flex-row items-center justify-between">
+              <View className="flex-row gap-3 flex-1">
+                <View className="flex-row items-center">
+                  <View className="w-[24px] h-[24px] rounded-[6px] bg-indigo-100 items-center justify-center mr-1.5">
+                    <MaterialCommunityIcons name="cube-outline" size={14} color="#6366F1" />
+                  </View>
+                  <Text className="text-brand-navy font-bold text-[10px]">Real-time Updates</Text>
+                </View>
+                
+                <View className="flex-row items-center">
+                  <View className="w-[24px] h-[24px] rounded-[6px] bg-blue-100 items-center justify-center mr-1.5">
+                    <MaterialCommunityIcons name="map-marker-path" size={14} color="#3B82F6" />
+                  </View>
+                  <Text className="text-brand-navy font-bold text-[10px]">Smart Routing</Text>
+                </View>
+              </View>
+              
+              <View className="bg-slate-50 rounded-[8px] p-2 px-2.5 border border-slate-100 flex-row items-center ml-2">
+                <View className="w-[24px] h-[24px] rounded-full bg-indigo-100 items-center justify-center mr-2">
+                  <MaterialCommunityIcons name="truck-delivery" size={14} color="#6366F1" />
+                </View>
+                <Text className="text-brand-navy font-black text-[12px]">
+                  {logisticsRequests.filter(req => req.status.toLowerCase() !== 'delivered').length} <Text className="font-semibold text-[9px] text-slate-600">Active</Text>
+                </Text>
               </View>
             </View>
           </View>
@@ -910,40 +1028,79 @@ export default function SituationRoomScreen() {
 
         {/* Recent Telemetry Audits */}
         <View className="mb-8 px-1">
-          <Text className="text-brand-navy font-extrabold text-[15px] mb-3 ml-2">{t('situationRoomRecentTelemetryAudits')}</Text>
-          <View className="bg-white rounded-[24px] shadow-sm shadow-slate-200/50 border border-slate-100 overflow-hidden p-4 relative">
+          {/* Header Area */}
+          <View className="flex-row justify-between items-center mb-3 ml-2 pr-1">
+            <Text className="text-brand-navy font-extrabold text-[15px]">{t('situationRoomRecentTelemetryAudits')}</Text>
+            
+            <Pressable 
+              className="bg-slate-800 rounded-[6px] px-2.5 py-1.5 flex-row items-center shadow-sm shadow-slate-300"
+              onPress={() => router.push('/reports')}
+            >
+              <Text className="text-white font-bold text-[9px] mr-1">{t('situationRoomViewAll')}</Text>
+              <MaterialCommunityIcons name="chevron-right" size={10} color="white" />
+            </Pressable>
+          </View>
 
-            {/* Timeline Line */}
-            <View className="absolute left-[27px] top-[40px] bottom-[40px] w-[2px] bg-slate-100" />
+          <View className="bg-white rounded-[12px] shadow-sm shadow-slate-200/50 border border-slate-100 overflow-hidden">
+            <View className="px-3 pb-3 pt-3">
+              {filteredTelemetryAudits.slice(0, 3).map((audit, i) => {
+                const rowBgColor = audit.color === 'red' ? 'bg-red-50' : 'bg-emerald-50';
+                const rowBorderColor = audit.color === 'red' ? 'border-red-200' : 'border-emerald-200';
+                const leftBarColor = audit.color === 'red' ? 'bg-[#EF4444]' : 'bg-[#10B981]';
+                const badgeIcon = audit.color === 'red' ? 'alert' : 'check-all';
+                const badgeColor = audit.color === 'red' ? '#EF4444' : '#10B981';
+                const iconBgColor = audit.color === 'red' ? '#FEE2E2' : '#D1FAE5';
+                const iconColor = audit.color === 'red' ? '#EF4444' : '#10B981';
 
-            {filteredTelemetryAudits.slice(0, 3).map((audit, i) => (
-              <Pressable 
-                key={audit.id} 
-                onPress={() => router.push('/reports')}
-                className={`flex-row items-center py-3 ${i !== Math.min(filteredTelemetryAudits.length, 3) - 1 ? 'border-b border-slate-50' : ''} relative`}
-              >
-                <View className="w-6 items-center justify-center bg-white z-10 mr-3">
-                  <View className={`w-[18px] h-[18px] rounded-full bg-${audit.color}-500 items-center justify-center border-2 border-white`}>
-                    <Feather name={audit.icon as any} size={10} color="white" />
+                return (
+                  <View key={audit.id} className={`${rowBgColor} rounded-[12px] mb-3 shadow-sm shadow-slate-200/50 border ${rowBorderColor} flex-row overflow-hidden p-2.5 items-center relative`}>
+                    
+                    {/* Left Colored Bar */}
+                    <View className={`absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full ${leftBarColor}`} />
+                    
+                    {/* Square Icon Container */}
+                    <View className="ml-2 w-[40px] h-[40px] rounded-[10px] items-center justify-center mr-3 relative" style={{ backgroundColor: iconBgColor }}>
+                      <MaterialCommunityIcons name={audit.color === 'red' ? 'shield-alert' : 'shield-check'} size={20} color={iconColor} />
+                      <View className="absolute -bottom-1 -right-1 bg-white rounded-full p-[2px] shadow-sm">
+                        <MaterialCommunityIcons name={badgeIcon} size={10} color={badgeColor} />
+                      </View>
+                    </View>
+                    
+                    {/* Middle Info */}
+                    <View className="flex-1 pr-2">
+                      <Text className="text-brand-navy font-black text-[14px] tracking-tight mb-1" numberOfLines={1}>{translateDynamic(audit.text, language)}</Text>
+                      
+                      <Text className="text-slate-500 font-semibold text-[8px] leading-relaxed mb-1" numberOfLines={2}>{translateDynamic(audit.desc, language)}</Text>
+
+                      <View className="flex-row items-center flex-wrap gap-1.5 mt-0.5">
+                        <View className="bg-slate-50 rounded-[4px] px-1.5 py-0.5 flex-row items-center border border-slate-100">
+                          <MaterialCommunityIcons name="shield-key-outline" size={10} color="#94A3B8" />
+                          <Text className="text-slate-500 font-semibold text-[8px] ml-1">ID: {`AUD-${9120 + i}`}</Text>
+                        </View>
+                      </View>
+                    </View>
+                    
+                    {/* Vertical Dashed Divider */}
+                    <View className="h-[30px] border-l border-dashed border-black mx-1.5" />
+
+                    {/* Stats Area */}
+                    <View 
+                      className={`items-center justify-center w-[40px] border rounded-[10px] py-1 shadow-sm ${
+                        audit.color === 'red' 
+                          ? 'bg-red-500 border-red-400 shadow-red-500/30' 
+                          : 'bg-emerald-500 border-emerald-400 shadow-emerald-500/30'
+                      }`}
+                    >
+                      <Text className="text-white font-black text-[10px] leading-tight text-center px-1" numberOfLines={1} adjustsFontSizeToFit>{language === 'hi' ? audit.time.replace('Just now', 'अभी').replace('m ago', 'मिनट') : audit.time.replace(' ago', '')}</Text>
+                      <Text className={`font-bold text-[7px] mt-0.5 ${audit.color === 'red' ? 'text-red-100' : 'text-emerald-100'}`}>
+                        {language === 'hi' ? 'समय' : 'TIME'}
+                      </Text>
+                    </View>
+
                   </View>
-                </View>
-
-                <View className={`w-11 h-11 rounded-full bg-${audit.color}-50 items-center justify-center mr-3 border border-${audit.color}-100/50`}>
-                  <Feather name="shield" size={16} color={audit.color === 'red' ? '#EF4444' : '#10B981'} />
-                </View>
-
-                <View className="flex-1">
-                  <Text className="text-brand-navy font-bold text-[13px] mb-0.5">{translateDynamic(audit.text, language)}</Text>
-                  <Text className="text-slate-500 font-semibold text-[11px] leading-relaxed pr-2">{translateDynamic(audit.desc, language)}</Text>
-                </View>
-
-                <View className="items-end pl-2">
-                  <Text className="text-slate-400 font-bold text-[10px] mb-2">{language === 'hi' ? audit.time.replace('Just now', 'अभी अभी').replace('m ago', 'मिनट पहले') : audit.time}</Text>
-                  <Feather name="chevron-right" size={14} color="#CBD5E1" />
-                </View>
-              </Pressable>
-            ))}
-
+                );
+              })}
+            </View>
           </View>
         </View>
 
