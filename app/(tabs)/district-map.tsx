@@ -274,7 +274,7 @@ export default function DistrictMapScreen() {
                     <View className="w-8 h-8 rounded-full bg-rose-50 items-center justify-center border border-rose-100">
                       <MaterialCommunityIcons name="hospital-marker" size={16} color="#E11D48" />
                     </View>
-                    <Text className="text-slate-800 font-extrabold text-sm ml-2.5">Nearby Facilities</Text>
+                    <Text className="text-slate-800 font-extrabold text-lg ml-2.5">Nearby Facilities</Text>
                   </View>
                   <View className="bg-slate-800 px-3 py-1.5 rounded-full flex-row items-center border border-slate-700 shadow-sm pointer-events-none">
                     <Text className="text-white font-bold text-[10px] uppercase tracking-wider mr-1">View All</Text>

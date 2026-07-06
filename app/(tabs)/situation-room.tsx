@@ -665,7 +665,7 @@ export default function SituationRoomScreen() {
         <View className="mb-8 px-1">
           {/* Header Area */}
           <View className="flex-row justify-between items-center mb-3 ml-2 pr-1">
-            <Text className="text-brand-navy font-extrabold text-[15px]">{t('situationRoomDiseaseTrends')}</Text>
+            <Text className="text-brand-navy font-extrabold text-lg">{t('situationRoomDiseaseTrends')}</Text>
             
             <Pressable 
               className="bg-[#EF4444] rounded-[6px] px-2.5 py-1.5 flex-row items-center shadow-sm shadow-red-200"
@@ -800,7 +800,7 @@ export default function SituationRoomScreen() {
                     <Image source={require('../../data/netra.png')} style={{width: 36, height: 36}} resizeMode="contain" />
                   </View>
                   <View className="flex-1 justify-center">
-                    <Text className="text-[#6366F1] font-bold text-[10px] mb-0.5">✨ Netra AI Recommendation</Text>
+                    <Text className="text-[#3B82F6] font-bold text-[10px] mb-0.5">Netra AI Recommendation</Text>
                     <Text className="text-brand-navy font-black text-[15px] leading-tight" numberOfLines={2}>
                       {language === 'hi' 
                         ? (request.type === 'Redistribute Stock' ? 'स्टॉक\nपुनर्वितरित करें' : request.type) 
@@ -834,7 +834,7 @@ export default function SituationRoomScreen() {
 
                   {/* Arrow */}
                   <View className="w-6 h-6 rounded-full bg-white items-center justify-center mx-1.5 shadow-sm shadow-black/5 border border-slate-100 z-20">
-                    <Feather name="arrow-right" size={12} color="#6366F1" />
+                    <Feather name="arrow-right" size={12} color="#3B82F6" />
                   </View>
 
                   {/* Target Facility Glass Card (Red) */}
@@ -857,10 +857,10 @@ export default function SituationRoomScreen() {
                 {/* Reasoning */}
                 <View className="mb-4 z-10 rounded-[16px] p-2 flex-row items-center">
                   <View className="w-[36px] h-[36px] rounded-full bg-[#E0E7FF] items-center justify-center mr-3">
-                    <MaterialCommunityIcons name="lightbulb-on-outline" size={18} color="#6366F1" />
+                    <MaterialCommunityIcons name="lightbulb-on-outline" size={18} color="#3B82F6" />
                   </View>
                   <View className="flex-1 pr-2 justify-center">
-                    <Text className="text-[#6366F1] font-black text-[9px] tracking-widest uppercase mb-1.5">{t('situationRoomReasoningLabel')}</Text>
+                    <Text className="text-[#3B82F6] font-black text-[9px] tracking-widest uppercase mb-1.5">{t('situationRoomReasoningLabel')}</Text>
                     {request.type === 'Redistribute Stock' ? (
                       <View>
                         <Text className="text-slate-600 font-medium text-[10px] mb-0.5">• Target is critically low.</Text>
@@ -879,7 +879,7 @@ export default function SituationRoomScreen() {
                 <View className="z-10">
                   <Pressable
                     onPress={() => handleApproveMission(request.id)}
-                    className="w-full py-3.5 rounded-[14px] bg-[#6366F1] items-center justify-center flex-row shadow-md shadow-indigo-500/30 active:bg-indigo-600"
+                    className="w-full py-3.5 rounded-[14px] bg-[#3B82F6] items-center justify-center flex-row shadow-md shadow-blue-500/30 active:bg-blue-600"
                   >
                     <Feather name="check-circle" size={16} color="white" style={{ marginRight: 8 }} />
                     <Text className="text-white font-bold text-[14px]">{t('situationRoomApproveRequest')}</Text>
@@ -906,7 +906,7 @@ export default function SituationRoomScreen() {
         <View className="mb-8 px-1">
           {/* Header Area (Outside Card) */}
           <View className="flex-row justify-between items-center mb-3 ml-2 pr-1">
-            <Text className="text-brand-navy font-extrabold text-[15px]">{t('situationRoomLogisticsQueueTitle')}</Text>
+            <Text className="text-brand-navy font-extrabold text-lg">{t('situationRoomLogisticsQueueTitle')}</Text>
             
             <Pressable 
               className="bg-[#6366F1] rounded-[6px] px-2.5 py-1.5 flex-row items-center shadow-sm shadow-indigo-200"
@@ -1030,7 +1030,7 @@ export default function SituationRoomScreen() {
         <View className="mb-8 px-1">
           {/* Header Area */}
           <View className="flex-row justify-between items-center mb-3 ml-2 pr-1">
-            <Text className="text-brand-navy font-extrabold text-[15px]">{t('situationRoomRecentTelemetryAudits')}</Text>
+            <Text className="text-brand-navy font-extrabold text-lg">{t('situationRoomRecentTelemetryAudits')}</Text>
             
             <Pressable 
               className="bg-slate-800 rounded-[6px] px-2.5 py-1.5 flex-row items-center shadow-sm shadow-slate-300"

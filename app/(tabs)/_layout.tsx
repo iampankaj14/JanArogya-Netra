@@ -1,7 +1,7 @@
 import { Feather } from '@expo/vector-icons';
 import { Tabs, useRouter, useSegments } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Dimensions, LayoutAnimation, PanResponder, Platform, Pressable, StyleSheet, Text, UIManager, View, Image } from 'react-native';
+import { Animated, Dimensions, LayoutAnimation, PanResponder, Platform, Pressable, StyleSheet, Text, UIManager, View, Image, Easing } from 'react-native';
 import GlobalHamburgerMenu from '../../components/common/GlobalHamburgerMenu';
 import { NetraAIAssistant } from '../../components/common/NetraAIAssistant';
 import TopAppBar from '../../components/ui/navigation/TopAppBar';
@@ -13,6 +13,129 @@ import { phcRepository } from '@/services/repositories/phcRepository';
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
+
+// Custom Tab Bar component moved outside to prevent re-mounting
+const CustomTabBar = ({ state, descriptors, navigation }: any) => {
+  const { authState } = useAuth();
+  const { t } = useTranslation();
+
+  const currentActiveRouteName = state.routes[state.index].name;
+  const highlightRouteName = currentActiveRouteName === 'phc-detail' ? 'phcs' : currentActiveRouteName;
+
+  const visibleRoutes = state.routes.filter((route: any) => {
+    if (route.name === 'profile' || route.name === 'phc-detail') return false;
+    if (authState?.role === 'PHC') {
+      return ['situation-room', 'inventory', 'reports', 'emergency'].includes(route.name);
+    }
+    return ['situation-room', 'district-map', 'phcs', 'reports'].includes(route.name);
+  });
+
+  const activeVisualIndex = Math.max(0, visibleRoutes.findIndex((r: any) => r.name === highlightRouteName));
+  
+  // Sequential Animation State
+  const slideAnim = useRef(new Animated.Value(activeVisualIndex)).current;
+  const prevIndexRef = useRef(activeVisualIndex);
+
+  useEffect(() => {
+    Animated.spring(slideAnim, {
+      toValue: activeVisualIndex,
+      useNativeDriver: false,
+      friction: 7,
+      tension: 65, // Reverted to the original snappy speed
+    }).start();
+  }, [activeVisualIndex]);
+
+  return (
+    <View style={styles.tabBarContainer}>
+      {/* Premium Floating Dock */}
+      <View 
+        className="bg-white border border-slate-200/80 py-1.5 px-2 rounded-[36px] mx-6 mb-8"
+        style={{
+          shadowColor: '#64748B',
+          shadowOffset: { width: 0, height: 12 },
+          shadowOpacity: 0.25,
+          shadowRadius: 24,
+          elevation: 24
+        }}
+      >
+        <View className="flex-row justify-between items-center relative">
+
+          {/* Step-by-Step Sliding Background Indicator */}
+          <Animated.View
+            style={{
+              position: 'absolute',
+              top: 0,
+              bottom: 0,
+              width: '25%', // 1/4th of the inner container width since there are exactly 4 buttons
+              transform: [{
+                translateX: slideAnim.interpolate({
+                  inputRange: [0, 1, 2, 3],
+                  outputRange: ['0%', '100%', '200%', '300%']
+                })
+              }],
+              backgroundColor: 'rgba(26, 99, 198, 0.18)', // Brand blue with stronger opacity
+              borderRadius: 9999,
+            }}
+          />
+
+          {visibleRoutes.map((route: any, index: number) => {
+            const isFocused = route.name === highlightRouteName;
+
+            const onPress = () => {
+              LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+              const event = navigation.emit({
+                type: 'tabPress',
+                target: route.key,
+                canPreventDefault: true,
+              });
+
+              const isActuallyFocused = currentActiveRouteName === route.name;
+
+              if (!isActuallyFocused && !event.defaultPrevented) {
+                navigation.navigate(route.name);
+              }
+            };
+
+            let iconName: any = 'activity';
+            let label = t('tabHome');
+            if (route.name === 'situation-room') {
+              iconName = 'activity';
+              label = authState?.role === 'PHC' ? t('tabFacility') : t('tabHome');
+            }
+            else if (route.name === 'district-map') { iconName = 'map'; label = t('tabMap'); }
+            else if (route.name === 'phcs') { iconName = 'heart'; label = t('tabPhcs'); }
+            else if (route.name === 'inventory') { iconName = 'box'; label = t('tabInventory'); }
+            else if (route.name === 'reports') { iconName = 'bar-chart-2'; label = t('tabReports'); }
+            else if (route.name === 'emergency') { iconName = 'shield'; label = t('tabAlert'); }
+
+            const activeColor = route.name === 'emergency' ? '#EF4444' : '#0E62CC';
+
+            return (
+              <Pressable
+                key={route.name}
+                onPress={onPress}
+                className="items-center justify-center py-2.5 px-3.5 rounded-full flex-1 z-10 bg-transparent"
+              >
+                <View className="h-5 items-center justify-center">
+                  <Feather
+                    name={iconName}
+                    size={18}
+                    color={isFocused ? activeColor : '#94A3B8'}
+                  />
+                </View>
+                <Text
+                  className={`text-[10px] font-extrabold mt-1 tracking-wider ${isFocused ? (route.name === 'emergency' ? 'text-red-500' : 'text-[#0E62CC]') : 'text-slate-400'}`}
+                >
+                  {label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+    </View>
+  );
+};
 
 export default function TabLayout() {
   const { authState } = useAuth();
@@ -109,125 +232,6 @@ export default function TabLayout() {
       }
     })
   ).current;
-
-  // Custom Tab Bar component
-  const CustomTabBar = ({ state, descriptors, navigation }: any) => {
-    const currentActiveRouteName = state.routes[state.index].name;
-    const highlightRouteName = currentActiveRouteName === 'phc-detail' ? 'phcs' : currentActiveRouteName;
-
-    const visibleRoutes = state.routes.filter((route: any) => {
-      if (route.name === 'profile' || route.name === 'phc-detail') return false;
-      if (authState?.role === 'PHC') {
-        return ['situation-room', 'inventory', 'reports', 'emergency'].includes(route.name);
-      }
-      return ['situation-room', 'district-map', 'phcs', 'reports'].includes(route.name);
-    });
-
-    const activeVisualIndex = Math.max(0, visibleRoutes.findIndex((r: any) => r.name === highlightRouteName));
-    const slideAnim = useRef(new Animated.Value(activeVisualIndex)).current;
-
-    useEffect(() => {
-      Animated.spring(slideAnim, {
-        toValue: activeVisualIndex,
-        useNativeDriver: false,
-        friction: 8,
-        tension: 50,
-      }).start();
-    }, [activeVisualIndex]);
-
-    return (
-      <View style={styles.tabBarContainer}>
-        {/* Premium Floating Dock */}
-        <View 
-          className="bg-white border border-slate-200/80 py-1.5 px-2 rounded-[36px] mx-6 mb-8"
-          style={{
-            shadowColor: '#64748B',
-            shadowOffset: { width: 0, height: 12 },
-            shadowOpacity: 0.25,
-            shadowRadius: 24,
-            elevation: 24
-          }}
-        >
-          <View className="flex-row justify-between items-center relative">
-
-            {/* Smooth Sliding Background Indicator */}
-            <Animated.View
-              style={{
-                position: 'absolute',
-                top: 0,
-                bottom: 0,
-                width: '25%', // 1/4th of the inner container width since there are exactly 4 buttons
-                transform: [{
-                  translateX: slideAnim.interpolate({
-                    inputRange: [0, 1, 2, 3],
-                    outputRange: ['0%', '100%', '200%', '300%']
-                  })
-                }],
-                backgroundColor: 'rgba(26, 99, 198, 0.18)', // Brand blue with stronger opacity
-                borderRadius: 9999,
-              }}
-            />
-
-            {visibleRoutes.map((route: any, index: number) => {
-              const isFocused = route.name === highlightRouteName;
-
-              const onPress = () => {
-                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                const event = navigation.emit({
-                  type: 'tabPress',
-                  target: route.key,
-                  canPreventDefault: true,
-                });
-
-                const isActuallyFocused = currentActiveRouteName === route.name;
-
-                if (!isActuallyFocused && !event.defaultPrevented) {
-                  navigation.navigate(route.name);
-                }
-              };
-
-              let iconName: any = 'activity';
-              let label = t('tabHome');
-              if (route.name === 'situation-room') {
-                iconName = 'activity';
-                label = authState?.role === 'PHC' ? t('tabFacility') : t('tabHome');
-              }
-              else if (route.name === 'district-map') { iconName = 'map'; label = t('tabMap'); }
-              else if (route.name === 'phcs') { iconName = 'heart'; label = t('tabPhcs'); }
-              else if (route.name === 'inventory') { iconName = 'box'; label = t('tabInventory'); }
-              else if (route.name === 'reports') { iconName = 'bar-chart-2'; label = t('tabReports'); }
-              else if (route.name === 'emergency') { iconName = 'shield'; label = t('tabAlert'); }
-
-              // For Emergency tab, we might want a different active color, but blue overlay is standard
-              const activeColor = route.name === 'emergency' ? '#EF4444' : '#0E62CC';
-
-              return (
-                <Pressable
-                  key={route.name}
-                  onPress={onPress}
-                  className="items-center justify-center py-2.5 px-3.5 rounded-full flex-1 z-10 bg-transparent"
-                >
-                  <View className="h-5 items-center justify-center">
-                    <Feather
-                      name={iconName}
-                      size={18}
-                      color={isFocused ? activeColor : '#94A3B8'}
-                    />
-                  </View>
-                  <Text
-                    className={`text-[10px] font-extrabold mt-1 tracking-wider ${isFocused ? (route.name === 'emergency' ? 'text-red-500' : 'text-[#0E62CC]') : 'text-slate-400'}`}
-                  >
-                    {label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-
-          </View>
-        </View>
-      </View>
-    );
-  };
 
   return (
     <View className="flex-1 bg-[#F5F8FC]">

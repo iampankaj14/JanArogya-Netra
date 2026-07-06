@@ -18,6 +18,8 @@ LogBox.ignoreAllLogs();
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
 
+import { Stack } from 'expo-router';
+
 // Initialize React Query client for future API/Firestore management
 const queryClient = new QueryClient();
 
@@ -55,7 +57,13 @@ export default function RootLayout() {
         <SafeAreaProvider>
           <StatusBar style="auto" />
           <View className="flex-1 bg-brand-navy">
-            <Slot />
+            <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+              <Stack.Screen name="index" />
+              <Stack.Screen name="login" />
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="notifications" />
+              <Stack.Screen name="settings" />
+            </Stack>
           </View>
         </SafeAreaProvider>
       </QueryClientProvider>

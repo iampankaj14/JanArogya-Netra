@@ -206,14 +206,14 @@ export default function PHCDetailScreen() {
   const avgFootfall = Math.round(totalFootfall / footfallData.length);
   const minF = Math.min(...footfallData);
   const maxF = Math.max(...footfallData);
-  const xCoords = [20, 70, 120, 170, 220, 270, 330];
+  const xCoords = [35, 82, 129, 176, 223, 270, 315];
   const graphPts = footfallData.map((val, i) => {
     let cy = 100;
     if (maxF > minF) cy = 160 - ((val - minF) / (maxF - minF)) * 100 - 20;
     return { cx: xCoords[i], cy, val, i };
   });
-  const pathD = `M20,${graphPts[0].cy} ` + graphPts.slice(1).map(p => `L${p.cx},${p.cy}`).join(' ');
-  const areaPath = pathD + ` L330,180 L20,180 Z`;
+  const pathD = `M35,${graphPts[0].cy} ` + graphPts.slice(1).map(p => `L${p.cx},${p.cy}`).join(' ');
+  const areaPath = pathD + ` L315,180 L35,180 Z`;
 
   const todayFootfall = footfallData[footfallData.length - 1];
   const yesterdayFootfall = footfallData[footfallData.length - 2] || todayFootfall;
@@ -938,32 +938,17 @@ export default function PHCDetailScreen() {
                 {/* Main Trend Line */}
                 <Path d={pathD} fill="none" stroke="#3B82F6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
 
-                {/* Data Points (Tappable) */}
+                {/* Data Points (Visual only — no onPress here) */}
                 {graphPts.map((pt) => (
-                  <G key={pt.i}>
-                    {/* Visible Circle */}
-                    <Circle
-                      key={`vis-${pt.i}`}
-                      cx={pt.cx}
-                      cy={pt.cy}
-                      r={activeDataPoint === pt.i ? 6 : 4.5}
-                      fill={activeDataPoint === pt.i ? "#3B82F6" : "white"}
-                      stroke={activeDataPoint === pt.i ? "white" : "#3B82F6"}
-                      strokeWidth="2"
-                    />
-                    {/* Invisible Touch Target (Larger Hit Area) */}
-                    <Circle
-                      key={`inv-${pt.i}`}
-                      cx={pt.cx}
-                      cy={pt.cy}
-                      r="25"
-                      fill="transparent"
-                      {...(Platform.OS === 'web'
-                        ? { onClick: () => setActiveDataPoint(pt.i) } as any
-                        : { onPress: () => setActiveDataPoint(pt.i) }
-                      )}
-                    />
-                  </G>
+                  <Circle
+                    key={`vis-${pt.i}`}
+                    cx={pt.cx}
+                    cy={pt.cy}
+                    r={activeDataPoint === pt.i ? 6 : 4.5}
+                    fill={activeDataPoint === pt.i ? "#3B82F6" : "white"}
+                    stroke={activeDataPoint === pt.i ? "white" : "#3B82F6"}
+                    strokeWidth="2"
+                  />
                 ))}
 
                 {/* Dynamic Tooltip inside SVG */}
@@ -996,6 +981,17 @@ export default function PHCDetailScreen() {
                   </SvgText>
                 ))}
               </Svg>
+
+              {/* Native Pressable touch targets overlaid on top of SVG — reliable for ALL 7 days */}
+              <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, flexDirection: 'row' }} pointerEvents="box-none">
+                {graphPts.map((pt) => (
+                  <Pressable
+                    key={`touch-${pt.i}`}
+                    onPress={() => setActiveDataPoint(pt.i)}
+                    style={{ flex: 1, height: '100%' }}
+                  />
+                ))}
+              </View>
             </View>
           </View>
 
