@@ -129,15 +129,20 @@ export default function PHCDetailScreen() {
   const [dataLoading, setDataLoading] = useState(true);
 
   useEffect(() => {
-    const fetchData = async () => {
+    if (!id) return;
+    setDataLoading(true);
+
+    const unsubscribePhc = phcRepository.subscribePHC(id as string, (fetchedPhc) => {
+      setPhc(fetchedPhc);
+      setDataLoading(false);
+    });
+
+    const unsubscribeStocks = phcRepository.subscribeInventory(id as string, (fetchedStocks) => {
+      setStocks(fetchedStocks);
+    });
+
+    const fetchDerived = async () => {
       try {
-        if (!id) return;
-        const fetchedPhc = await phcRepository.getPHC(id as string);
-        setPhc(fetchedPhc);
-
-        const fetchedStocks = await phcRepository.getInventory(id as string);
-        setStocks(fetchedStocks);
-
         const allAlerts = await alertsRepository.getActiveAlerts();
         setPhcAlerts(allAlerts.filter(a => a.facilityId === id));
 
@@ -147,11 +152,14 @@ export default function PHCDetailScreen() {
         );
       } catch (err) {
         console.error(err);
-      } finally {
-        setDataLoading(false);
       }
     };
-    fetchData();
+    fetchDerived();
+
+    return () => {
+      unsubscribePhc();
+      unsubscribeStocks();
+    };
   }, [id]);
 
   const [lastSyncTime] = useState(() =>

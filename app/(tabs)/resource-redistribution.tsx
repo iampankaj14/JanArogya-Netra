@@ -42,19 +42,21 @@ export default function ResourceRedistributionScreen() {
   const [medicines, setMedicines] = useState<MedicineStock[]>([]);
 
   useEffect(() => {
-    phcRepository.getAllPHCs().then(data => {
+    const unsubscribe = phcRepository.subscribePHCs(undefined, (data) => {
       setAllPhcs(data);
       if (!sourceId && data.length > 0) setSourceId(data[0].id);
       if (!targetId && data.length > 1) setTargetId(data[1].id);
     });
+    return unsubscribe;
   }, []);
 
   useEffect(() => {
     if (sourceId) {
-      phcRepository.getInventory(sourceId).then(data => {
+      const unsubscribe = phcRepository.subscribeInventory(sourceId, (data) => {
         setMedicines(data);
         if (!medicineId && data.length > 0) setMedicineId(data[0].id);
       });
+      return unsubscribe;
     }
   }, [sourceId]);
 

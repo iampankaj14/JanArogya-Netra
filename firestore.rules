@@ -5,82 +5,137 @@ service cloud.firestore {
     function isAuthenticated() {
       return request.auth != null;
     }
-    
+
     // Helper function to get caller user document
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
-    
-    // Helper to check user role
-    function hasRole(role) {
-      return isAuthenticated() && getUserData().role == role;
+
+    // Raw role stored on the user doc: 'DHO' | 'BMO' | 'PHC_MO' | 'DEO' | 'ASHA'
+    function myRole() {
+      return getUserData().role;
     }
 
-    function isAdminOrDho() {
-      return hasRole('SUPER_ADMIN') || hasRole('DHO');
+    // Mirrors the app's LoginRole mapping (PHC_MO/DEO/ASHA all collapse to 'PHC'
+    // for notification targeting purposes).
+    function myMappedRole() {
+      return myRole() == 'PHC_MO' || myRole() == 'DEO' || myRole() == 'ASHA' ? 'PHC' : myRole();
+    }
+
+    // For BMO this is the block name; for facility staff this is the PHC id.
+    function myFacilityId() {
+      return getUserData().facilityId;
+    }
+
+    function isDho() {
+      return isAuthenticated() && myRole() == 'DHO';
+    }
+
+    function isBmo() {
+      return isAuthenticated() && myRole() == 'BMO';
+    }
+
+    function isFacilityStaff() {
+      return isAuthenticated() && myRole() != 'DHO' && myRole() != 'BMO';
+    }
+
+    // True if the given PHC id belongs to this BMO's block.
+    function isInMyBlock(phcId) {
+      return isBmo() && get(/databases/$(database)/documents/phcs/$(phcId)).data.block == myFacilityId();
     }
 
     // 1. Users
     match /users/{userId} {
       allow read: if isAuthenticated();
-      allow write: if hasRole('SUPER_ADMIN') || (request.auth.uid == userId);
+      allow write: if isDho() || (isAuthenticated() && request.auth.uid == userId);
     }
 
-    // 2. Facilities (PHCs)
-    match /facilities/{facilityId} {
+    // 2. PHCs (facilities) - DHO sees/edits all, BMO edits PHCs in their own
+    // block, facility staff edit only their own facility record.
+    match /phcs/{phcId} {
       allow read: if isAuthenticated();
-      allow write: if isAdminOrDho();
+      allow create: if isDho();
+      allow update: if isDho() || isInMyBlock(phcId) || (isFacilityStaff() && phcId == myFacilityId());
+      allow delete: if isDho();
     }
 
-    // 3. Inventory
+    // 3. Inventory - scoped by the medicine's facilityId to DHO, the BMO whose
+    // block owns that facility, or the facility's own staff.
     match /inventory/{itemDocId} {
       allow read: if isAuthenticated();
-      // Staff at facility or DHO/BMO can write
-      allow write: if isAuthenticated() && (
-        isAdminOrDho() || 
-        hasRole('BMO') || 
-        (resource != null && getUserData().facilityId == resource.data.facilityId) || 
-        (request.resource != null && getUserData().facilityId == request.resource.data.facilityId)
-      );
+      allow create: if isDho()
+        || isInMyBlock(request.resource.data.facilityId)
+        || (isFacilityStaff() && request.resource.data.facilityId == myFacilityId());
+      allow update, delete: if isDho()
+        || isInMyBlock(resource.data.facilityId)
+        || (isFacilityStaff() && resource.data.facilityId == myFacilityId());
     }
 
-    // 4. Attendance
+    // 4. Attendance - same facility scoping as inventory.
     match /attendance/{attendanceId} {
       allow read: if isAuthenticated();
-      allow write: if isAuthenticated() && (
-        isAdminOrDho() || 
-        hasRole('BMO') || 
-        (request.resource != null && getUserData().facilityId == request.resource.data.facilityId)
-      );
+      allow create: if isDho()
+        || isInMyBlock(request.resource.data.facilityId)
+        || (isFacilityStaff() && request.resource.data.facilityId == myFacilityId());
+      allow update, delete: if isDho()
+        || isInMyBlock(resource.data.facilityId)
+        || (isFacilityStaff() && resource.data.facilityId == myFacilityId());
     }
 
     // 5. Reports
     match /reports/{reportId} {
       allow read: if isAuthenticated();
-      allow write: if isAdminOrDho();
+      allow write: if isDho();
     }
 
-    // 6. Notifications
+    // 6. Notifications - a doc with no target* fields is a broadcast visible
+    // to everyone; otherwise only the matching uid/role/facility may see it.
     match /notifications/{notifId} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
+      function isVisibleToMe(data) {
+        return (!('targetUid' in data) && !('targetRole' in data) && !('targetFacilityId' in data))
+          || (('targetUid' in data) && data.targetUid == request.auth.uid)
+          || (('targetRole' in data) && data.targetRole == myMappedRole())
+          || (('targetFacilityId' in data) && data.targetFacilityId == myFacilityId());
+      }
+
+      allow read: if isAuthenticated() && isVisibleToMe(resource.data);
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && isVisibleToMe(resource.data);
     }
 
-    // 7. Transfers
+    // 7. Transfers - dispatched/approved by DHO or the relevant BMO.
     match /transfers/{transferId} {
       allow read: if isAuthenticated();
-      allow write: if isAuthenticated() && (isAdminOrDho() || hasRole('BMO'));
+      allow write: if isDho() || isBmo();
     }
 
-    // 8. aiLogs
+    // 8. AI redistribution recommendations - approved/rejected by DHO or BMO.
+    match /recommendations/{recId} {
+      allow read: if isAuthenticated();
+      allow write: if isDho() || isBmo();
+    }
+
+    // 9. Disease trends - district-level analytics, DHO-authored.
+    match /diseaseTrends/{trendId} {
+      allow read: if isAuthenticated();
+      allow write: if isDho();
+    }
+
+    // 10. Alerts (stock/staff/outbreak) - raised/resolved by DHO or BMO.
+    match /alerts/{alertId} {
+      allow read: if isAuthenticated();
+      allow write: if isDho() || isBmo();
+    }
+
+    // 11. aiLogs
     match /aiLogs/{logId} {
       allow read, write: if isAuthenticated();
     }
 
-    // 9. Forecasts
+    // 12. Forecasts
     match /forecasts/{forecastId} {
       allow read: if isAuthenticated();
-      allow write: if isAdminOrDho();
+      allow write: if isDho();
     }
   }
 }

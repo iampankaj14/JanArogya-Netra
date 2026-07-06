@@ -130,6 +130,10 @@ export const translations = {
     dashboardTasksAlertTitle: 'Tasks',
     dashboardTasksAlertMessage: 'All daily tasks are listed here. No more pending tasks.',
     dashboardViewAllTasks: 'View All Tasks',
+    dashboardAddNewTask: 'Add New Task',
+    dashboardDoneEditing: 'Done Editing',
+    dashboardEditTasks: 'Edit Tasks',
+    dashboardShowLess: 'Show Less',
     dashboardFacilityStatusOperational: 'Facility Status: Operational',
     dashboardAllSystemsNormal: 'All Systems Normal',
     dashboardStatusInternet: 'Internet',
@@ -276,6 +280,8 @@ export const translations = {
     phcDetailDayFri: 'Fri',
     phcDetailDaySat: 'Sat',
     phcDetailDaySun: 'Sun',
+    phcDetailInStock: 'In Stock',
+    phcDetailCriticalBadge: 'Critical',
 
     // Emergency Screen
     emergencyHeaderTitle: 'Emergency Protocol',
@@ -304,6 +310,8 @@ export const translations = {
     districtMapLegendSubCenter: 'Sub Center',
     districtMapLegendClosed: 'PHC (Closed)',
     districtMapTotalFacilitiesLabel: 'Total Facilities',
+    districtMapNearbyFacilities: 'Nearby Facilities',
+    districtMapViewAll: 'View All',
 
     // Notifications Screen
     notificationsHeaderTitle: 'Notifications Inbox',
@@ -361,6 +369,7 @@ export const translations = {
     inventoryImageProcessFailAlert: 'Failed to process image.',
 
     // Reports Screen
+    reportsLoading: 'Fetching data from server...',
     reportsHeaderDefaultDistrict: 'District Health Report',
     reportsHeaderBlockSuffix: 'Block Report',
     reportsHeaderFacilitySuffix: 'Report',
@@ -503,6 +512,13 @@ export const translations = {
     situationRoomHighPriorityOutbreak: 'High Priority (Outbreak)',
     situationRoomMediumPriority: 'Medium Priority',
     situationRoomRedistributionApproved: 'Redistribution Approved',
+    situationRoomNetraAiRecommendation: 'Netra AI Recommendation',
+    situationRoomSource: 'Source',
+    situationRoomInStock: 'In Stock',
+    situationRoomTarget: 'Target',
+    situationRoomRealtimeUpdates: 'Real-time Updates',
+    situationRoomSmartRouting: 'Smart Routing',
+    situationRoomActive: 'Active',
 
     // Scenario Simulator
     scenarioSimulatorHeaderTitle: 'Scenario Simulator',
@@ -567,6 +583,32 @@ export const translations = {
     phcCardFlowHigh: 'High',
     phcCardFlowLow: 'Low',
     phcCardViewProfile: 'View Facility Profile',
+
+    // Netra AI Assistant
+    netraAiName: 'Netra AI',
+    netraAiOnlineStatus: 'Online',
+    netraAiGreeting: 'Hello! I am Netra, your District Health Intelligence Assistant. How can I help you manage operations or monitor outbreaks today?',
+    netraAiThinking: 'Thinking...',
+    netraAiInputPlaceholder: 'Type your message...',
+    netraAiErrorMessage: 'I encountered an error connecting to my network. Please try again.',
+    netraAiActionDashboardTitle: 'View Dashboard',
+    netraAiActionDashboardDesc: 'Overview & Insights',
+    netraAiActionStockTitle: 'Medicine Stock',
+    netraAiActionStockDesc: 'Check Availability',
+    netraAiActionFootfallTitle: 'Patient Footfall',
+    netraAiActionFootfallDesc: "Today's Summary",
+    netraAiActionBedsTitle: 'Bed Availability',
+    netraAiActionBedsDesc: 'CHC / PHC Status',
+    netraAiActionAttendanceTitle: 'Doctor Attendance',
+    netraAiActionAttendanceDesc: "Today's Report",
+    netraAiActionAlertsTitle: 'Active Alerts',
+    netraAiActionAlertsDesc: 'View All Alerts',
+    netraAiResponseDashboard: "Here's a quick overview: Your PHC has processed 142 patients today. Overall health index is 85%.",
+    netraAiResponseStock: 'Currently, Paracetamol and ORS packets are running low (below 20%). Other critical stocks are adequate.',
+    netraAiResponseFootfall: "Today's patient footfall is 142 (Adults: 90, Children: 52). Peak hours were between 10 AM and 1 PM.",
+    netraAiResponseBeds: 'Bed availability: 4 out of 10 beds are currently occupied in your PHC. 6 beds are available.',
+    netraAiResponseAttendance: 'Dr. Sharma and Dr. Gupta are present today. Dr. Singh is on leave.',
+    netraAiResponseAlerts: 'You have 2 active alerts: 1 Low Stock Warning and 1 Dengue Surge Warning in neighboring district.',
   },
   hi: {
     // Login Screen
@@ -699,6 +741,10 @@ export const translations = {
     dashboardTasksAlertTitle: 'कार्य',
     dashboardTasksAlertMessage: 'सभी दैनिक कार्य यहां सूचीबद्ध हैं। कोई और लंबित कार्य नहीं है।',
     dashboardViewAllTasks: 'सभी कार्य देखें',
+    dashboardAddNewTask: 'नया कार्य जोड़ें',
+    dashboardDoneEditing: 'संपादन पूर्ण',
+    dashboardEditTasks: 'कार्य संपादित करें',
+    dashboardShowLess: 'कम दिखाएं',
     dashboardFacilityStatusOperational: 'सुविधा स्थिति: कार्यशील',
     dashboardAllSystemsNormal: 'सभी प्रणालियां सामान्य',
     dashboardStatusInternet: 'इंटरनेट',
@@ -845,6 +891,8 @@ export const translations = {
     phcDetailDayFri: 'शुक्र',
     phcDetailDaySat: 'शनि',
     phcDetailDaySun: 'रवि',
+    phcDetailInStock: 'स्टॉक में',
+    phcDetailCriticalBadge: 'गंभीर',
 
     // Emergency Screen
     emergencyHeaderTitle: 'आपातकालीन प्रोटोकॉल',
@@ -873,6 +921,8 @@ export const translations = {
     districtMapLegendSubCenter: 'सब सेंटर',
     districtMapLegendClosed: 'पी.एच.सी. (बंद)',
     districtMapTotalFacilitiesLabel: 'कुल सुविधाएं',
+    districtMapNearbyFacilities: 'निकटवर्ती सुविधाएं',
+    districtMapViewAll: 'सभी देखें',
 
     // Notifications Screen
     notificationsHeaderTitle: 'सूचना इनबॉक्स',
@@ -930,6 +980,7 @@ export const translations = {
     inventoryImageProcessFailAlert: 'छवि संसाधित करने में विफल।',
 
     // Reports Screen
+    reportsLoading: 'सर्वर से डेटा प्राप्त हो रहा है...',
     reportsHeaderDefaultDistrict: 'जिला स्वास्थ्य रिपोर्ट',
     reportsHeaderBlockSuffix: 'ब्लॉक रिपोर्ट',
     reportsHeaderFacilitySuffix: 'रिपोर्ट',
@@ -1072,6 +1123,13 @@ export const translations = {
     situationRoomHighPriorityOutbreak: 'उच्च प्राथमिकता (प्रकोप)',
     situationRoomMediumPriority: 'मध्यम प्राथमिकता',
     situationRoomRedistributionApproved: 'पुनर्वितरण स्वीकृत',
+    situationRoomNetraAiRecommendation: 'नेत्र एआई सिफारिश',
+    situationRoomSource: 'स्रोत',
+    situationRoomInStock: 'स्टॉक में',
+    situationRoomTarget: 'लक्ष्य',
+    situationRoomRealtimeUpdates: 'रीयल-टाइम अपडेट',
+    situationRoomSmartRouting: 'स्मार्ट रूटिंग',
+    situationRoomActive: 'सक्रिय',
 
     // Scenario Simulator
     scenarioSimulatorHeaderTitle: 'परिदृश्य सिम्युलेटर',
@@ -1136,6 +1194,32 @@ export const translations = {
     phcCardFlowHigh: 'उच्च',
     phcCardFlowLow: 'निम्न',
     phcCardViewProfile: 'सुविधा प्रोफ़ाइल देखें',
+
+    // Netra AI Assistant
+    netraAiName: 'नेत्र एआई',
+    netraAiOnlineStatus: 'सक्रिय',
+    netraAiGreeting: 'नमस्ते! मैं नेत्र हूँ, गूगल जेमिनी द्वारा संचालित आपका ज़िला स्वास्थ्य खुफिया सहायक। आज मैं आपकी कैसे मदद कर सकता हूँ?',
+    netraAiThinking: 'नेत्र सोच रहा है...',
+    netraAiInputPlaceholder: 'यहां टाइप करें...',
+    netraAiErrorMessage: 'मुझे अपने नेटवर्क से जुड़ने में कोई त्रुटि मिली। कृपया पुनः प्रयास करें।',
+    netraAiActionDashboardTitle: 'डैशबोर्ड देखें',
+    netraAiActionDashboardDesc: 'अवलोकन और जानकारी',
+    netraAiActionStockTitle: 'दवा स्टॉक',
+    netraAiActionStockDesc: 'उपलब्धता जांचें',
+    netraAiActionFootfallTitle: 'मरीजों की संख्या',
+    netraAiActionFootfallDesc: 'आज का सारांश',
+    netraAiActionBedsTitle: 'बेड उपलब्धता',
+    netraAiActionBedsDesc: 'CHC / PHC स्थिति',
+    netraAiActionAttendanceTitle: 'डॉक्टर उपस्थिति',
+    netraAiActionAttendanceDesc: 'आज की रिपोर्ट',
+    netraAiActionAlertsTitle: 'सक्रिय अलर्ट',
+    netraAiActionAlertsDesc: 'सभी अलर्ट देखें',
+    netraAiResponseDashboard: 'यहाँ एक त्वरित अवलोकन है: आपके पीएचसी ने आज 142 मरीजों का इलाज किया है। समग्र स्वास्थ्य सूचकांक 85% है।',
+    netraAiResponseStock: 'वर्तमान में, पैरासिटामोल और ओआरएस पैकेट कम चल रहे हैं (20% से नीचे)। अन्य महत्वपूर्ण स्टॉक पर्याप्त हैं।',
+    netraAiResponseFootfall: 'आज मरीजों की संख्या 142 है (वयस्क: 90, बच्चे: 52)। पीक आवर्स सुबह 10 बजे से दोपहर 1 बजे के बीच थे।',
+    netraAiResponseBeds: 'बेड की उपलब्धता: आपके पीएचसी में 10 में से 4 बेड वर्तमान में भरे हुए हैं। 6 बेड खाली हैं।',
+    netraAiResponseAttendance: 'डॉ. शर्मा और डॉ. गुप्ता आज उपस्थित हैं। डॉ. सिंह छुट्टी पर हैं।',
+    netraAiResponseAlerts: 'आपके पास 2 सक्रिय अलर्ट हैं: 1 लो स्टॉक चेतावनी और पड़ोसी जिले में 1 डेंगू वृद्धि चेतावनी।',
   }
 };
 

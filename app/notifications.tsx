@@ -5,31 +5,23 @@ import { Feather } from '@expo/vector-icons';
 import ScreenContainer from '@/components/ui/layout/ScreenContainer';
 import NotificationCard from '@/components/ui/cards/NotificationCard';
 import EmptyState from '@/components/ui/feedback/EmptyState';
-import { localNotifications } from '@/services/repositories/localDb';
+import Skeleton from '@/components/ui/feedback/Skeleton';
+import { useNotifications } from '@/hooks/useNotifications';
 import { useTranslation } from '@/hooks/useTranslation';
 
 export default function NotificationsScreen() {
   const router = useRouter();
   const { t, language } = useTranslation();
-  const [notifications, setNotifications] = useState(localNotifications);
+  const { notifications, loading, markAllAsRead, clearAll } = useNotifications();
   const [activeFilter, setActiveFilter] = useState('all');
 
+  // Fallback bilingual lookup for known demo/dummy notification bodies sourced from
+  // localDb (arbitrary Firestore-authored notifications have no app-controlled key,
+  // so this only covers strings the app itself seeds).
   const translateDynamic = (text: string) => {
     if (language !== 'hi' || !text) return text;
-    
+
     const map: Record<string, string> = {
-      'Notifications Inbox': 'नोटिफिकेशन्स इनबॉक्स',
-      'Stay updated with important alerts and updates': 'महत्वपूर्ण अलर्ट और अपडेट्स के साथ जुड़े रहें',
-      'Mark all as read': 'सभी को पढ़ा हुआ मानें',
-      'Clear all unread notifications': 'सभी अनरीड नोटिफिकेशन्स हटाएँ',
-      'Clear all': 'सभी साफ़ करें',
-      'Remove all notifications': 'सभी नोटिफिकेशन्स हटाएँ',
-      'All': 'सभी',
-      'Alerts': 'अलर्ट्स',
-      'Updates': 'अपडेट्स',
-      'Reports': 'रिपोर्ट्स',
-      'Inbox is Clear': 'इनबॉक्स खाली है',
-      'You have no unread notifications or outbreak warnings.': 'आपके पास कोई नया नोटिफिकेशन या चेतावनी नहीं है।',
       'Transfer Dispatched': 'ट्रांसफर भेजा गया',
       'Redistribution Approved': 'पुनर्वितरण स्वीकृत',
       'New Epidemic Alert': 'नया महामारी अलर्ट',
@@ -41,7 +33,7 @@ export default function NotificationsScreen() {
       'System Update Completed': 'सिस्टम अपडेट पूरा हुआ',
       'System maintenance completed successfully at 10:00 AM.': 'सिस्टम मेंटेनेंस सुबह 10:00 बजे सफलतापूर्वक पूरा हुआ।'
     };
-    
+
     if (map[text]) return map[text];
 
     let result = text;
@@ -55,28 +47,28 @@ export default function NotificationsScreen() {
   };
 
   const handleMarkAllRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    markAllAsRead();
   };
 
   const handleClearAll = () => {
-    setNotifications([]);
+    clearAll();
   };
 
   const filteredNotifications = notifications.filter(n => {
     if (activeFilter === 'all') return true;
     return n.type === activeFilter;
   });
-  
+
   const allCount = notifications.length;
   const alertCount = notifications.filter(n => n.type === 'alert').length;
   const updateCount = notifications.filter(n => n.type === 'update').length;
   const reportCount = notifications.filter(n => n.type === 'report').length;
 
   const filters = [
-    { id: 'all', label: 'All', icon: 'inbox', badge: allCount, bgClass: 'bg-blue-50', iconColor: '#3B82F6', badgeBg: 'bg-blue-600' },
-    { id: 'alert', label: 'Alerts', icon: 'alert-triangle', badge: alertCount, bgClass: 'bg-red-50', iconColor: '#EF4444', badgeBg: 'bg-red-500' },
-    { id: 'update', label: 'Updates', icon: 'volume-2', badge: updateCount, bgClass: 'bg-emerald-50', iconColor: '#10B981', badgeBg: 'bg-emerald-500' },
-    { id: 'report', label: 'Reports', icon: 'file-text', badge: reportCount, bgClass: 'bg-purple-50', iconColor: '#8B5CF6', badgeBg: 'bg-purple-500' },
+    { id: 'all', label: t('notificationsFilterAll'), icon: 'inbox', badge: allCount, bgClass: 'bg-blue-50', iconColor: '#3B82F6', badgeBg: 'bg-blue-600' },
+    { id: 'alert', label: t('notificationsFilterAlerts'), icon: 'alert-triangle', badge: alertCount, bgClass: 'bg-red-50', iconColor: '#EF4444', badgeBg: 'bg-red-500' },
+    { id: 'update', label: t('notificationsFilterUpdates'), icon: 'volume-2', badge: updateCount, bgClass: 'bg-emerald-50', iconColor: '#10B981', badgeBg: 'bg-emerald-500' },
+    { id: 'report', label: t('notificationsFilterReports'), icon: 'file-text', badge: reportCount, bgClass: 'bg-purple-50', iconColor: '#8B5CF6', badgeBg: 'bg-purple-500' },
   ];
 
   return (
@@ -98,8 +90,8 @@ export default function NotificationsScreen() {
             <Feather name="arrow-left" size={22} color="#000" />
           </Pressable>
           <View className="flex-1 pr-2">
-            <Text className="text-brand-navy font-black text-[22px] tracking-tight mb-1">{translateDynamic('Notifications Inbox')}</Text>
-            <Text className="text-slate-500 text-[11px] font-semibold">{translateDynamic('Stay updated with important alerts and updates')}</Text>
+            <Text className="text-brand-navy font-black text-[22px] tracking-tight mb-1">{t('notificationsHeaderTitle')}</Text>
+            <Text className="text-slate-500 text-[11px] font-semibold">{t('notificationsHeaderSubtitle')}</Text>
           </View>
         </View>
       </View>
@@ -116,8 +108,8 @@ export default function NotificationsScreen() {
             <Feather name="check" size={16} color="#2563EB" />
           </View>
           <View className="flex-1">
-            <Text className="text-white font-extrabold text-[13px] mb-0.5">{translateDynamic('Mark all as read')}</Text>
-            <Text className="text-blue-100 text-[8px] font-bold">{translateDynamic('Clear all unread notifications')}</Text>
+            <Text className="text-white font-extrabold text-[13px] mb-0.5">{t('notificationsMarkAllReadTitle')}</Text>
+            <Text className="text-blue-100 text-[8px] font-bold">{t('notificationsMarkAllReadDesc')}</Text>
           </View>
         </Pressable>
 
@@ -131,8 +123,8 @@ export default function NotificationsScreen() {
             <Feather name="trash-2" size={14} color="#EF4444" />
           </View>
           <View className="flex-1">
-            <Text className="text-red-600 font-extrabold text-[13px] mb-0.5">{translateDynamic('Clear all')}</Text>
-            <Text className="text-slate-500 text-[8px] font-bold">{translateDynamic('Remove all notifications')}</Text>
+            <Text className="text-red-600 font-extrabold text-[13px] mb-0.5">{t('notificationsClearAllTitle')}</Text>
+            <Text className="text-slate-500 text-[8px] font-bold">{t('notificationsClearAllDesc')}</Text>
           </View>
         </Pressable>
       </View>
@@ -151,7 +143,7 @@ export default function NotificationsScreen() {
             >
               <Feather name={filter.icon as any} size={14} color={isActive ? filter.iconColor : '#94A3B8'} className="mr-2" />
               <Text className={`font-bold text-[12px] mr-2 ${isActive ? 'text-slate-800' : 'text-slate-500'}`}>
-                {translateDynamic(filter.label)}
+                {filter.label}
               </Text>
               <View className={`${isActive ? filter.badgeBg : 'bg-slate-300'} px-1.5 py-0.5 rounded-full`}>
                 <Text className="text-white font-black text-[9px]">{filter.badge}</Text>
@@ -163,10 +155,18 @@ export default function NotificationsScreen() {
 
       {/* Notification List (Standard map instead of FlatList to prevent freeze) */}
       <View className="flex-1 pb-10">
-        {filteredNotifications.length === 0 ? (
+        {loading ? (
+          <View>
+            {[1, 2, 3].map((i) => (
+              <View key={i} className="mb-3">
+                <Skeleton className="h-20 w-full rounded-2xl" />
+              </View>
+            ))}
+          </View>
+        ) : filteredNotifications.length === 0 ? (
           <EmptyState
-            title={translateDynamic('Inbox is Clear')}
-            description={translateDynamic('You have no unread notifications or outbreak warnings.')}
+            title={t('notificationsEmptyTitle')}
+            description={t('notificationsEmptyDescription')}
             icon="bell"
           />
         ) : (

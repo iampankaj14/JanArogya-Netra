@@ -4,8 +4,7 @@ import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import geminiService from '@/services/ai/geminiService';
 import speechService from '@/services/ai/speechService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useTranslation } from 'react-i18next';
-import { BlurView } from 'expo-blur';
+import { useTranslation } from '@/hooks/useTranslation';
 import { LinearGradient } from 'expo-linear-gradient';
 
 interface Message {
@@ -21,15 +20,13 @@ interface NetraAIAssistantProps {
 }
 
 export function NetraAIAssistant({ visible, onClose }: NetraAIAssistantProps) {
-  const { i18n } = useTranslation();
-  
+  const { t, language } = useTranslation();
+
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
       sender: 'ai',
-      text: i18n.language === 'hi' 
-        ? "नमस्ते! मैं नेत्र हूँ, गूगल जेमिनी द्वारा संचालित आपका ज़िला स्वास्थ्य खुफिया सहायक। आज मैं आपकी कैसे मदद कर सकता हूँ?"
-        : "Hello! I am Netra, your District Health Intelligence Assistant. How can I help you manage operations or monitor outbreaks today?",
+      text: t('netraAiGreeting'),
       timestamp: new Date(),
     },
   ]);
@@ -43,7 +40,7 @@ export function NetraAIAssistant({ visible, onClose }: NetraAIAssistantProps) {
     if (visible && messages.length === 1) {
       AsyncStorage.getItem('netraAudioEnabled').then(setting => {
         if (setting !== 'false') {
-          speechService.speak(messages[0].text, i18n.language === 'hi' ? 'hi-IN' : 'en-US');
+          speechService.speak(messages[0].text, language === 'hi' ? 'hi-IN' : 'en-US');
         }
       });
     }
@@ -55,12 +52,12 @@ export function NetraAIAssistant({ visible, onClose }: NetraAIAssistantProps) {
   };
 
   const quickActions = [
-    { id: 'dashboard', title: 'View Dashboard', desc: 'Overview & Insights', icon: 'chart-bar', family: 'MaterialCommunityIcons', color: '#6366F1', bg: '#E0E7FF' },
-    { id: 'stock', title: 'Medicine Stock', desc: 'Check Availability', icon: 'pill', family: 'MaterialCommunityIcons', color: '#10B981', bg: '#D1FAE5' },
-    { id: 'footfall', title: 'Patient Footfall', desc: "Today's Summary", icon: 'account-group', family: 'MaterialCommunityIcons', color: '#F59E0B', bg: '#FEF3C7' },
-    { id: 'beds', title: 'Bed Availability', desc: 'CHC / PHC Status', icon: 'bed', family: 'MaterialCommunityIcons', color: '#F43F5E', bg: '#FFE4E6' },
-    { id: 'attendance', title: 'Doctor Attendance', desc: "Today's Report", icon: 'account-check', family: 'MaterialCommunityIcons', color: '#8B5CF6', bg: '#EDE9FE' },
-    { id: 'alerts', title: 'Active Alerts', desc: 'View All Alerts', icon: 'bell', family: 'MaterialCommunityIcons', color: '#3B82F6', bg: '#DBEAFE' },
+    { id: 'dashboard', title: t('netraAiActionDashboardTitle'), desc: t('netraAiActionDashboardDesc'), icon: 'chart-bar', family: 'MaterialCommunityIcons', color: '#6366F1', bg: '#E0E7FF' },
+    { id: 'stock', title: t('netraAiActionStockTitle'), desc: t('netraAiActionStockDesc'), icon: 'pill', family: 'MaterialCommunityIcons', color: '#10B981', bg: '#D1FAE5' },
+    { id: 'footfall', title: t('netraAiActionFootfallTitle'), desc: t('netraAiActionFootfallDesc'), icon: 'account-group', family: 'MaterialCommunityIcons', color: '#F59E0B', bg: '#FEF3C7' },
+    { id: 'beds', title: t('netraAiActionBedsTitle'), desc: t('netraAiActionBedsDesc'), icon: 'bed', family: 'MaterialCommunityIcons', color: '#F43F5E', bg: '#FFE4E6' },
+    { id: 'attendance', title: t('netraAiActionAttendanceTitle'), desc: t('netraAiActionAttendanceDesc'), icon: 'account-check', family: 'MaterialCommunityIcons', color: '#8B5CF6', bg: '#EDE9FE' },
+    { id: 'alerts', title: t('netraAiActionAlertsTitle'), desc: t('netraAiActionAlertsDesc'), icon: 'bell', family: 'MaterialCommunityIcons', color: '#3B82F6', bg: '#DBEAFE' },
   ];
 
   const handleQuickAction = async (action: typeof quickActions[0]) => {
@@ -76,22 +73,15 @@ export function NetraAIAssistant({ visible, onClose }: NetraAIAssistantProps) {
 
     // Simulate slight network delay for realism
     setTimeout(async () => {
-      let responseText = '';
-      if (action.id === 'dashboard') responseText = "Here's a quick overview: Your PHC has processed 142 patients today. Overall health index is 85%.";
-      else if (action.id === 'stock') responseText = "Currently, Paracetamol and ORS packets are running low (below 20%). Other critical stocks are adequate.";
-      else if (action.id === 'footfall') responseText = "Today's patient footfall is 142 (Adults: 90, Children: 52). Peak hours were between 10 AM and 1 PM.";
-      else if (action.id === 'beds') responseText = "Bed availability: 4 out of 10 beds are currently occupied in your PHC. 6 beds are available.";
-      else if (action.id === 'attendance') responseText = "Dr. Sharma and Dr. Gupta are present today. Dr. Singh is on leave.";
-      else if (action.id === 'alerts') responseText = "You have 2 active alerts: 1 Low Stock Warning and 1 Dengue Surge Warning in neighboring district.";
-
-      if (i18n.language === 'hi') {
-        if (action.id === 'dashboard') responseText = "यहाँ एक त्वरित अवलोकन है: आपके पीएचसी ने आज 142 मरीजों का इलाज किया है। समग्र स्वास्थ्य सूचकांक 85% है।";
-        else if (action.id === 'stock') responseText = "वर्तमान में, पैरासिटामोल और ओआरएस पैकेट कम चल रहे हैं (20% से नीचे)। अन्य महत्वपूर्ण स्टॉक पर्याप्त हैं।";
-        else if (action.id === 'footfall') responseText = "आज मरीजों की संख्या 142 है (वयस्क: 90, बच्चे: 52)। पीक आवर्स सुबह 10 बजे से दोपहर 1 बजे के बीच थे।";
-        else if (action.id === 'beds') responseText = "बेड की उपलब्धता: आपके पीएचसी में 10 में से 4 बेड वर्तमान में भरे हुए हैं। 6 बेड खाली हैं।";
-        else if (action.id === 'attendance') responseText = "डॉ. शर्मा और डॉ. गुप्ता आज उपस्थित हैं। डॉ. सिंह छुट्टी पर हैं।";
-        else if (action.id === 'alerts') responseText = "आपके पास 2 सक्रिय अलर्ट हैं: 1 लो स्टॉक चेतावनी और पड़ोसी जिले में 1 डेंगू वृद्धि चेतावनी।";
-      }
+      const responseMap: Record<string, string> = {
+        dashboard: t('netraAiResponseDashboard'),
+        stock: t('netraAiResponseStock'),
+        footfall: t('netraAiResponseFootfall'),
+        beds: t('netraAiResponseBeds'),
+        attendance: t('netraAiResponseAttendance'),
+        alerts: t('netraAiResponseAlerts'),
+      };
+      const responseText = responseMap[action.id] || '';
 
       const aiMsg: Message = {
         id: (Date.now() + 1).toString(),
@@ -104,7 +94,7 @@ export function NetraAIAssistant({ visible, onClose }: NetraAIAssistantProps) {
 
       const audioSetting = await AsyncStorage.getItem('netraAudioEnabled');
       if (audioSetting !== 'false') {
-        speechService.speak(responseText, i18n.language === 'hi' ? 'hi-IN' : 'en-US');
+        speechService.speak(responseText, language === 'hi' ? 'hi-IN' : 'en-US');
       }
     }, 800);
   };
@@ -133,8 +123,8 @@ export function NetraAIAssistant({ visible, onClose }: NetraAIAssistantProps) {
         parts: msg.text
       }));
 
-      const aiResponseText = await geminiService.askNetra(currentInput, chatHistory, i18n.language);
-      
+      const aiResponseText = await geminiService.askNetra(currentInput, chatHistory, language);
+
       const aiMsg: Message = {
         id: (Date.now() + 1).toString(),
         sender: 'ai',
@@ -146,7 +136,7 @@ export function NetraAIAssistant({ visible, onClose }: NetraAIAssistantProps) {
       // Check setting before speaking
       const audioSetting = await AsyncStorage.getItem('netraAudioEnabled');
       if (audioSetting !== 'false') {
-        const speechLang = i18n.language === 'hi' ? 'hi-IN' : 'en-US';
+        const speechLang = language === 'hi' ? 'hi-IN' : 'en-US';
         speechService.speak(aiResponseText, speechLang);
       }
     } catch (error) {
@@ -154,9 +144,7 @@ export function NetraAIAssistant({ visible, onClose }: NetraAIAssistantProps) {
       setMessages((prev) => [...prev, {
         id: (Date.now() + 1).toString(),
         sender: 'ai',
-        text: i18n.language === 'hi' 
-          ? "मुझे अपने नेटवर्क से जुड़ने में कोई त्रुटि मिली। कृपया पुनः प्रयास करें।"
-          : "I encountered an error connecting to my network. Please try again.",
+        text: t('netraAiErrorMessage'),
         timestamp: new Date(),
       }]);
     } finally {
@@ -211,10 +199,10 @@ export function NetraAIAssistant({ visible, onClose }: NetraAIAssistantProps) {
                 <Image source={require('../../data/netra.png')} style={{width: 32, height: 32}} resizeMode="contain" />
               </View>
               <View>
-                <Text className="text-indigo-950 font-extrabold text-[18px] tracking-tight">{i18n.language === 'hi' ? 'नेत्र एआई' : 'Netra AI'}</Text>
+                <Text className="text-indigo-950 font-extrabold text-[18px] tracking-tight">{t('netraAiName')}</Text>
                 <View className="flex-row items-center mt-1">
                   <View className="w-2 h-2 rounded-full bg-emerald-500 mr-1.5 shadow-sm shadow-emerald-500/50" />
-                  <Text className="text-indigo-600/80 text-[11px] font-bold uppercase tracking-wider">{i18n.language === 'hi' ? 'सक्रिय' : 'Online'}</Text>
+                  <Text className="text-indigo-600/80 text-[11px] font-bold uppercase tracking-wider">{t('netraAiOnlineStatus')}</Text>
                 </View>
               </View>
             </View>
@@ -301,8 +289,8 @@ export function NetraAIAssistant({ visible, onClose }: NetraAIAssistantProps) {
                       
                       {/* Bottom Texts */}
                       <View className="mt-4">
-                        <Text className="text-brand-navy font-extrabold text-[15px] mb-1 leading-tight">{i18n.language === 'hi' ? action.title : action.title}</Text>
-                        <Text className="text-slate-500 font-bold text-[10px] uppercase tracking-wider">{i18n.language === 'hi' ? action.desc : action.desc}</Text>
+                        <Text className="text-brand-navy font-extrabold text-[15px] mb-1 leading-tight">{action.title}</Text>
+                        <Text className="text-slate-500 font-bold text-[10px] uppercase tracking-wider">{action.desc}</Text>
                       </View>
                     </Pressable>
                   ))}
@@ -319,7 +307,7 @@ export function NetraAIAssistant({ visible, onClose }: NetraAIAssistantProps) {
               </View>
               <View className="bg-white border border-slate-100 rounded-full px-5 py-3 flex-row items-center shadow-sm">
                 <ActivityIndicator size="small" color="#4F46E5" className="mr-3" />
-                <Text className="text-slate-500 text-[13px] font-bold">{i18n.language === 'hi' ? 'नेत्र सोच रहा है...' : 'Thinking...'}</Text>
+                <Text className="text-slate-500 text-[13px] font-bold">{t('netraAiThinking')}</Text>
               </View>
             </View>
           )}
@@ -337,7 +325,7 @@ export function NetraAIAssistant({ visible, onClose }: NetraAIAssistantProps) {
                     <View className="w-6 h-6 rounded-md items-center justify-center mr-2" style={{ backgroundColor: action.bg }}>
                       <MaterialCommunityIcons name={action.icon as any} size={14} color={action.color} />
                     </View>
-                    <Text className="text-slate-700 font-bold text-[12px]">{i18n.language === 'hi' ? action.title : action.title}</Text>
+                    <Text className="text-slate-700 font-bold text-[12px]">{action.title}</Text>
                   </Pressable>
                 ))}
               </ScrollView>
@@ -349,7 +337,7 @@ export function NetraAIAssistant({ visible, onClose }: NetraAIAssistantProps) {
             <View className="flex-1 bg-indigo-50/70 border-2 border-indigo-200 rounded-[28px] min-h-[52px] max-h-[120px] flex-row items-center pl-5 pr-2 mr-3 shadow-sm shadow-indigo-200/50">
               <TextInput
                 className="flex-1 text-indigo-950 text-[15px] font-semibold py-3.5 pr-2"
-                placeholder={i18n.language === 'hi' ? "यहां टाइप करें..." : "Type your message..."}
+                placeholder={t('netraAiInputPlaceholder')}
                 placeholderTextColor="#818CF8"
                 value={input}
                 onChangeText={setInput}

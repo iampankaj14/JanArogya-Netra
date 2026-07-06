@@ -4,9 +4,11 @@ import { Dimensions, ScrollView, Text, TouchableOpacity, View, Alert } from 'rea
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { useInventory } from '../../../hooks/useInventory';
-import dummyAlerts from '../../../dummy/alerts';
+import { alertsRepository } from '../../../services/repositories/alertsRepository';
+import { phcRepository } from '../../../services/repositories/phcRepository';
 import { localTasks, updateLocalTask } from '../../../services/repositories/localDb';
-import { dummyPHCs } from '../../../dummy/phcs';
+import { PHC } from '@/shared/types/phc';
+import { AlertItem } from '@/shared/types/alert';
 import { useTranslation } from '@/hooks/useTranslation';
 
 const { width } = Dimensions.get('window');
@@ -21,8 +23,19 @@ export default function PHCHomeDashboard() {
   const facilityId = authState?.facilityId || 'phc_barola';
   const { stocks } = useInventory(facilityId);
   const lowStockCount = stocks.filter((s) => s.currentStock < s.minRequiredStock).length;
-  
-  const activeOutbreak = dummyAlerts.find(a => a.facilityId === facilityId && a.type === 'OUTBREAK' && !a.resolved);
+
+  const [activeOutbreak, setActiveOutbreak] = useState<AlertItem | undefined>(undefined);
+
+  useEffect(() => {
+    let cancelled = false;
+    alertsRepository.getActiveAlerts()
+      .then((alerts) => {
+        if (cancelled) return;
+        setActiveOutbreak(alerts.find(a => a.facilityId === facilityId && a.type === 'OUTBREAK' && !a.resolved));
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [facilityId]);
 
   const [tasks, setTasks] = useState(localTasks.filter(t => t.facilityId === facilityId));
   const [showAllTasks, setShowAllTasks] = useState(false);
@@ -77,13 +90,32 @@ export default function PHCHomeDashboard() {
     'phc_mandi_shyam_nagar': 'PHC Mandi Shyam Nagar',
   };
   const facilityName = facilityNames[facilityId] || 'PHC Barola';
-  const phc = dummyPHCs.find(p => p.id === facilityId) || dummyPHCs[0];
+  const DEFAULT_PHC: PHC = {
+    id: facilityId,
+    name: facilityName,
+    block: '',
+    healthScore: 0,
+    bedsTotal: 0,
+    bedsOccupied: 0,
+    doctorAvailable: false,
+    latitude: 0,
+    longitude: 0,
+    weeklyFootfall: [],
+  } as unknown as PHC;
+  const [phc, setPhc] = useState<PHC>(DEFAULT_PHC);
 
-  const todayFootfall = phc.weeklyFootfall ? phc.weeklyFootfall[phc.weeklyFootfall.length - 1] : 142;
-  const yesterdayFootfall = phc.weeklyFootfall ? phc.weeklyFootfall[phc.weeklyFootfall.length - 2] : 130;
-  const footfallPct = yesterdayFootfall ? Math.round(((todayFootfall - yesterdayFootfall) / yesterdayFootfall) * 100) : 12;
+  useEffect(() => {
+    const unsubscribe = phcRepository.subscribePHC(facilityId, (fetched) => {
+      if (fetched) setPhc(fetched);
+    });
+    return unsubscribe;
+  }, [facilityId]);
 
-  const ipdOccupancy = Math.round((phc.bedsOccupied / Math.max(1, phc.bedsTotal)) * 100);
+  const todayFootfall = (phc.weeklyFootfall && phc.weeklyFootfall.length > 0) ? phc.weeklyFootfall[phc.weeklyFootfall.length - 1] : 0;
+  const yesterdayFootfall = (phc.weeklyFootfall && phc.weeklyFootfall.length > 1) ? phc.weeklyFootfall[phc.weeklyFootfall.length - 2] : 0;
+  const footfallPct = yesterdayFootfall > 0 ? Math.round(((todayFootfall - yesterdayFootfall) / yesterdayFootfall) * 100) : 0;
+
+  const ipdOccupancy = phc.bedsTotal > 0 ? Math.round((phc.bedsOccupied / phc.bedsTotal) * 100) : 0;
   const pendingTests = Math.round(todayFootfall * 0.25);
 
   const newPatients = Math.round(todayFootfall * 0.6);
@@ -422,24 +454,24 @@ export default function PHCHomeDashboard() {
             {isEditingTasks && (
               <TouchableOpacity onPress={addTask} className="mt-2 bg-emerald-50 border border-emerald-200 py-3 rounded-2xl flex-row items-center justify-center border-dashed active:bg-emerald-100">
                 <Feather name="plus" size={14} color="#10B981" />
-                <Text className="text-emerald-600 font-bold ml-1.5 text-[12px]">{t('dashboardAddNewTask', 'Add New Task')}</Text>
+                <Text className="text-emerald-600 font-bold ml-1.5 text-[12px]">{t('dashboardAddNewTask')}</Text>
               </TouchableOpacity>
             )}
 
             <View className="mt-5 flex-row gap-2">
-              <TouchableOpacity 
-                onPress={() => setIsEditingTasks(!isEditingTasks)} 
+              <TouchableOpacity
+                onPress={() => setIsEditingTasks(!isEditingTasks)}
                 className="flex-1 bg-blue-50 py-3.5 rounded-[16px] flex-row items-center justify-center border border-blue-200 active:bg-blue-100"
               >
-                <Text className="text-blue-600 font-black text-[11px] uppercase tracking-widest">{isEditingTasks ? t('dashboardDoneEditing', 'Done Editing') : t('dashboardEditTasks', 'Edit Tasks')}</Text>
+                <Text className="text-blue-600 font-black text-[11px] uppercase tracking-widest">{isEditingTasks ? t('dashboardDoneEditing') : t('dashboardEditTasks')}</Text>
               </TouchableOpacity>
-              
+
               {tasks.length > 3 && (
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={() => setShowAllTasks(!showAllTasks)}
                   className="flex-1 bg-blue-600 py-3.5 rounded-[16px] flex-row items-center justify-center shadow-md shadow-blue-500/30 active:bg-blue-700 border-2 border-blue-500"
                 >
-                  <Text className="text-white font-black text-[11px] mr-1.5 tracking-widest uppercase">{showAllTasks ? 'Show Less' : t('dashboardViewAllTasks', 'View All')}</Text>
+                  <Text className="text-white font-black text-[11px] mr-1.5 tracking-widest uppercase">{showAllTasks ? t('dashboardShowLess') : t('dashboardViewAllTasks')}</Text>
                   <View className="w-4 h-4 rounded-full bg-white/20 items-center justify-center">
                     <Feather name={showAllTasks ? "arrow-up" : "arrow-down"} size={10} color="white" />
                   </View>

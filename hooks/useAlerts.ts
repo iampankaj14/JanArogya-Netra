@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { alertsRepository } from '../services/repositories/alertsRepository';
-import { useAuthStore } from '../store/useAuthStore';
+import { useAuth } from '../context/AuthContext';
 import { AlertItem } from '@/shared/types/alert';
 
 export function useAlerts() {
   const queryClient = useQueryClient();
-  const user = useAuthStore((state) => state.user);
+  const { authState } = useAuth();
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [alertsLoading, setAlertsLoading] = useState(true);
 
@@ -27,7 +27,7 @@ export function useAlerts() {
 
   const approveMutation = useMutation({
     mutationFn: (recommendationId: string) =>
-      alertsRepository.approveMission(recommendationId, user?.id || 'system'),
+      alertsRepository.approveMission(recommendationId, authState?.uid || 'system'),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recommendations'] });
       queryClient.invalidateQueries({ queryKey: ['transfers'] });

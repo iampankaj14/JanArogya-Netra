@@ -1,15 +1,27 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { phcRepository } from '../services/repositories/phcRepository';
 import { transfersRepository } from '../services/repositories/transfersRepository';
+import { MedicineStock } from '@/shared/types/medicine';
 
 export function useInventory(facilityId?: string) {
   const queryClient = useQueryClient();
+  const [stocks, setStocks] = useState<MedicineStock[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const { data: stocks = [], isLoading: loading, refetch } = useQuery({
-    queryKey: ['inventory', facilityId],
-    queryFn: () => (facilityId ? phcRepository.getInventory(facilityId) : Promise.resolve([])),
-    enabled: !!facilityId,
-  });
+  useEffect(() => {
+    if (!facilityId) {
+      setStocks([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    const unsubscribe = phcRepository.subscribeInventory(facilityId, (data) => {
+      setStocks(data);
+      setLoading(false);
+    });
+    return unsubscribe;
+  }, [facilityId]);
 
   const updateStockMutation = useMutation({
     mutationFn: ({
@@ -22,9 +34,7 @@ export function useInventory(facilityId?: string) {
       newStockCount: number;
     }) => phcRepository.updateMedicineStock(facilityId, medicineId, newStockCount),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['inventory', facilityId] });
       queryClient.invalidateQueries({ queryKey: ['phcs'] });
-      refetch();
     },
   });
 
@@ -41,10 +51,8 @@ export function useInventory(facilityId?: string) {
       qty: number;
     }) => transfersRepository.transferMedicine(sourceId, targetId, medicineId, qty),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['inventory'] });
       queryClient.invalidateQueries({ queryKey: ['transfers'] });
       queryClient.invalidateQueries({ queryKey: ['phcs'] });
-      refetch();
     },
   });
 

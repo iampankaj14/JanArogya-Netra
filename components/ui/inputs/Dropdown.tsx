@@ -15,6 +15,7 @@ interface DropdownProps {
   selectedValue?: string;
   onValueChange: (value: string) => void;
   error?: string;
+  icon?: keyof typeof Feather.glyphMap;
 }
 
 export function Dropdown({
@@ -24,6 +25,7 @@ export function Dropdown({
   selectedValue,
   onValueChange,
   error,
+  icon,
 }: DropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const selectedOption = options.find((o) => o.value === selectedValue);
@@ -38,9 +40,12 @@ export function Dropdown({
   return (
     <View className="w-full mb-4">
       {label && (
-        <Text className="text-brand-navy font-extrabold text-[13px] mb-2 uppercase tracking-wide">
-          {label}
-        </Text>
+        <View className="flex-row items-center mb-2">
+          {icon && <Feather name={icon} size={12} color="#3B82F6" style={{ marginRight: 6 }} />}
+          <Text className="text-brand-navy font-extrabold text-[13px] uppercase tracking-wide">
+            {label}
+          </Text>
+        </View>
       )}
 
       <Pressable

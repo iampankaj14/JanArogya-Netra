@@ -34,23 +34,21 @@ export default function InventoryScreen() {
   const [inventoryLoading, setInventoryLoading] = useState(true);
 
   useEffect(() => {
-    const fetchInventory = async () => {
-      try {
-        const inventory = await phcRepository.getInventory(assignedFacilityId);
-        setFacilityMedicines(inventory);
-        
-        const phc = await phcRepository.getPHC(assignedFacilityId);
-        if (phc) {
-          setPhcName(phc.name);
-        }
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setInventoryLoading(false);
-      }
+    setInventoryLoading(true);
+    const unsubscribeInventory = phcRepository.subscribeInventory(assignedFacilityId, (inventory) => {
+      setFacilityMedicines(inventory);
+      setInventoryLoading(false);
+    });
+
+    const unsubscribePhc = phcRepository.subscribePHC(assignedFacilityId, (phc) => {
+      if (phc) setPhcName(phc.name);
+    });
+
+    return () => {
+      unsubscribeInventory();
+      unsubscribePhc();
     };
-    fetchInventory();
-  }, [assignedFacilityId, refreshKey]);
+  }, [assignedFacilityId]);
 
   const totalItems = facilityMedicines.length;
   const outOfStock = facilityMedicines.filter(m => m.currentStock === 0).length;

@@ -1,7 +1,12 @@
 import React, { useEffect, useRef } from 'react';
 import { Pressable, Animated } from 'react-native';
 
-export function Toggle({ value, onValueChange }) {
+interface ToggleProps {
+  value: boolean;
+  onValueChange: (value: boolean) => void;
+}
+
+export function Toggle({ value, onValueChange }: ToggleProps) {
   const anim = useRef(new Animated.Value(value ? 1 : 0)).current;
 
   useEffect(() => {

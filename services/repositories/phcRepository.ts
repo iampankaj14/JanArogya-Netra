@@ -1,5 +1,5 @@
 // services/repositories/phcRepository.ts (Integrated with Firebase Firestore)
-import { collection, doc, getDocs, getDoc, updateDoc, query, where, addDoc } from 'firebase/firestore';
+import { collection, doc, getDocs, getDoc, updateDoc, query, where, addDoc, onSnapshot } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from '../firebase/firebaseConfig';
 import { PHC } from '@/shared/types/phc';
 import { MedicineStock } from '@/shared/types/medicine';
@@ -13,6 +13,13 @@ import {
   updateLocalMedicine,
   addLocalAttendance,
 } from './localDb';
+
+// Simple pub-sub for local mock mode so subscribePHCs/subscribePHC/subscribeInventory
+// push fresh data whenever another repository mutates localPHCs/localMedicines.
+let localPHCListeners: (() => void)[] = [];
+let localInventoryListeners: (() => void)[] = [];
+const notifyLocalPHCListeners = () => localPHCListeners.forEach((cb) => cb());
+const notifyLocalInventoryListeners = () => localInventoryListeners.forEach((cb) => cb());
 
 export const phcRepository = {
   // Fetch all clinics
@@ -82,12 +89,84 @@ export const phcRepository = {
     }
   },
 
+  // Real-time list of clinics, optionally filtered by block
+  subscribePHCs: (filterBlock: string | undefined, callback: (phcs: PHC[]) => void): (() => void) => {
+    if (!isFirebaseConfigured) {
+      const emit = () =>
+        callback(filterBlock ? localPHCs.filter((p) => p.block === filterBlock) : [...localPHCs]);
+      localPHCListeners.push(emit);
+      emit();
+      return () => {
+        localPHCListeners = localPHCListeners.filter((l) => l !== emit);
+      };
+    }
+
+    let unsubscribed = false;
+    let q = query(collection(db, 'phcs'));
+    if (filterBlock) {
+      q = query(q, where('block', '==', filterBlock));
+    }
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        if (unsubscribed) return;
+        callback(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })) as PHC[]);
+      },
+      (error) => {
+        console.error('Firestore subscribe PHCs error', error);
+      }
+    );
+    return () => {
+      unsubscribed = true;
+      unsubscribe();
+    };
+  },
+
+  // Real-time single clinic
+  subscribePHC: (phcId: string, callback: (phc: PHC | null) => void): (() => void) => {
+    if (!isFirebaseConfigured) {
+      const emit = () => callback(localPHCs.find((p) => p.id === phcId) ?? null);
+      localPHCListeners.push(emit);
+      emit();
+      return () => {
+        localPHCListeners = localPHCListeners.filter((l) => l !== emit);
+      };
+    }
+
+    let unsubscribed = false;
+    const unsubscribe = onSnapshot(
+      doc(db, 'phcs', phcId),
+      (snap) => {
+        if (unsubscribed) return;
+        callback(snap.exists() ? ({ id: snap.id, ...snap.data() } as PHC) : null);
+      },
+      (error) => {
+        console.error('Firestore subscribe PHC error', error);
+      }
+    );
+    return () => {
+      unsubscribed = true;
+      unsubscribe();
+    };
+  },
+
+  // Notify local listeners when a PHC is mutated elsewhere in mock mode
+  _notifyPHCListeners: () => {
+    notifyLocalPHCListeners();
+  },
+
+  // Notify local listeners when inventory is mutated elsewhere in mock mode
+  _notifyInventoryListeners: () => {
+    notifyLocalInventoryListeners();
+  },
+
   // Update clinic health score
   updatePHCScore: async (phcId: string, score: number): Promise<void> => {
     if (!isFirebaseConfigured) {
       const found = localPHCs.find((p) => p.id === phcId);
       if (found) {
         updateLocalPHC({ ...found, healthScore: score });
+        notifyLocalPHCListeners();
       }
       return;
     }
@@ -118,6 +197,52 @@ export const phcRepository = {
     }
   },
 
+  // Fetch inventory across all facilities (for district/block-level reports)
+  getAllInventory: async (): Promise<MedicineStock[]> => {
+    if (!isFirebaseConfigured) {
+      return localMedicines;
+    }
+
+    try {
+      const querySnapshot = await getDocs(collection(db, 'inventory'));
+      return querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as MedicineStock[];
+    } catch (error) {
+      throw new Error('DB/FETCH_ERROR');
+    }
+  },
+
+  // Real-time inventory for a clinic
+  subscribeInventory: (facilityId: string, callback: (stocks: MedicineStock[]) => void): (() => void) => {
+    if (!isFirebaseConfigured) {
+      const emit = () => callback(localMedicines.filter((m) => m.facilityId === facilityId));
+      localInventoryListeners.push(emit);
+      emit();
+      return () => {
+        localInventoryListeners = localInventoryListeners.filter((l) => l !== emit);
+      };
+    }
+
+    let unsubscribed = false;
+    const q = query(collection(db, 'inventory'), where('facilityId', '==', facilityId));
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        if (unsubscribed) return;
+        callback(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })) as MedicineStock[]);
+      },
+      (error) => {
+        console.error('Firestore subscribe inventory error', error);
+      }
+    );
+    return () => {
+      unsubscribed = true;
+      unsubscribe();
+    };
+  },
+
   // Update inventory count
   updateMedicineStock: async (
     facilityId: string,
@@ -131,6 +256,7 @@ export const phcRepository = {
       }
       const updated = { ...found, currentStock: newStockCount };
       updateLocalMedicine(updated);
+      notifyLocalInventoryListeners();
       return updated;
     }
 
@@ -153,6 +279,7 @@ export const phcRepository = {
     if (!isFirebaseConfigured) {
       const { addLocalMedicine } = require('./localDb');
       addLocalMedicine(medicine);
+      notifyLocalInventoryListeners();
       return medicine;
     }
 
@@ -217,6 +344,7 @@ export const phcRepository = {
         const phc = localPHCs.find((p) => p.id === facilityId);
         if (phc) {
           updateLocalPHC({ ...phc, doctorAvailable: present });
+          notifyLocalPHCListeners();
         }
       }
       return record;

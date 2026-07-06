@@ -240,6 +240,16 @@ export const addLocalNotification = (notif: NotificationItem) => {
   saveState('localNotifications', localNotifications);
 };
 
+export const markAllLocalNotificationsRead = () => {
+  localNotifications = localNotifications.map((n) => ({ ...n, read: true }));
+  saveState('localNotifications', localNotifications);
+};
+
+export const clearLocalNotifications = () => {
+  localNotifications = [];
+  saveState('localNotifications', localNotifications);
+};
+
 export const addLocalTransfer = (transfer: TransferOrder) => {
   localTransfers.push(transfer);
   saveState('localTransfers', localTransfers);

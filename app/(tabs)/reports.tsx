@@ -3,48 +3,53 @@ import { View, Text, ScrollView, Dimensions, Pressable, TouchableOpacity, Modal,
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
 import { useTranslation } from '@/hooks/useTranslation';
-import { localPHCs, localAlerts, localDiseaseTrends, localMedicines, localTransfers } from '@/services/repositories/localDb';
 import { phcRepository } from '@/services/repositories/phcRepository';
 import { alertsRepository } from '@/services/repositories/alertsRepository';
 import { transfersRepository } from '@/services/repositories/transfersRepository';
+import { reportsRepository } from '@/services/repositories/reportsRepository';
 import Svg, { Circle, Path, Defs, Stop, LinearGradient as SvgLinearGradient, Rect, Text as SvgText, G } from 'react-native-svg';
 import { useRouter } from 'expo-router';
+import { PHC } from '@/shared/types/phc';
+import { AlertItem } from '@/shared/types/alert';
+import { TransferOrder } from '@/services/repositories/localDb';
+import { DiseaseTrend } from '@/dummy/diseaseTrends';
+import { MedicineStock } from '@/shared/types/medicine';
 
 export default function ReportsScreen() {
   const { authState } = useAuth();
   const [timeframe, setTimeframe] = useState('7_days');
   const [isTimeframeModalVisible, setIsTimeframeModalVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  
-  const [fetchedPHCs, setFetchedPHCs] = useState([]);
-  const [fetchedAlerts, setFetchedAlerts] = useState([]);
-  const [fetchedTransfers, setFetchedTransfers] = useState([]);
-  const [fetchedDiseaseTrends, setFetchedDiseaseTrends] = useState([]);
-  const [fetchedMedicines, setFetchedMedicines] = useState([]);
+
+  const [fetchedPHCs, setFetchedPHCs] = useState<PHC[]>([]);
+  const [fetchedAlerts, setFetchedAlerts] = useState<AlertItem[]>([]);
+  const [fetchedTransfers, setFetchedTransfers] = useState<TransferOrder[]>([]);
+  const [fetchedDiseaseTrends, setFetchedDiseaseTrends] = useState<DiseaseTrend[]>([]);
+  const [fetchedMedicines, setFetchedMedicines] = useState<MedicineStock[]>([]);
 
   useEffect(() => {
     let isMounted = true;
     const loadData = async () => {
       setIsLoading(true);
       try {
-        const [phcsData, alertsData, transfersData] = await Promise.all([
+        const [phcsData, alertsData, transfersData, diseaseTrendsData, medicinesData] = await Promise.all([
           phcRepository.getAllPHCs(),
           alertsRepository.getAlerts(),
           transfersRepository.getTransfers(),
+          reportsRepository.getDiseaseTrends(),
+          phcRepository.getAllInventory(),
         ]);
-        
-        await new Promise(resolve => setTimeout(resolve, 800)); // Simulate server filter delay
-        
+
         if (isMounted) {
           setFetchedPHCs(phcsData);
           setFetchedAlerts(alertsData);
           setFetchedTransfers(transfersData);
-          
-          let trends = [...localDiseaseTrends];
+
+          let trends = [...diseaseTrendsData];
           if (timeframe === 'today') trends = trends.map(t => ({...t, cases: Math.max(1, Math.round(t.cases / 7))}));
           if (timeframe === '30_days') trends = trends.map(t => ({...t, cases: Math.max(1, Math.round(t.cases * 4.2))}));
           setFetchedDiseaseTrends(trends);
-          setFetchedMedicines(localMedicines);
+          setFetchedMedicines(medicinesData);
           setIsLoading(false);
         }
       } catch (error) {
@@ -158,7 +163,7 @@ export default function ReportsScreen() {
     return (
       <View className="flex-1 bg-slate-50 justify-center items-center">
         <ActivityIndicator size="large" color="#3B82F6" />
-        <Text className="text-slate-500 font-bold mt-4">{t('reportsLoading', 'Fetching data from server...')}</Text>
+        <Text className="text-slate-500 font-bold mt-4">{t('reportsLoading')}</Text>
       </View>
     );
   }

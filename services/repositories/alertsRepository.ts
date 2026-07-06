@@ -14,6 +14,7 @@ import {
   addLocalNotification,
 } from './localDb';
 import { phcRepository } from './phcRepository';
+import { notificationsRepository } from './notificationsRepository';
 
 // Simple pub-sub for local mock notifications
 let localAlertListeners: ((alerts: AlertItem[]) => void)[] = [];
@@ -190,6 +191,7 @@ export const alertsRepository = {
         timestamp: new Date().toISOString(),
         read: false,
       });
+      notificationsRepository._notifyListeners();
 
       return true;
     }
@@ -217,6 +219,15 @@ export const alertsRepository = {
 
       // Update recommendation status
       await updateDoc(recRef, { resolved: true });
+
+      // Add a notification for the operations log (previously only written in local/offline mode)
+      await addDoc(collection(db, 'notifications'), {
+        title: 'Redistribution Approved',
+        message: `Transfer of ${recData.quantity} units of ${recData.item} from ${recData.sourceFacility} to ${recData.targetFacility} was approved.`,
+        timestamp: new Date().toISOString(),
+        read: false,
+        type: 'update',
+      });
 
       return true;
     } catch (error: any) {

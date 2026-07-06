@@ -11,8 +11,11 @@ import PHCHomeDashboard from '@/components/features/dashboard/PHCHomeDashboard';
 import { useAuth } from '@/context/AuthContext';
 import { useAlerts } from '@/hooks/useAlerts';
 import { useDashboard } from '@/hooks/useDashboard';
+import { useRoleScopedPHCs } from '@/hooks/usePHCs';
 import { useTranslation } from '@/hooks/useTranslation';
-import { localPHCs, localLogistics, localDiseaseTrends, localTelemetryAudits, localRecommendations } from '@/services/repositories/localDb';
+import { reportsRepository } from '@/services/repositories/reportsRepository';
+import { localLogistics, localTelemetryAudits } from '@/services/repositories/localDb';
+import { DiseaseTrend } from '@/dummy/diseaseTrends';
 
 const translateDynamic = (text: string, lang: string) => {
   if (lang !== 'hi' || !text) return text;
@@ -155,12 +158,21 @@ export default function SituationRoomScreen() {
   const [isLogisticsOpen, setIsLogisticsOpen] = useState(false);
   
   const assignedFacilityId = authState?.facilityId || 'phc_barola';
-  const blockPhcs = isBMO ? localPHCs.filter(p => p.block === assignedFacilityId) : localPHCs;
+  const { phcs: blockPhcs } = useRoleScopedPHCs();
   const averageHealthScore = blockPhcs.length ? Math.round(blockPhcs.reduce((acc, p) => acc + p.healthScore, 0) / blockPhcs.length) : 0;
 
-  const [activeMissions, setActiveMissions] = useState(localRecommendations);
+  const activeMissions = hookRecommendations;
   const [commandQueue, setCommandQueue] = useState(localLogistics);
   const [telemetryAudits, setTelemetryAudits] = useState(localTelemetryAudits);
+  const [diseaseTrendsData, setDiseaseTrendsData] = useState<DiseaseTrend[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    reportsRepository.getDiseaseTrends()
+      .then((trends) => { if (!cancelled) setDiseaseTrendsData(trends); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   // Removed effects that call setState synchronously
 
@@ -197,7 +209,7 @@ export default function SituationRoomScreen() {
       disease: a.title.replace(' Surge Warning', '').replace(' Warning', ''),
       location: a.facilityName,
       priority: a.priority === 'CRITICAL' ? t('situationRoomHighPriorityOutbreak') : t('situationRoomMediumPriority'),
-      cases: localDiseaseTrends.find(t => a.title.includes(t.disease))?.cases || 15,
+      cases: diseaseTrendsData.find(t => a.title.includes(t.disease))?.cases || 15,
       isEmergency: a.priority === 'CRITICAL',
     }));
 
@@ -206,9 +218,6 @@ export default function SituationRoomScreen() {
 
   // Logistics requests (dynamic from DB)
   const logisticsRequests = isBMO ? commandQueue.filter(l => blockPhcs.some(p => l.from.includes(p.name) || l.from.includes(p.id) || l.to.includes(p.name) || l.to.includes(p.id) || l.from.includes(assignedFacilityId) || l.to.includes(assignedFacilityId))) : commandQueue;
-
-  // Dynamic Data for Disease Trends
-  const diseaseTrendsData = localDiseaseTrends;
 
   const diseaseIcons: Record<string, { name: any, color: string, bg: string }> = {
     'Dengue': { name: 'virus', color: '#EF4444', bg: '#FEE2E2' },
@@ -313,38 +322,38 @@ export default function SituationRoomScreen() {
     return () => clearTimeout(timer);
   }, []);
 
-  const handleApproveMission = useCallback((id: string) => {
+  const handleApproveMission = useCallback(async (id: string) => {
     const mission = activeMissions.find(m => m.id === id);
-    if (mission) {
-      setActiveMissions(prev => prev.filter(m => m.id !== id));
-      
-      const newLogisticsRequest = {
-        // eslint-disable-next-line react-hooks/purity
-        id: `req-${Date.now()}`,
-        from: mission.sourceFacility,
-        to: mission.targetFacility,
-        item: mission.item,
-        quantity: mission.quantity,
-        status: 'approved' as const,
-        urgent: true
-      };
-      setCommandQueue(prev => [newLogisticsRequest, ...prev]);
+    if (!mission) return;
 
-      const newAudit = {
-        // eslint-disable-next-line react-hooks/purity
-        id: `ta-${Date.now()}`,
-        type: 'approved',
-        icon: 'check',
-        color: 'green',
-        text: t('situationRoomRedistributionApproved'),
-        desc: language === 'hi' 
-          ? `${authState?.role} ${authState?.name || 'User'} ने ${mission.targetFacility} को ${mission.quantity} ${mission.item} के ट्रांसफर को मंजूरी दी।`
-          : `${authState?.role} ${authState?.name || 'User'} approved transfer of ${mission.quantity} ${mission.item} to ${mission.targetFacility}.`,
-        time: 'Just now'
-      };
-      setTelemetryAudits(prev => [newAudit, ...prev]);
-    }
-  }, [activeMissions, authState]);
+    await approveAlert(id);
+
+    const newLogisticsRequest = {
+      // eslint-disable-next-line react-hooks/purity
+      id: `req-${Date.now()}`,
+      from: mission.sourceFacility,
+      to: mission.targetFacility,
+      item: mission.item,
+      quantity: mission.quantity,
+      status: 'approved' as const,
+      urgent: true
+    };
+    setCommandQueue(prev => [newLogisticsRequest, ...prev]);
+
+    const newAudit = {
+      // eslint-disable-next-line react-hooks/purity
+      id: `ta-${Date.now()}`,
+      type: 'approved',
+      icon: 'check',
+      color: 'green',
+      text: t('situationRoomRedistributionApproved'),
+      desc: language === 'hi'
+        ? `${authState?.role} ${authState?.name || 'User'} ने ${mission.targetFacility} को ${mission.quantity} ${mission.item} के ट्रांसफर को मंजूरी दी।`
+        : `${authState?.role} ${authState?.name || 'User'} approved transfer of ${mission.quantity} ${mission.item} to ${mission.targetFacility}.`,
+      time: 'Just now'
+    };
+    setTelemetryAudits(prev => [newAudit, ...prev]);
+  }, [activeMissions, authState, approveAlert, t, language]);
 
 
 

@@ -7,4 +7,9 @@ export interface NotificationItem {
   type?: 'alert' | 'update' | 'report' | 'all';
   category?: string;
   isNew?: boolean;
+  // Targeting: notifications with no target fields are broadcast to everyone.
+  // Otherwise delivered only to the matching uid, role, or facility.
+  targetUid?: string;
+  targetRole?: 'DHO' | 'BMO' | 'PHC';
+  targetFacilityId?: string;
 }

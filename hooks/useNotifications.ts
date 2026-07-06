@@ -1,32 +1,41 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 import { notificationsRepository } from '../services/repositories/notificationsRepository';
-import { useAuthStore } from '../store/useAuthStore';
+import { useAuth } from '../context/AuthContext';
+import { NotificationItem } from '@/shared/types/notification';
 
 export function useNotifications() {
-  const queryClient = useQueryClient();
-  const user = useAuthStore((state) => state.user);
+  const { authState } = useAuth();
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const { data: notifications = [], isLoading: loading, refetch } = useQuery({
-    queryKey: ['notifications', user?.id],
-    queryFn: () => (user?.id ? notificationsRepository.getNotifications(user.id) : Promise.resolve([])),
-    enabled: !!user?.id,
-  });
+  const target = { uid: authState?.uid, role: authState?.role, facilityId: authState?.facilityId };
 
-  const markMutation = useMutation({
-    mutationFn: (id: string) => notificationsRepository.markAsRead(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
-      refetch();
-    },
-  });
+  useEffect(() => {
+    setLoading(true);
+    const unsubscribe = notificationsRepository.subscribeNotifications(target, (data) => {
+      setNotifications(data);
+      setLoading(false);
+    });
+    return unsubscribe;
+  }, [authState?.uid, authState?.role, authState?.facilityId]);
 
   const markAsRead = async (id: string) => {
-    await markMutation.mutateAsync(id);
+    await notificationsRepository.markAsRead(id);
+  };
+
+  const markAllAsRead = async () => {
+    await notificationsRepository.markAllAsRead(target);
+  };
+
+  const clearAll = async () => {
+    await notificationsRepository.clearAll(target);
   };
 
   return {
     notifications,
-    loading: loading || markMutation.isPending,
+    loading,
     markAsRead,
+    markAllAsRead,
+    clearAll,
   };
 }

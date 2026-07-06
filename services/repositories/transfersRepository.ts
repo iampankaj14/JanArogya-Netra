@@ -10,6 +10,8 @@ import {
   TransferOrder,
   localPHCs,
 } from './localDb';
+import { notificationsRepository } from './notificationsRepository';
+import { phcRepository } from './phcRepository';
 
 // Firestore transfer docs may use the legacy shape (sourceId/targetId/date) instead of
 // the app's canonical TransferOrder shape (sourceFacilityId/targetFacilityId/timestamp).
@@ -67,6 +69,7 @@ export const transfersRepository = {
       if (targetStock) {
         updateLocalMedicine({ ...targetStock, currentStock: targetStock.currentStock + order.quantity });
       }
+      phcRepository._notifyInventoryListeners();
 
       addLocalNotification({
         id: 'notif_' + Date.now(),
@@ -75,6 +78,7 @@ export const transfersRepository = {
         timestamp: new Date().toISOString(),
         read: false,
       });
+      notificationsRepository._notifyListeners();
 
       return id;
     }
@@ -124,6 +128,15 @@ export const transfersRepository = {
           quantity: order.quantity,
           status: 'PENDING',
           timestamp: new Date().toISOString(),
+        });
+
+        const notificationRef = doc(collection(db, 'notifications'));
+        transaction.set(notificationRef, {
+          title: 'Transfer Dispatched',
+          message: `Transfer of ${order.quantity} units of ${order.medicineName} has been initialized.`,
+          timestamp: new Date().toISOString(),
+          read: false,
+          type: 'update',
         });
 
         return transferRef.id;

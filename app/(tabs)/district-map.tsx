@@ -1,7 +1,7 @@
 import ScreenContainer from '@/components/ui/layout/ScreenContainer';
 import { useAuth } from '@/context/AuthContext';
 import { useTranslation } from '@/hooks/useTranslation';
-import { phcRepository } from '@/services/repositories/phcRepository';
+import { useRoleScopedPHCs } from '@/hooks/usePHCs';
 import { PHC } from '@/shared/types/phc';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -46,10 +46,7 @@ export default function DistrictMapScreen() {
   const { authState } = useAuth();
   const { t, language } = useTranslation();
 
-  const [allPhcs, setAllPhcs] = useState<PHC[]>([]);
-  const currentBlock = authState?.role === 'BMO'
-    ? (allPhcs.find(p => p.id === authState.facilityId)?.block || 'Bisrakh')
-    : null;
+  const { phcs: allPhcs } = useRoleScopedPHCs();
 
   const [search, setSearch] = useState('');
   const [isLegendExpanded, setIsLegendExpanded] = useState(true);
@@ -61,14 +58,9 @@ export default function DistrictMapScreen() {
     setIsCollapsed(!isCollapsed);
   };
 
-  useEffect(() => {
-    phcRepository.getAllPHCs().then(setAllPhcs).catch(console.error);
-  }, []);
-
-  // Filtered PHC markers
+  // Filtered PHC markers (allPhcs is already role-scoped by useRoleScopedPHCs)
   const filteredPHCs = useMemo(() => {
     return allPhcs.filter(phc => {
-      if (currentBlock && phc.block !== currentBlock) return false;
       return phc.name.toLowerCase().includes(search.toLowerCase()) ||
         phc.block.toLowerCase().includes(search.toLowerCase());
     }).map(phc => {
@@ -76,7 +68,7 @@ export default function DistrictMapScreen() {
       const details = getStatusDetails(status);
       return { ...phc, status, colors: { core: details.core, bg: details.bg, sign: details.sign } };
     });
-  }, [allPhcs, currentBlock, search]);
+  }, [allPhcs, search]);
 
   const getMapHtml = () => `
     <!DOCTYPE html>
@@ -274,10 +266,10 @@ export default function DistrictMapScreen() {
                     <View className="w-8 h-8 rounded-full bg-rose-50 items-center justify-center border border-rose-100">
                       <MaterialCommunityIcons name="hospital-marker" size={16} color="#E11D48" />
                     </View>
-                    <Text className="text-slate-800 font-extrabold text-lg ml-2.5">Nearby Facilities</Text>
+                    <Text className="text-slate-800 font-extrabold text-lg ml-2.5">{t('districtMapNearbyFacilities')}</Text>
                   </View>
                   <View className="bg-slate-800 px-3 py-1.5 rounded-full flex-row items-center border border-slate-700 shadow-sm pointer-events-none">
-                    <Text className="text-white font-bold text-[10px] uppercase tracking-wider mr-1">View All</Text>
+                    <Text className="text-white font-bold text-[10px] uppercase tracking-wider mr-1">{t('districtMapViewAll')}</Text>
                     <Feather name="chevron-right" size={12} color="white" />
                   </View>
                 </View>

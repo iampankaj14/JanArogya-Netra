@@ -6,7 +6,8 @@ import ScreenContainer from '@/components/ui/layout/ScreenContainer';
 import { useAuth } from '@/context/AuthContext';
 import { useDashboard } from '@/hooks/useDashboard';
 import { useTranslation } from '@/hooks/useTranslation';
-import { addLocalNotification } from '@/services/repositories/localDb';
+import { notificationsRepository } from '@/services/repositories/notificationsRepository';
+import { phcRepository } from '@/services/repositories/phcRepository';
 import { AlertItem } from '@/shared/types/alert';
 import { Toggle } from '../../components/ui/inputs/Toggle';
 
@@ -15,7 +16,7 @@ export default function EmergencyScreen() {
   const { authState } = useAuth();
   const { alerts } = useDashboard();
   const { t } = useTranslation();
-  
+
   const [escalated, setEscalated] = useState(false);
 
   // Filter for critical/high unresolved alerts for current PHC
@@ -23,20 +24,24 @@ export default function EmergencyScreen() {
     (a: AlertItem) => a.facilityId === authState?.facilityId && !a.resolved && (a.priority === 'CRITICAL' || a.priority === 'HIGH')
   );
 
-  const handleEscalate = (value: boolean) => {
+  const handleEscalate = async (value: boolean) => {
     setEscalated(value);
     if (value) {
-      // Dispatch notification to BMO
-      addLocalNotification({
-        id: `n_esc_${Date.now()}`,
-        title: t('emergencyEscalationNotifTitle'),
-        message: `${authState?.name || t('emergencyStaffFallbackName')} ${t('emergencyEscalationNotifMessage')} ${authState?.facilityId}. ${t('emergencyEscalationNotifRequiresAttention')}`,
-        timestamp: new Date().toISOString(),
-        read: false,
-        type: 'alert',
-        category: t('emergencyEscalationNotifCategory'),
-        isNew: true,
-      });
+      try {
+        // Route to the BMO overseeing this PHC's block, and flag DHO/Admin as well.
+        const phc = authState?.facilityId ? await phcRepository.getPHC(authState.facilityId) : null;
+        await notificationsRepository.createNotification({
+          title: t('emergencyEscalationNotifTitle'),
+          message: `${authState?.name || t('emergencyStaffFallbackName')} ${t('emergencyEscalationNotifMessage')} ${authState?.facilityId}. ${t('emergencyEscalationNotifRequiresAttention')}`,
+          type: 'alert',
+          category: t('emergencyEscalationNotifCategory'),
+          isNew: true,
+          targetRole: 'DHO',
+          targetFacilityId: phc?.block,
+        });
+      } catch (err) {
+        console.error('Failed to dispatch escalation notification', err);
+      }
       Alert.alert(t('emergencyEscalateAlertTitle'), t('emergencyEscalateAlertMessage'));
     }
   };

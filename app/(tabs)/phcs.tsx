@@ -6,42 +6,20 @@ import { useAuth } from '@/context/AuthContext';
 import PHCCard from '@/components/ui/cards/PHCCard';
 import EmptyState from '@/components/ui/feedback/EmptyState';
 import Skeleton from '@/components/ui/feedback/Skeleton';
-import { phcRepository } from '@/services/repositories/phcRepository';
-import { PHC } from '@/shared/types/phc';
+import { useRoleScopedPHCs } from '@/hooks/usePHCs';
 import { useTranslation } from '@/hooks/useTranslation';
 
 export default function PHCsScreen() {
   const router = useRouter();
   const { authState } = useAuth();
   const { t } = useTranslation();
-  
+
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   const isBMO = authState?.role === 'BMO';
   const isPHC = authState?.role === 'PHC';
-  const assignedFacilityId = authState?.facilityId;
 
-  const [roleFilteredPHCs, setRoleFilteredPHCs] = useState<PHC[]>([]);
-  const [phcsLoading, setPhcsLoading] = useState(true);
-
-  React.useEffect(() => {
-    const fetchPhcs = async () => {
-      try {
-        const allPhcs = await phcRepository.getAllPHCs();
-        const filtered = allPhcs.filter((phc) => {
-          if (isBMO && phc.block !== assignedFacilityId) return false;
-          if (isPHC && phc.id !== assignedFacilityId) return false;
-          return true;
-        });
-        setRoleFilteredPHCs(filtered);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setPhcsLoading(false);
-      }
-    };
-    fetchPhcs();
-  }, [isBMO, isPHC, assignedFacilityId]);
+  const { phcs: roleFilteredPHCs, loading: phcsLoading } = useRoleScopedPHCs();
 
   // Calculate dynamic metrics
   const totalCount = roleFilteredPHCs.length;
