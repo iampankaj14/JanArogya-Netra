@@ -1,26 +1,85 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, Dimensions, Pressable } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, ScrollView, Dimensions, Pressable, TouchableOpacity, Modal, ActivityIndicator } from 'react-native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
 import { useTranslation } from '@/hooks/useTranslation';
 import { localPHCs, localAlerts, localDiseaseTrends, localMedicines, localTransfers } from '@/services/repositories/localDb';
+import { phcRepository } from '@/services/repositories/phcRepository';
+import { alertsRepository } from '@/services/repositories/alertsRepository';
+import { transfersRepository } from '@/services/repositories/transfersRepository';
 import Svg, { Circle, Path, Defs, Stop, LinearGradient as SvgLinearGradient, Rect, Text as SvgText, G } from 'react-native-svg';
 import { useRouter } from 'expo-router';
 
 export default function ReportsScreen() {
   const { authState } = useAuth();
+  const [timeframe, setTimeframe] = useState('7_days');
+  const [isTimeframeModalVisible, setIsTimeframeModalVisible] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const [fetchedPHCs, setFetchedPHCs] = useState([]);
+  const [fetchedAlerts, setFetchedAlerts] = useState([]);
+  const [fetchedTransfers, setFetchedTransfers] = useState([]);
+  const [fetchedDiseaseTrends, setFetchedDiseaseTrends] = useState([]);
+  const [fetchedMedicines, setFetchedMedicines] = useState([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadData = async () => {
+      setIsLoading(true);
+      try {
+        const [phcsData, alertsData, transfersData] = await Promise.all([
+          phcRepository.getAllPHCs(),
+          alertsRepository.getAlerts(),
+          transfersRepository.getTransfers(),
+        ]);
+        
+        await new Promise(resolve => setTimeout(resolve, 800)); // Simulate server filter delay
+        
+        if (isMounted) {
+          setFetchedPHCs(phcsData);
+          setFetchedAlerts(alertsData);
+          setFetchedTransfers(transfersData);
+          
+          let trends = [...localDiseaseTrends];
+          if (timeframe === 'today') trends = trends.map(t => ({...t, cases: Math.max(1, Math.round(t.cases / 7))}));
+          if (timeframe === '30_days') trends = trends.map(t => ({...t, cases: Math.max(1, Math.round(t.cases * 4.2))}));
+          setFetchedDiseaseTrends(trends);
+          setFetchedMedicines(localMedicines);
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error('Failed to fetch reports data', error);
+        if (isMounted) setIsLoading(false);
+      }
+    };
+    loadData();
+    return () => { isMounted = false; };
+  }, [timeframe]);
   const router = useRouter();
   const { t, language } = useTranslation();
+
+  // Auto-scroll for Epidemiological Watch
+  const epiScrollViewRef = useRef<ScrollView>(null);
+  
+  useEffect(() => {
+    if (!fetchedDiseaseTrends || fetchedDiseaseTrends.length === 0) return;
+    let currentIndex = 0;
+    const intervalId = setInterval(() => {
+      currentIndex = (currentIndex + 1) % fetchedDiseaseTrends.length;
+      epiScrollViewRef.current?.scrollTo({ x: currentIndex * 156, animated: true });
+    }, 3000);
+    return () => clearInterval(intervalId);
+  }, [fetchedDiseaseTrends.length]);
 
   const isDHO = authState?.role === 'DHO';
   const isBMO = authState?.role === 'BMO';
   const assignedFacilityId = authState?.facilityId || 'phc_barola';
 
   const reportPhcs = isDHO
-    ? localPHCs
+    ? fetchedPHCs
     : isBMO
-      ? localPHCs.filter(p => p.block === assignedFacilityId)
-      : localPHCs.filter(p => p.id === assignedFacilityId);
+      ? fetchedPHCs.filter(p => p.block === assignedFacilityId)
+      : fetchedPHCs.filter(p => p.id === assignedFacilityId);
 
   const phcIds = reportPhcs.map(p => p.id);
 
@@ -37,7 +96,7 @@ export default function ReportsScreen() {
     ? Math.round(reportPhcs.reduce((sum, p) => sum + p.healthScore, 0) / reportPhcs.length)
     : 0;
 
-  const activeAlerts = localAlerts.filter(a => phcIds.includes(a.facilityId) && !a.resolved);
+  const activeAlerts = fetchedAlerts.filter(a => phcIds.includes(a.facilityId) && !a.resolved);
   const criticalAlertsCount = activeAlerts.filter(a => a.priority === 'CRITICAL').length;
 
   // Weekly Footfall Aggregation (assuming 7 days data)
@@ -72,9 +131,9 @@ export default function ReportsScreen() {
 
   // Pharmacy & Logistics
   const criticalStockItems = isDHO 
-    ? localMedicines.filter(m => m.currentStock <= m.minRequiredStock)
-    : localMedicines.filter(m => m.currentStock <= m.minRequiredStock && phcIds.includes(m.facilityId));
-  const activeShipments = localTransfers.filter(t => t.status === 'EN_ROUTE');
+    ? fetchedMedicines.filter(m => m.currentStock <= m.minRequiredStock)
+    : fetchedMedicines.filter(m => m.currentStock <= m.minRequiredStock && phcIds.includes(m.facilityId));
+  const activeShipments = fetchedTransfers.filter(t => t.status === 'EN_ROUTE');
 
   // Critical Watchlist
   const criticalPhcs = [...reportPhcs].sort((a, b) => a.healthScore - b.healthScore).slice(0, 3);
@@ -86,7 +145,7 @@ export default function ReportsScreen() {
 
   const getBlockName = () => {
     if (language === 'hi') {
-      const phc = localPHCs.find(p => p.block === assignedFacilityId);
+      const phc = fetchedPHCs.length > 0 ? fetchedPHCs.find(p => p.block === assignedFacilityId) : null;
       if (phc && phc.blockHi) return phc.blockHi;
     }
     return assignedFacilityId.toUpperCase();
@@ -94,27 +153,73 @@ export default function ReportsScreen() {
 
   const headerTitle = isDHO ? t('reportsHeaderDefaultDistrict') : isBMO ? `${getBlockName()} ${t('reportsHeaderBlockSuffix')}` : `${getPhcName(reportPhcs[0])} ${t('reportsHeaderFacilitySuffix')}`;
 
+  
+  if (isLoading) {
+    return (
+      <View className="flex-1 bg-slate-50 justify-center items-center">
+        <ActivityIndicator size="large" color="#3B82F6" />
+        <Text className="text-slate-500 font-bold mt-4">{t('reportsLoading', 'Fetching data from server...')}</Text>
+      </View>
+    );
+  }
+
   return (
-    <ScrollView className="flex-1 bg-[#F8FAFC]" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }} keyboardShouldPersistTaps="handled">
+    <>
+      <Modal visible={isTimeframeModalVisible} transparent={true} animationType="fade">
+        <View className="flex-1 bg-black/50 justify-center items-center px-6">
+          <View className="bg-white rounded-[24px] w-full p-6 shadow-xl">
+            <Text className="text-brand-navy font-black text-xl mb-4 text-center">Select Timeframe</Text>
+            
+            <TouchableOpacity 
+              onPress={() => { setTimeframe('today'); setIsTimeframeModalVisible(false); }}
+              className={`p-4 rounded-[16px] border mb-3 ${timeframe === 'today' ? 'bg-blue-50 border-blue-500' : 'bg-slate-50 border-slate-200'}`}
+            >
+              <Text className={`text-center font-bold ${timeframe === 'today' ? 'text-blue-600' : 'text-slate-600'}`}>Today</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              onPress={() => { setTimeframe('7_days'); setIsTimeframeModalVisible(false); }}
+              className={`p-4 rounded-[16px] border mb-3 ${timeframe === '7_days' ? 'bg-blue-50 border-blue-500' : 'bg-slate-50 border-slate-200'}`}
+            >
+              <Text className={`text-center font-bold ${timeframe === '7_days' ? 'text-blue-600' : 'text-slate-600'}`}>Last 7 Days</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              onPress={() => { setTimeframe('30_days'); setIsTimeframeModalVisible(false); }}
+              className={`p-4 rounded-[16px] border mb-4 ${timeframe === '30_days' ? 'bg-blue-50 border-blue-500' : 'bg-slate-50 border-slate-200'}`}
+            >
+              <Text className={`text-center font-bold ${timeframe === '30_days' ? 'text-blue-600' : 'text-slate-600'}`}>Last 30 Days</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              onPress={() => setIsTimeframeModalVisible(false)}
+              className="p-4 rounded-[16px] bg-slate-100"
+            >
+              <Text className="text-center font-bold text-slate-500">Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+      <ScrollView className="flex-1 bg-[#F8FAFC]" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }} keyboardShouldPersistTaps="handled">
       
       {/* HEADER */}
       <View className="px-4 mt-6 flex-row justify-between items-start mb-6">
         <View>
           <View className="flex-row items-center mb-1">
-            <Text className="text-3xl font-black text-brand-navy tracking-tight">{headerTitle}</Text>
+            <Text className="text-2xl font-black text-brand-navy leading-tight tracking-tight">{headerTitle}</Text>
           </View>
           <Text className="text-slate-500 text-xs font-medium">{t('reportsSubtitle')}</Text>
         </View>
-        <View className="w-10 h-10 bg-white rounded-full items-center justify-center border border-slate-200 shadow-sm">
-          <MaterialCommunityIcons name="chart-bar" size={20} color="#3B82F6" />
-        </View>
+        <TouchableOpacity onPress={() => setIsTimeframeModalVisible(true)} className="w-10 h-10 bg-white rounded-full items-center justify-center border border-slate-200 shadow-sm">
+    <MaterialCommunityIcons name="chart-bar" size={20} color="#3B82F6" />
+  </TouchableOpacity>
       </View>
 
       {/* KEY METRICS GRID */}
       <View className="px-4 flex-row flex-wrap justify-between mb-2">
         
         {/* Footfall Card */}
-        <View className="w-[48%] bg-white rounded-[28px] p-5 border border-slate-100 border-l-[4px] border-l-blue-500 shadow-sm shadow-slate-200/50 mb-4 justify-between overflow-hidden" style={{ minHeight: 140 }}>
+        <View className="w-[48%] bg-[#DBEAFE] rounded-[16px] p-4 border border-[#3B82F6]/60 shadow-sm shadow-blue-500/10 mb-4 justify-between overflow-hidden" style={{ minHeight: 140 }}>
           <MaterialCommunityIcons name="account-group" size={100} color="rgba(59,130,246,0.05)" style={{position: 'absolute', bottom: -20, right: -20, transform: [{rotate: '-15deg'}]}} />
           <View className="flex-row justify-between items-start">
             <View className="flex-1 mr-2">
@@ -135,7 +240,7 @@ export default function ReportsScreen() {
         </View>
 
         {/* Health Score Card */}
-        <View className="w-[48%] bg-white rounded-[28px] p-5 border border-slate-100 border-l-[4px] border-l-emerald-500 shadow-sm shadow-slate-200/50 mb-4 justify-between overflow-hidden" style={{ minHeight: 140 }}>
+        <View className="w-[48%] bg-[#D1FAE5] rounded-[16px] p-4 border border-[#10B981]/60 shadow-sm shadow-emerald-500/10 mb-4 justify-between overflow-hidden" style={{ minHeight: 140 }}>
           <MaterialCommunityIcons name="heart-pulse" size={100} color="rgba(16,185,129,0.05)" style={{position: 'absolute', bottom: -20, right: -20, transform: [{rotate: '-15deg'}]}} />
           <View className="flex-row justify-between items-start">
             <View className="flex-1 mr-2">
@@ -157,7 +262,7 @@ export default function ReportsScreen() {
         </View>
 
         {/* Beds Occupancy Card */}
-        <View className="w-[48%] bg-white rounded-[28px] p-5 border border-slate-100 border-l-[4px] border-l-orange-500 shadow-sm shadow-slate-200/50 mb-4 justify-between overflow-hidden" style={{ minHeight: 140 }}>
+        <View className="w-[48%] bg-[#FFEDD5] rounded-[16px] p-4 border border-[#F97316]/60 shadow-sm shadow-orange-500/10 mb-4 justify-between overflow-hidden" style={{ minHeight: 140 }}>
           <MaterialCommunityIcons name="bed-outline" size={100} color="rgba(249,115,22,0.05)" style={{position: 'absolute', bottom: -20, right: -20, transform: [{rotate: '-15deg'}]}} />
           <View className="flex-row justify-between items-start">
             <View className="flex-1 mr-2">
@@ -174,7 +279,7 @@ export default function ReportsScreen() {
         </View>
 
         {/* Alerts Card */}
-        <View className="w-[48%] bg-white rounded-[28px] p-5 border border-slate-100 border-l-[4px] border-l-red-500 shadow-sm shadow-slate-200/50 mb-4 justify-between overflow-hidden" style={{ minHeight: 140 }}>
+        <View className="w-[48%] bg-[#FEE2E2] rounded-[16px] p-4 border border-[#EF4444]/60 shadow-sm shadow-red-500/10 mb-4 justify-between overflow-hidden" style={{ minHeight: 140 }}>
           <MaterialCommunityIcons name="alert-outline" size={100} color="rgba(239,68,68,0.05)" style={{position: 'absolute', bottom: -20, right: -20, transform: [{rotate: '-15deg'}]}} />
           <View className="flex-row justify-between items-start">
             <View className="flex-1 mr-2">
@@ -196,7 +301,7 @@ export default function ReportsScreen() {
 
       {/* OPD TREND GRAPH */}
       <View className="px-4 mb-6">
-        <View className="w-full bg-white rounded-[24px] p-5 border border-slate-200 shadow-sm relative overflow-hidden">
+        <View className="w-full bg-[#E0E7FF] rounded-[16px] p-4 border border-[#4F46E5]/60 shadow-sm shadow-indigo-500/10 relative overflow-hidden">
           <View className="flex-row items-center justify-between mb-4 relative z-10">
             <View className="flex-row items-center">
               <View className="w-8 h-8 rounded-xl bg-indigo-50 items-center justify-center mr-3 border border-indigo-200">
@@ -265,15 +370,23 @@ export default function ReportsScreen() {
       {/* EPIDEMIOLOGICAL TRENDS */}
       {(isDHO || isBMO) && (
         <View className="mb-6">
-          <Text className="text-brand-navy font-extrabold text-sm mb-3 ml-5">{t('reportsEpidemiologicalWatch')}</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16 }} keyboardShouldPersistTaps="handled">
-            {localDiseaseTrends.map((trend) => (
-              <View key={trend.id} className="bg-white rounded-[20px] p-4 border border-slate-200 shadow-sm w-36 mr-3">
-                <Text className="text-slate-500 font-bold text-[10px] uppercase mb-1">
-                  {language === 'hi' ? 
-                    ({'Viral Fever': 'वायरल बुखार', 'Dengue': 'डेंगू', 'Typhoid': 'टाइफाइड', 'Malaria': 'मलेरिया', 'Chikungunya': 'चिकनगुनिया'}[trend.disease] || trend.disease) 
-                    : trend.disease}
-                </Text>
+          <Text className="text-brand-navy font-black text-[22px] mb-3 ml-5">{t('reportsEpidemiologicalWatch')}</Text>
+          <ScrollView ref={epiScrollViewRef} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16 }} keyboardShouldPersistTaps="handled">
+            {fetchedDiseaseTrends.map((trend) => (
+              <View key={trend.id} className="rounded-[16px] p-4 border shadow-sm w-36 mr-3" style={{ backgroundColor: trend.color + '33', borderColor: trend.color + '99' }}>
+                <View className="flex-row items-center mb-1">
+                  <MaterialCommunityIcons 
+                    name={({'Viral Fever': 'thermometer', 'Dengue': 'mosquito', 'Typhoid': 'bacteria-outline', 'Malaria': 'bug', 'Chikungunya': 'virus-outline'}[trend.disease] || 'virus-outline') as any} 
+                    size={14} 
+                    color={trend.color} 
+                    style={{marginRight: 4}} 
+                  />
+                  <Text className="text-slate-500 font-bold text-[10px] uppercase flex-1" numberOfLines={1}>
+                    {language === 'hi' ? 
+                      ({'Viral Fever': 'वायरल बुखार', 'Dengue': ' डेंगू', 'Typhoid': 'टाइफाइड', 'Malaria': 'मलेरिया', 'Chikungunya': 'चिकनगुनिया'}[trend.disease] || trend.disease) 
+                      : trend.disease}
+                  </Text>
+                </View>
                 <View className="flex-row items-baseline mb-2">
                   <Text className="text-brand-navy font-black text-xl">{trend.cases}</Text>
                   <Text className={`font-bold text-[9px] ml-2 ${trend.isUp ? 'text-red-500' : 'text-emerald-500'}`}>{trend.trend}</Text>
@@ -297,10 +410,10 @@ export default function ReportsScreen() {
 
       {/* PHARMACY & LOGISTICS OVERVIEW */}
       <View className="px-4 mb-6">
-        <Text className="text-brand-navy font-extrabold text-sm mb-3 ml-1">{t('reportsPharmacyLogistics')}</Text>
+        <Text className="text-brand-navy font-black text-[22px] mb-3 ml-1">{t('reportsPharmacyLogistics')}</Text>
         <View className="flex-row justify-between">
           
-          <View className="w-[48%] bg-white rounded-[20px] p-4 border border-slate-200 shadow-sm">
+          <View className="w-[48%] bg-[#FEE2E2] rounded-[16px] p-4 border border-[#EF4444]/60 shadow-sm shadow-red-500/10">
             <View className="flex-row items-center mb-2">
               <View className="w-8 h-8 rounded-full bg-red-50 items-center justify-center mr-2 border border-red-100">
                 <MaterialCommunityIcons name="medical-bag" size={14} color="#EF4444" />
@@ -311,7 +424,7 @@ export default function ReportsScreen() {
             <Text className="text-slate-400 font-bold text-[9px] mt-1">{t('reportsItemsNeedRestock')}</Text>
           </View>
 
-          <View className="w-[48%] bg-white rounded-[20px] p-4 border border-slate-200 shadow-sm">
+          <View className="w-[48%] bg-[#E0E7FF] rounded-[16px] p-4 border border-[#4F46E5]/60 shadow-sm shadow-indigo-500/10">
             <View className="flex-row items-center mb-2">
               <View className="w-8 h-8 rounded-full bg-indigo-50 items-center justify-center mr-2 border border-indigo-100">
                 <MaterialCommunityIcons name="truck-fast-outline" size={16} color="#4F46E5" />
@@ -327,44 +440,42 @@ export default function ReportsScreen() {
 
       {/* RESOURCE UTILIZATION */}
       <View className="px-4 mb-6">
-        <Text className="text-brand-navy font-extrabold text-sm mb-3 ml-1">{t('reportsResourceUtilization')}</Text>
-        <View className="bg-white rounded-[24px] p-5 border border-slate-200 shadow-sm flex-row justify-between items-center">
-          <View className="items-center">
-            <View className="w-12 h-12 rounded-full bg-teal-50 items-center justify-center mb-2 border border-teal-100">
-              <MaterialCommunityIcons name="doctor" size={20} color="#0D9488" />
+        <Text className="text-brand-navy font-black text-[22px] mb-3 ml-1">{t('reportsResourceUtilization')}</Text>
+        <View className="flex-row justify-between">
+          
+          <View className="w-[31%] bg-[#CCFBF1] rounded-[16px] p-3 border border-[#0D9488]/60 shadow-sm shadow-teal-500/10 items-center justify-center py-4">
+            <View className="w-8 h-8 rounded-full bg-white items-center justify-center mb-2 shadow-sm shadow-black/5">
+              <MaterialCommunityIcons name="doctor" size={16} color="#0D9488" />
             </View>
-            <Text className="text-brand-navy font-black text-lg">{staffAttendanceRate}%</Text>
-            <Text className="text-slate-400 font-bold text-[9px]">{t('reportsStaffPresent')}</Text>
+            <Text className="text-brand-navy font-black text-xl leading-tight">{staffAttendanceRate}%</Text>
+            <Text className="text-teal-700 font-bold text-[8px] mt-1 uppercase tracking-wider text-center">{t('reportsStaffPresent')}</Text>
           </View>
 
-          <View className="w-[1px] h-12 bg-slate-200"></View>
-
-          <View className="items-center">
-            <View className="w-12 h-12 rounded-full bg-red-50 items-center justify-center mb-2 border border-red-100">
-              <MaterialCommunityIcons name="ambulance" size={20} color="#E11D48" />
+          <View className="w-[31%] bg-[#FFE4E6] rounded-[16px] p-3 border border-[#E11D48]/60 shadow-sm shadow-rose-500/10 items-center justify-center py-4">
+            <View className="w-8 h-8 rounded-full bg-white items-center justify-center mb-2 shadow-sm shadow-black/5">
+              <MaterialCommunityIcons name="ambulance" size={16} color="#E11D48" />
             </View>
-            <Text className="text-brand-navy font-black text-lg">{totalAmbulances}</Text>
-            <Text className="text-slate-400 font-bold text-[9px]">{t('reportsAmbulances')}</Text>
+            <Text className="text-brand-navy font-black text-xl leading-tight">{totalAmbulances}</Text>
+            <Text className="text-rose-700 font-bold text-[8px] mt-1 uppercase tracking-wider text-center">{t('reportsAmbulances')}</Text>
           </View>
 
-          <View className="w-[1px] h-12 bg-slate-200"></View>
-
-          <View className="items-center">
-            <View className="w-12 h-12 rounded-full bg-sky-50 items-center justify-center mb-2 border border-sky-100">
-              <MaterialCommunityIcons name="gas-cylinder" size={20} color="#0284C7" />
+          <View className="w-[31%] bg-[#E0F2FE] rounded-[16px] p-3 border border-[#0284C7]/60 shadow-sm shadow-sky-500/10 items-center justify-center py-4">
+            <View className="w-8 h-8 rounded-full bg-white items-center justify-center mb-2 shadow-sm shadow-black/5">
+              <MaterialCommunityIcons name="gas-cylinder" size={16} color="#0284C7" />
             </View>
-            <Text className="text-brand-navy font-black text-lg">{totalO2}</Text>
-            <Text className="text-slate-400 font-bold text-[9px]">{t('reportsO2Cylinders')}</Text>
+            <Text className="text-brand-navy font-black text-xl leading-tight">{totalO2}</Text>
+            <Text className="text-sky-700 font-bold text-[8px] mt-1 uppercase tracking-wider text-center">{t('reportsO2Cylinders')}</Text>
           </View>
+
         </View>
       </View>
 
       {/* ADDITIONAL METRICS GRID */}
       <View className="px-4 flex-row flex-wrap justify-between mb-2">
-        <Text className="text-brand-navy font-extrabold text-sm mb-3 ml-1 w-full">Additional Metrics</Text>
+        <Text className="text-brand-navy font-black text-[22px] mb-3 ml-1 w-full">Additional Metrics</Text>
         
         {/* Lab Tests */}
-        <View className="w-[48%] bg-white rounded-[28px] p-5 border border-slate-100 border-l-[4px] border-l-purple-500 shadow-sm shadow-slate-200/50 mb-4 justify-between overflow-hidden" style={{ minHeight: 140 }}>
+        <View className="w-[48%] bg-[#E9D5FF] rounded-[16px] p-4 border border-[#8B5CF6]/60 shadow-sm shadow-purple-500/10 mb-4 justify-between overflow-hidden" style={{ minHeight: 140 }}>
           <MaterialCommunityIcons name="test-tube" size={100} color="rgba(139,92,246,0.05)" style={{position: 'absolute', bottom: -20, right: -20, transform: [{rotate: '-15deg'}]}} />
           <View className="flex-row justify-between items-start">
             <View className="flex-1 mr-2">
@@ -381,7 +492,7 @@ export default function ReportsScreen() {
         </View>
 
         {/* Vaccinations */}
-        <View className="w-[48%] bg-white rounded-[28px] p-5 border border-slate-100 border-l-[4px] border-l-teal-500 shadow-sm shadow-slate-200/50 mb-4 justify-between overflow-hidden" style={{ minHeight: 140 }}>
+        <View className="w-[48%] bg-[#CCFBF1] rounded-[16px] p-4 border border-[#0D9488]/60 shadow-sm shadow-teal-500/10 mb-4 justify-between overflow-hidden" style={{ minHeight: 140 }}>
           <MaterialCommunityIcons name="needle" size={100} color="rgba(20,184,166,0.05)" style={{position: 'absolute', bottom: -20, right: -20, transform: [{rotate: '-15deg'}]}} />
           <View className="flex-row justify-between items-start">
             <View className="flex-1 mr-2">
@@ -398,7 +509,7 @@ export default function ReportsScreen() {
         </View>
 
         {/* Deliveries */}
-        <View className="w-[48%] bg-white rounded-[28px] p-5 border border-slate-100 border-l-[4px] border-l-pink-500 shadow-sm shadow-slate-200/50 mb-4 justify-between overflow-hidden" style={{ minHeight: 140 }}>
+        <View className="w-[48%] bg-[#FCE7F3] rounded-[16px] p-4 border border-[#EC4899]/60 shadow-sm shadow-pink-500/10 mb-4 justify-between overflow-hidden" style={{ minHeight: 140 }}>
           <MaterialCommunityIcons name="baby-carriage" size={100} color="rgba(236,72,153,0.05)" style={{position: 'absolute', bottom: -20, right: -20, transform: [{rotate: '-15deg'}]}} />
           <View className="flex-row justify-between items-start">
             <View className="flex-1 mr-2">
@@ -415,7 +526,7 @@ export default function ReportsScreen() {
         </View>
 
         {/* Emergency */}
-        <View className="w-[48%] bg-white rounded-[28px] p-5 border border-slate-100 border-l-[4px] border-l-rose-500 shadow-sm shadow-slate-200/50 mb-4 justify-between overflow-hidden" style={{ minHeight: 140 }}>
+        <View className="w-[48%] bg-[#FFE4E6] rounded-[16px] p-4 border border-[#E11D48]/60 shadow-sm shadow-rose-500/10 mb-4 justify-between overflow-hidden" style={{ minHeight: 140 }}>
           <MaterialCommunityIcons name="hospital-marker" size={100} color="rgba(225,29,72,0.05)" style={{position: 'absolute', bottom: -20, right: -20, transform: [{rotate: '-15deg'}]}} />
           <View className="flex-row justify-between items-start">
             <View className="flex-1 mr-2">
@@ -435,26 +546,47 @@ export default function ReportsScreen() {
       {/* CRITICAL WATCHLIST (Only for DHO/BMO) */}
       {(isDHO || isBMO) && criticalPhcs.length > 0 && (
         <View className="px-4 mb-8">
-          <Text className="text-brand-navy font-extrabold text-sm mb-3 ml-1">{t('reportsNeedsAttention')}</Text>
+          <Text className="text-brand-navy font-black text-[22px] mb-3 ml-1">{t('reportsNeedsAttention')}</Text>
           {criticalPhcs.map((phc, idx) => (
             <Pressable 
               key={phc.id}
               onPress={() => router.push({ pathname: '/(tabs)/phc-detail', params: { id: phc.id } })}
-              className={`bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex-row items-center ${idx !== criticalPhcs.length - 1 ? 'mb-3' : ''}`}
+              className={`bg-[#FEF2F2] rounded-[16px] p-4 border border-[#EF4444]/40 shadow-sm flex-row items-center relative overflow-hidden ${idx !== criticalPhcs.length - 1 ? 'mb-3' : ''}`}
             >
-              <View className="w-10 h-10 rounded-xl bg-rose-50 items-center justify-center mr-3 border border-rose-200">
-                <Text className="text-rose-500 font-black text-xs">{phc.healthScore}</Text>
+              {/* Left thick indicator line */}
+              <View className="absolute left-0 top-3 bottom-3 w-[4px] bg-[#EF4444] rounded-r-md" />
+
+              {/* Icon Box */}
+              <View className="ml-2 w-[42px] h-[42px] rounded-[12px] bg-[#FEE2E2] items-center justify-center mr-3">
+                <MaterialCommunityIcons name="hospital-building" size={22} color="#EF4444" />
               </View>
-              <View className="flex-1">
-                <Text className="text-brand-navy font-black text-sm mb-0.5">{getPhcName(phc)}</Text>
-                <Text className="text-slate-500 text-[10px] font-bold">{phc.activeAlertsCount} {t('reportsActiveAlertsBullet')} • {phc.stockStatus} {t('reportsStockSuffix')}</Text>
+
+              {/* Middle Content */}
+              <View className="flex-1 pr-2 justify-center">
+                <Text className="text-brand-navy font-extrabold text-[15px] leading-tight">{getPhcName(phc)}</Text>
+                <Text className="text-slate-500 text-[10px] font-bold mt-1">
+                  <Text className="text-red-500">{phc.activeAlertsCount} {t('reportsActiveAlertsBullet')}</Text> • {phc.stockStatus} {t('reportsStockSuffix')}
+                </Text>
               </View>
-              <MaterialCommunityIcons name="chevron-right" size={20} color="#CBD5E1" />
+
+              {/* Dashed Separator */}
+              <View className="mx-2 justify-center items-center">
+                <Svg height="36" width="2">
+                  <Path d="M1,0 L1,36" stroke="#FCA5A5" strokeWidth="2" strokeDasharray="5 4" />
+                </Svg>
+              </View>
+
+              {/* Score Box */}
+              <View className="items-center justify-center w-[46px] bg-[#EF4444] border border-[#F87171] shadow-sm shadow-red-500/30 rounded-[12px] py-1.5 ml-1">
+                <Text className="text-white font-black text-[16px] leading-tight text-center px-1" numberOfLines={1} adjustsFontSizeToFit>{phc.healthScore}</Text>
+                <Text className="font-extrabold text-[7.5px] mt-0.5 text-red-100 uppercase tracking-widest">Score</Text>
+              </View>
             </Pressable>
           ))}
         </View>
       )}
 
     </ScrollView>
+    </>
   );
 }

@@ -11,12 +11,45 @@ import { AlertItem } from '@/shared/types/alert';
 import { AIRecommendation } from '@/shared/types/ai';
 import { useAuth } from '@/context/AuthContext';
 import { useTranslation } from '@/hooks/useTranslation';
+import { localDiseaseTrends } from '@/services/repositories/localDb';
 import { Dimensions, Image, Pressable, ScrollView, Text, TouchableOpacity, View, LogBox, Platform } from 'react-native';
 import Svg, { Circle, Defs, Path, Stop, LinearGradient as SvgLinearGradient, Text as SvgText, G } from 'react-native-svg';
 
 LogBox.ignoreLogs(['Unknown event handler property `onResponderTerminate`']);
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+const generateSparkline = (data: number[], width: number, height: number) => {
+  if (!data || data.length === 0) return { path: '', areaPath: '', lastPoint: { x: 0, y: 0 } };
+  const min = Math.min(...data) - (Math.max(...data) * 0.1);
+  const max = Math.max(...data) + (Math.max(...data) * 0.1);
+  const range = (max - min) || 1;
+  const paddingLeft = 4;
+  const paddingRight = 6;
+  const stepX = (width - paddingLeft - paddingRight) / (data.length - 1);
+  const points = data.map((val, i) => {
+    const x = paddingLeft + (i * stepX);
+    const y = height - ((val - min) / range) * height;
+    return { x, y };
+  });
+  const path = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+  const areaPath = `${path} L ${points[points.length - 1].x} ${height} L ${points[0].x} ${height} Z`;
+  return { path, areaPath, lastPoint: points[points.length - 1] };
+};
+
+const diseaseIcons: Record<string, { name: any, color: string, bg: string }> = {
+  'Dengue': { name: 'virus', color: '#EF4444', bg: '#FEE2E2' },
+  'Malaria': { name: 'bug', color: '#EAB308', bg: '#FEF9C3' },
+  'Chikungunya': { name: 'spider', color: '#F97316', bg: '#FFEDD5' },
+  'Acute Diarrheal Disease (ADD)': { name: 'stomach', color: '#8B5CF6', bg: '#EDE9FE' },
+  'Acute Diarrheal Disease': { name: 'stomach', color: '#8B5CF6', bg: '#EDE9FE' },
+  'Typhoid': { name: 'bacteria', color: '#06B6D4', bg: '#CFFAFE' },
+  'Cholera': { name: 'water-alert', color: '#3B82F6', bg: '#DBEAFE' },
+  'Seasonal Influenza (Flu)': { name: 'virus', color: '#EC4899', bg: '#FCE7F3' },
+  'Viral Fever': { name: 'thermometer-high', color: '#F43F5E', bg: '#FFE4E6' },
+  'Acute Respiratory Infection (ARI)': { name: 'lungs', color: '#10B981', bg: '#D1FAE5' },
+  'Pneumonia': { name: 'lungs', color: '#14B8A6', bg: '#CCFBF1' },
+};
 
 // Components
 const MetricCard = ({ title, value, icon, iconBg, trend, trendVal, subtitle, borderColor, bgColor = '#FFFFFF' }: any) => (
@@ -49,6 +82,8 @@ export default function PHCDetailScreen() {
   const { authState } = useAuth();
   const [showAllMedicines, setShowAllMedicines] = useState(false);
   const [currentAiIndex, setCurrentAiIndex] = useState(0);
+  const [showAllTrends, setShowAllTrends] = useState(false);
+  const diseaseTrendsData = localDiseaseTrends;
 
   const translateDynamic = (text: string) => {
     if (language !== 'hi' || !text) return text;
@@ -468,19 +503,18 @@ export default function PHCDetailScreen() {
 
             <View>
               {phcAlerts.length > 0 ? phcAlerts.map(alert => (
-                <View key={alert.id} className={`flex-row items-center rounded-xl p-3 border mb-3 ${alert.type === 'OUTBREAK' ? 'bg-red-50 border-red-100' : alert.type === 'SHORTAGE' ? 'bg-amber-50 border-amber-100' : 'bg-blue-50 border-blue-100'}`}>
-                  <View className={`mr-3 rounded-full p-2 ${alert.type === 'OUTBREAK' ? 'bg-red-100' : alert.type === 'SHORTAGE' ? 'bg-amber-100' : 'bg-blue-100'}`}>
+                <View key={alert.id} className={`flex-row items-center rounded-[16px] p-4 border mb-3 ${alert.type === 'OUTBREAK' ? 'bg-[#FEE2E2] border-[#EF4444]/60' : alert.type === 'SHORTAGE' ? 'bg-[#FEF3C7] border-[#D97706]/60' : 'bg-[#DBEAFE] border-[#3B82F6]/60'}`}>
+                  <View className={`w-[36px] h-[36px] items-center justify-center mr-4 rounded-full ${alert.type === 'OUTBREAK' ? 'bg-[#FEE2E2]' : alert.type === 'SHORTAGE' ? 'bg-[#FEF3C7]' : 'bg-[#DBEAFE]'}`}>
                     <MaterialCommunityIcons
                       name={alert.type === 'OUTBREAK' ? 'alert-circle-outline' : alert.type === 'SHORTAGE' ? 'medical-bag' : 'information-outline'}
                       size={20}
-                      color={alert.type === 'OUTBREAK' ? '#EF4444' : alert.type === 'SHORTAGE' ? '#F59E0B' : '#3B82F6'}
+                      color={alert.type === 'OUTBREAK' ? '#EF4444' : alert.type === 'SHORTAGE' ? '#D97706' : '#3B82F6'}
                     />
                   </View>
-                  <View className="flex-1">
-                    <Text className={`${alert.type === 'OUTBREAK' ? 'text-red-600' : alert.type === 'SHORTAGE' ? 'text-amber-600' : 'text-blue-600'} font-bold text-xs mb-0.5`}>{alert.title}</Text>
-                    <Text className="text-slate-500 text-[10px] font-medium">{alert.description}</Text>
+                  <View className="flex-1 pr-2">
+                    <Text className={`${alert.type === 'OUTBREAK' ? 'text-[#DC2626]' : alert.type === 'SHORTAGE' ? 'text-[#D97706]' : 'text-[#2563EB]'} font-extrabold text-[14px] mb-1`}>{alert.title}</Text>
+                    <Text className="text-slate-600 text-[11px] font-semibold">{alert.description}</Text>
                   </View>
-                  <Feather name="chevron-right" size={16} color={alert.type === 'OUTBREAK' ? '#EF4444' : alert.type === 'SHORTAGE' ? '#F59E0B' : '#3B82F6'} />
                 </View>
               )) : (
                 <View className="items-center py-6">
@@ -488,6 +522,103 @@ export default function PHCDetailScreen() {
                   <Text className="text-slate-500 font-bold mt-2">{t('phcDetailNoActiveAlerts')}</Text>
                 </View>
               )}
+            </View>
+          </View>
+        </View>
+
+        {/* Disease Trends Section */}
+        <View className="px-4 mb-6">
+          <View className="flex-row justify-between items-center mb-3 ml-2 pr-1">
+            <Text className="text-brand-navy font-black text-[22px]">{t('phcDetailDiseaseTrends') || 'Disease Trends'}</Text>
+            <Pressable 
+              className="bg-[#10B981] rounded-[6px] px-2.5 py-1.5 flex-row items-center shadow-sm shadow-emerald-200"
+              onPress={() => setShowAllTrends(!showAllTrends)}
+            >
+              <Text className="text-white font-bold text-[9px] mr-1">{showAllTrends ? t('phcDetailViewLess') || 'View Less' : t('phcDetailViewAll') || 'View All'}</Text>
+              <MaterialCommunityIcons name={showAllTrends ? "chevron-up" : "chevron-down"} size={10} color="white" />
+            </Pressable>
+          </View>
+
+          <View className="bg-white rounded-[24px] shadow-sm shadow-slate-200/50 p-4 border border-slate-100 overflow-hidden">
+            <View>
+              {diseaseTrendsData.slice(0, showAllTrends ? diseaseTrendsData.length : 4).map((trend) => {
+                const sparkline = generateSparkline(trend.data, 90, 30);
+                
+                const rowBgColor = trend.isUp ? 'bg-[#FEE2E2]' : 'bg-[#D1FAE5]';
+                const rowBorderColor = trend.isUp ? 'border-[#FECACA]' : 'border-[#A7F3D0]';
+                const leftBarColor = trend.isUp ? 'bg-[#EF4444]' : 'bg-[#10B981]';
+                const badgeIcon = trend.isUp ? 'trending-up' : 'trending-down';
+                const badgeColor = trend.isUp ? '#EF4444' : '#10B981';
+                
+                const mainIcon = diseaseIcons[trend.disease]?.name || 'virus';
+                const iconBgColor = trend.isUp ? '#FEE2E2' : '#D1FAE5'; 
+                const iconColor = trend.isUp ? '#EF4444' : '#10B981'; 
+
+                return (
+                  <View key={trend.id} className={`${rowBgColor} rounded-[16px] mb-3 border ${rowBorderColor} flex-row overflow-hidden p-3 items-center relative`}>
+                    
+                    {/* Left Colored Bar */}
+                    <View className={`absolute left-0 top-3 bottom-3 w-[4px] rounded-r-full ${leftBarColor}`} />
+                    
+                    {/* Square Icon Container */}
+                    <View className="ml-3 w-[42px] h-[42px] rounded-[12px] items-center justify-center mr-3 relative" style={{ backgroundColor: iconBgColor }}>
+                      <MaterialCommunityIcons name={mainIcon} size={22} color={iconColor} />
+                      <View className="absolute -bottom-1 -right-1 bg-white rounded-full p-[2px] shadow-sm">
+                        <MaterialCommunityIcons name={badgeIcon} size={12} color={badgeColor} />
+                      </View>
+                    </View>
+                    
+                    {/* Middle Info: Name & Sparkline */}
+                    <View className="flex-1 pr-2 flex-row items-center">
+                      <View className="w-[90px] mr-1">
+                        <Text className="text-brand-navy font-extrabold text-[13px] tracking-tight" numberOfLines={2}>{translateDynamic(trend.disease)}</Text>
+                      </View>
+
+                      {/* Sparkline Graph */}
+                      <View className="flex-1 h-[34px] relative">
+                        <Svg height="100%" width="100%" viewBox="0 0 100 40" preserveAspectRatio="none">
+                          <Defs>
+                            <SvgLinearGradient id={`grad-${trend.id}`} x1="0" y1="0" x2="0" y2="1">
+                              <Stop offset="0" stopColor={trend.color} stopOpacity="0.25" />
+                              <Stop offset="1" stopColor={trend.color} stopOpacity="0.0" />
+                            </SvgLinearGradient>
+                          </Defs>
+                          <Path d={sparkline.areaPath} fill={`url(#grad-${trend.id})`} />
+                          <Path d={sparkline.path} fill="none" stroke={trend.color} strokeWidth="2.5" strokeLinejoin="round" />
+                        </Svg>
+                        {/* Dot */}
+                        <View
+                          style={{
+                            position: 'absolute',
+                            width: 6, height: 6, borderRadius: 3, backgroundColor: trend.color,
+                            left: `${sparkline.lastPoint.x}%`,
+                            top: `${(sparkline.lastPoint.y / 40) * 100}%`,
+                            transform: [{ translateX: -3 }, { translateY: -3 }]
+                          }}
+                        />
+                      </View>
+                    </View>
+
+                    {/* Vertical Dashed Divider */}
+                    <View className="h-[34px] border-l-2 border-dashed border-slate-300 mx-2" />
+
+                    {/* Stats Area */}
+                    <View 
+                      className={`items-center justify-center w-[44px] border rounded-[12px] py-1 shadow-sm ${
+                        trend.isUp 
+                          ? 'bg-[#EF4444] border-[#F87171] shadow-red-500/30' 
+                          : 'bg-[#10B981] border-[#34D399] shadow-emerald-500/30'
+                      }`}
+                    >
+                      <Text className="text-white font-black text-[15px] leading-tight text-center px-1" numberOfLines={1} adjustsFontSizeToFit>{trend.cases}</Text>
+                      <Text className={`font-extrabold text-[7.5px] mt-0.5 ${trend.isUp ? 'text-red-100' : 'text-emerald-100'}`}>
+                        {language === 'hi' ? 'मामले' : 'CASES'}
+                      </Text>
+                    </View>
+
+                  </View>
+                );
+              })}
             </View>
           </View>
         </View>
@@ -687,7 +818,7 @@ export default function PHCDetailScreen() {
                       </View>
 
                       {/* Target Facility Glass Card (Red) */}
-                      <View className="bg-[#FEF2F2] rounded-[16px] p-3 flex-1 flex-row items-center border border-[#FEE2E2] shadow-sm shadow-red-100">
+                      <View className="bg-[#FEE2E2] rounded-[16px] p-3 flex-1 flex-row items-center border border-[#FEE2E2] shadow-sm shadow-red-100">
                         <View className="w-[38px] h-[38px] rounded-[12px] bg-[#EF4444] items-center justify-center mr-2">
                           <MaterialCommunityIcons name="hospital-building" size={20} color="white" />
                         </View>
