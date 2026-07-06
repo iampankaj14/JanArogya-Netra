@@ -18,7 +18,7 @@ export default function PHCHomeDashboard() {
   
   const { authState } = useAuth();
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
 
   const facilityId = authState?.facilityId || 'phc_barola';
   const { stocks } = useInventory(facilityId);
@@ -326,8 +326,8 @@ export default function PHCHomeDashboard() {
 
             {/* Main Content */}
             <View className="flex-1 ml-2 py-1 justify-center">
-              <Text className="text-white font-extrabold text-[15px] mb-0.5" numberOfLines={1}>{activeOutbreak.title}</Text>
-              <Text className="text-red-100 font-semibold text-[10px] mb-1.5" numberOfLines={2}>{activeOutbreak.description}</Text>
+              <Text className="text-white font-extrabold text-[15px] mb-0.5" numberOfLines={1}>{language === 'hi' && activeOutbreak.titleHi ? activeOutbreak.titleHi : activeOutbreak.title}</Text>
+              <Text className="text-red-100 font-semibold text-[10px] mb-1.5" numberOfLines={2}>{language === 'hi' && activeOutbreak.descriptionHi ? activeOutbreak.descriptionHi : activeOutbreak.description}</Text>
               <View className="flex-row items-center bg-red-700/50 self-start px-2 py-0.5 rounded-full border border-red-500/50">
                 <Feather name="alert-triangle" size={10} color="#FECACA" />
                 <Text className="text-white font-bold text-[9.5px] ml-1 uppercase">{t('dashboardHighAlertBadge')}</Text>
@@ -426,8 +426,8 @@ export default function PHCHomeDashboard() {
                         <View className="w-5 h-5 rounded-full border-2 border-slate-300 mr-3 mt-0.5" />
                       )}
                       <View>
-                        <Text className={task.completed ? "text-slate-800 font-bold text-[13px] line-through opacity-70" : "text-[#1E3A8A] font-bold text-[13px]"}>{task.title}</Text>
-                        <Text className="text-slate-400 text-[10px] font-medium mt-0.5">{task.desc}</Text>
+                        <Text className={task.completed ? "text-slate-800 font-bold text-[13px] line-through opacity-70" : "text-[#1E3A8A] font-bold text-[13px]"}>{language === 'hi' && task.titleHi ? task.titleHi : task.title}</Text>
+                        <Text className="text-slate-400 text-[10px] font-medium mt-0.5">{language === 'hi' && task.descHi ? task.descHi : task.desc}</Text>
                       </View>
                     </View>
                     {isEditingTasks ? (

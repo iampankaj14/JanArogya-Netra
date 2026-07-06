@@ -12,7 +12,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 export default function PHCsScreen() {
   const router = useRouter();
   const { authState } = useAuth();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
 
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -172,8 +172,8 @@ export default function PHCsScreen() {
               <View key={item.id} className="mb-4">
                 <PHCCard
                   id={item.id}
-                  name={item.name}
-                  block={item.block}
+                  name={language === 'hi' && item.nameHi ? item.nameHi : item.name}
+                  block={language === 'hi' && item.blockHi ? item.blockHi : item.block}
                   healthScore={item.healthScore}
                   doctorAvailable={item.doctorAvailable}
                   stockStatus={item.stockStatus}

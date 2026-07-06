@@ -680,7 +680,7 @@ export default function SituationRoomScreen() {
               className="bg-[#EF4444] rounded-[6px] px-2.5 py-1.5 flex-row items-center shadow-sm shadow-red-200"
               onPress={() => setShowAllTrends(!showAllTrends)}
             >
-              <Text className="text-white font-bold text-[9px] mr-1">{showAllTrends ? t('situationRoomShowLess') || 'View Less' : 'View All'}</Text>
+              <Text className="text-white font-bold text-[9px] mr-1">{showAllTrends ? t('situationRoomShowLess') || 'View Less' : t('situationRoomViewAll') || 'View All'}</Text>
               <MaterialCommunityIcons name={showAllTrends ? "chevron-up" : "chevron-down"} size={10} color="white" />
             </Pressable>
           </View>
@@ -809,7 +809,7 @@ export default function SituationRoomScreen() {
                     <Image source={require('../../data/netra.png')} style={{width: 36, height: 36}} resizeMode="contain" />
                   </View>
                   <View className="flex-1 justify-center">
-                    <Text className="text-[#3B82F6] font-bold text-[10px] mb-0.5">Netra AI Recommendation</Text>
+                    <Text className="text-[#3B82F6] font-bold text-[10px] mb-0.5">{t('situationRoomNetraAiRecommendation') || 'Netra AI Recommendation'}</Text>
                     <Text className="text-brand-navy font-black text-[15px] leading-tight" numberOfLines={2}>
                       {language === 'hi' 
                         ? (request.type === 'Redistribute Stock' ? 'स्टॉक\nपुनर्वितरित करें' : request.type) 
@@ -831,12 +831,12 @@ export default function SituationRoomScreen() {
                       <MaterialCommunityIcons name="hospital-building" size={20} color="white" />
                     </View>
                     <View className="flex-1">
-                      <Text className="text-[#15803D] font-extrabold text-[8px] uppercase tracking-wider mb-0.5">Source</Text>
+                      <Text className="text-[#15803D] font-extrabold text-[8px] uppercase tracking-wider mb-0.5">{t('situationRoomSource') || 'Source'}</Text>
                       <Text className="text-brand-navy font-bold text-[12px] mb-1" numberOfLines={1}>
                         {translateDynamic(request.source, language).replace(/_/g, ' ').toUpperCase()}
                       </Text>
                       <View className="bg-green-100 px-1.5 py-0.5 rounded-[4px] self-start">
-                        <Text className="text-[#15803D] font-bold text-[8px]">In Stock</Text>
+                        <Text className="text-[#15803D] font-bold text-[8px]">{t('situationRoomInStock') || 'In Stock'}</Text>
                       </View>
                     </View>
                   </View>
@@ -852,12 +852,12 @@ export default function SituationRoomScreen() {
                       <MaterialCommunityIcons name="hospital-building" size={20} color="white" />
                     </View>
                     <View className="flex-1">
-                      <Text className="text-red-700 font-extrabold text-[8px] uppercase tracking-wider mb-0.5">Target</Text>
+                      <Text className="text-red-700 font-extrabold text-[8px] uppercase tracking-wider mb-0.5">{t('situationRoomTarget') || 'Target'}</Text>
                       <Text className="text-brand-navy font-bold text-[12px] mb-1" numberOfLines={1}>
                         {translateDynamic(request.target, language).replace(/_/g, ' ').toUpperCase()}
                       </Text>
                       <View className="bg-red-100 px-1.5 py-0.5 rounded-[4px] self-start">
-                        <Text className="text-red-700 font-bold text-[8px]">Critical</Text>
+                        <Text className="text-red-700 font-bold text-[8px]">{t('phcsMetricCriticalLabel') || 'Critical'}</Text>
                       </View>
                     </View>
                   </View>
@@ -872,8 +872,8 @@ export default function SituationRoomScreen() {
                     <Text className="text-[#3B82F6] font-black text-[9px] tracking-widest uppercase mb-1.5">{t('situationRoomReasoningLabel')}</Text>
                     {request.type === 'Redistribute Stock' ? (
                       <View>
-                        <Text className="text-slate-600 font-medium text-[10px] mb-0.5">• Target is critically low.</Text>
-                        <Text className="text-slate-600 font-medium text-[10px]">• Source has surplus stock.</Text>
+                        <Text className="text-slate-600 font-medium text-[10px] mb-0.5">• {t('situationRoomReasonTargetLow') || 'Target is critically low.'}</Text>
+                        <Text className="text-slate-600 font-medium text-[10px]">• {t('situationRoomReasonSourceSurplus') || 'Source has surplus stock.'}</Text>
                       </View>
                     ) : (
                       <Text className="text-slate-600 font-medium text-[10.5px] leading-tight pr-2" numberOfLines={4}>• {request.reason}</Text>
@@ -921,7 +921,7 @@ export default function SituationRoomScreen() {
               className="bg-[#6366F1] rounded-[6px] px-2.5 py-1.5 flex-row items-center shadow-sm shadow-indigo-200"
               onPress={() => setIsLogisticsOpen(!isLogisticsOpen)}
             >
-              <Text className="text-white font-bold text-[9px] mr-1">{isLogisticsOpen ? t('situationRoomShowLess') || 'View Less' : 'View All'}</Text>
+              <Text className="text-white font-bold text-[9px] mr-1">{isLogisticsOpen ? t('situationRoomShowLess') || 'View Less' : t('situationRoomViewAll') || 'View All'}</Text>
               <MaterialCommunityIcons name={isLogisticsOpen ? "chevron-up" : "chevron-down"} size={10} color="white" />
             </Pressable>
           </View>
@@ -1012,14 +1012,14 @@ export default function SituationRoomScreen() {
                   <View className="w-[24px] h-[24px] rounded-[6px] bg-indigo-100 items-center justify-center mr-1.5">
                     <MaterialCommunityIcons name="cube-outline" size={14} color="#6366F1" />
                   </View>
-                  <Text className="text-brand-navy font-bold text-[10px]">Real-time Updates</Text>
+                  <Text className="text-brand-navy font-bold text-[10px]">{t('situationRoomRealtimeUpdates') || 'Real-time Updates'}</Text>
                 </View>
                 
                 <View className="flex-row items-center">
                   <View className="w-[24px] h-[24px] rounded-[6px] bg-blue-100 items-center justify-center mr-1.5">
                     <MaterialCommunityIcons name="map-marker-path" size={14} color="#3B82F6" />
                   </View>
-                  <Text className="text-brand-navy font-bold text-[10px]">Smart Routing</Text>
+                  <Text className="text-brand-navy font-bold text-[10px]">{t('situationRoomSmartRouting') || 'Smart Routing'}</Text>
                 </View>
               </View>
               
@@ -1028,7 +1028,7 @@ export default function SituationRoomScreen() {
                   <MaterialCommunityIcons name="truck-delivery" size={14} color="#6366F1" />
                 </View>
                 <Text className="text-brand-navy font-black text-[12px]">
-                  {logisticsRequests.filter(req => req.status.toLowerCase() !== 'delivered').length} <Text className="font-semibold text-[9px] text-slate-600">Active</Text>
+                  {logisticsRequests.filter(req => req.status.toLowerCase() !== 'delivered').length} <Text className="font-semibold text-[9px] text-slate-600">{t('situationRoomActive') || 'Active'}</Text>
                 </Text>
               </View>
             </View>

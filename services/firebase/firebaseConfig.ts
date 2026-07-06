@@ -23,11 +23,11 @@ import { getAuth } from 'firebase/auth';
 
 let auth: any;
 try {
-  auth = getAuth(app);
-} catch (e) {
   auth = initializeAuth(app, {
     persistence: getReactNativePersistence(ReactNativeAsyncStorage),
   });
+} catch (e) {
+  auth = getAuth(app);
 }
 
 // Initialize Firestore

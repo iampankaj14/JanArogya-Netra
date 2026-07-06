@@ -35,10 +35,12 @@ function getStatusDetails(status: FacilityStatus) {
 }
 
 // Calculate distance mock
-function getDistanceMock(phcId: string): string {
+// Calculate distance mock
+function getDistanceMock(phcId: string, t?: any): string {
   // Just deterministic mock based on id length or char code for visual variety
   const num = (phcId.charCodeAt(0) % 5) + 1 + (phcId.charCodeAt(1) % 10) / 10;
-  return `${num.toFixed(1)} km away`;
+  const suffix = t ? t('mapKmAway') : 'km away';
+  return `${num.toFixed(1)} ${suffix}`;
 }
 
 export default function DistrictMapScreen() {
@@ -66,7 +68,10 @@ export default function DistrictMapScreen() {
     }).map(phc => {
       const status = getFacilityStatus(phc);
       const details = getStatusDetails(status);
-      return { ...phc, status, colors: { core: details.core, bg: details.bg, sign: details.sign } };
+      const translatedStatus = status === 'Operational' ? t('mapStatusOperational') :
+                               status === 'Limited Services' ? t('mapStatusLimited') :
+                               status === 'Sub Center' ? t('mapStatusSubCenter') : t('mapStatusClosed');
+      return { ...phc, status: translatedStatus, colors: { core: details.core, bg: details.bg, sign: details.sign } };
     });
   }, [allPhcs, search]);
 
@@ -268,10 +273,16 @@ export default function DistrictMapScreen() {
                     </View>
                     <Text className="text-slate-800 font-extrabold text-lg ml-2.5">{t('districtMapNearbyFacilities')}</Text>
                   </View>
-                  <View className="bg-slate-800 px-3 py-1.5 rounded-full flex-row items-center border border-slate-700 shadow-sm pointer-events-none">
+                  <Pressable 
+                    className="bg-slate-800 px-3 py-1.5 rounded-full flex-row items-center border border-slate-700 shadow-sm"
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      router.push('/(tabs)/phcs');
+                    }}
+                  >
                     <Text className="text-white font-bold text-[10px] uppercase tracking-wider mr-1">{t('districtMapViewAll')}</Text>
                     <Feather name="chevron-right" size={12} color="white" />
-                  </View>
+                  </Pressable>
                 </View>
               </Pressable>
 
@@ -284,7 +295,11 @@ export default function DistrictMapScreen() {
             {allPhcs.slice(0, 5).map((phc, idx) => {
               const status = getFacilityStatus(phc);
               const details = getStatusDetails(status);
-              const distance = getDistanceMock(phc.id);
+              const translatedStatus = status === 'Operational' ? t('mapStatusOperational') :
+                                       status === 'Limited Services' ? t('mapStatusLimited') :
+                                       status === 'Sub Center' ? t('mapStatusSubCenter') : t('mapStatusClosed');
+              const distance = getDistanceMock(phc.id, t);
+              const translatedName = language === 'hi' && phc.nameHi ? phc.nameHi : phc.name;
 
               return (
                 <Pressable
@@ -305,14 +320,14 @@ export default function DistrictMapScreen() {
                   </View>
 
                   <View className="p-3 bg-white border-t border-slate-50">
-                    <Text className="font-black text-slate-800 text-[13px] mb-1 tracking-tight" numberOfLines={1}>{phc.name}</Text>
+                    <Text className="font-black text-slate-800 text-[13px] mb-1 tracking-tight" numberOfLines={1}>{translatedName}</Text>
                     <View className="flex-row items-center mb-2.5">
                       <Feather name="map-pin" size={10} color="#94A3B8" />
                       <Text className="text-[10px] text-slate-500 font-bold ml-1">{distance}</Text>
                     </View>
 
                     <View className={`self-start px-2 py-0.5 rounded-full border border-white/50 ${details.bgClass}`}>
-                      <Text className={`font-black text-[9px] uppercase tracking-wider ${details.textClass}`}>{status}</Text>
+                      <Text className={`font-black text-[9px] uppercase tracking-wider ${details.textClass}`}>{translatedStatus}</Text>
                     </View>
                   </View>
                 </Pressable>

@@ -129,29 +129,7 @@ export default function NotificationsScreen() {
         </Pressable>
       </View>
 
-      {/* Filter Pills (Flex Wrap instead of Horizontal Scroll) */}
-      <View className="mb-6 flex-row flex-wrap gap-2">
-        {filters.map((filter) => {
-          const isActive = activeFilter === filter.id;
-          return (
-            <Pressable
-              key={filter.id}
-              onPress={() => setActiveFilter(filter.id)}
-              className={`flex-row items-center px-3 py-2 rounded-xl border ${
-                isActive ? 'bg-white border-blue-200 shadow-sm shadow-blue-900/5' : 'bg-slate-50 border-slate-200/60'
-              }`}
-            >
-              <Feather name={filter.icon as any} size={14} color={isActive ? filter.iconColor : '#94A3B8'} className="mr-2" />
-              <Text className={`font-bold text-[12px] mr-2 ${isActive ? 'text-slate-800' : 'text-slate-500'}`}>
-                {filter.label}
-              </Text>
-              <View className={`${isActive ? filter.badgeBg : 'bg-slate-300'} px-1.5 py-0.5 rounded-full`}>
-                <Text className="text-white font-black text-[9px]">{filter.badge}</Text>
-              </View>
-            </Pressable>
-          );
-        })}
-      </View>
+
 
       {/* Notification List (Standard map instead of FlatList to prevent freeze) */}
       <View className="flex-1 pb-10">

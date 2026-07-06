@@ -105,12 +105,18 @@ export default function ReportsScreen() {
   const criticalAlertsCount = activeAlerts.filter(a => a.priority === 'CRITICAL').length;
 
   // Weekly Footfall Aggregation (assuming 7 days data)
-  const aggregatedFootfall = [0, 0, 0, 0, 0, 0, 0];
+  let aggregatedFootfall = [0, 0, 0, 0, 0, 0, 0];
   reportPhcs.forEach(phc => {
     phc.weeklyFootfall.forEach((val, i) => {
       aggregatedFootfall[i] += val;
     });
   });
+
+  if (timeframe === 'today') {
+    aggregatedFootfall = aggregatedFootfall.map(v => Math.max(1, Math.round(v / 7)));
+  } else if (timeframe === '30_days') {
+    aggregatedFootfall = aggregatedFootfall.map(v => Math.round(v * 4.2));
+  }
   const todayFootfall = aggregatedFootfall[6] || 0;
   const yesterdayFootfall = aggregatedFootfall[5] || 0;
   const footfallDiff = todayFootfall - yesterdayFootfall;
@@ -355,7 +361,12 @@ export default function ReportsScreen() {
               ))}
 
               {/* X-Axis Labels */}
-              {[t('reportsDayMon'), t('reportsDayTue'), t('reportsDayWed'), t('reportsDayThu'), t('reportsDayFri'), t('reportsDaySat'), t('reportsDaySun')].map((d, i) => (
+              {(timeframe === 'today' 
+                ? ['9AM', '11AM', '1PM', '3PM', '5PM', '7PM', '9PM'] 
+                : timeframe === '30_days'
+                  ? ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7']
+                  : [t('reportsDayMon'), t('reportsDayTue'), t('reportsDayWed'), t('reportsDayThu'), t('reportsDayFri'), t('reportsDaySat'), t('reportsDaySun')]
+              ).map((d, i) => (
                 <SvgText
                   key={`label-${i}`}
                   x={opdData[i].cx}
@@ -487,14 +498,14 @@ export default function ReportsScreen() {
 
       {/* ADDITIONAL METRICS GRID */}
       <View className="px-4 flex-row flex-wrap justify-between mb-2">
-        <Text className="text-brand-navy font-black text-[22px] mb-3 ml-1 w-full">Additional Metrics</Text>
+        <Text className="text-brand-navy font-black text-[22px] mb-3 ml-1 w-full">{t('reportsAdditionalMetrics')}</Text>
         
         {/* Lab Tests */}
         <View className="w-[48%] bg-[#E9D5FF] rounded-[16px] p-4 border border-[#8B5CF6]/60 shadow-sm shadow-purple-500/10 mb-4 justify-between overflow-hidden" style={{ minHeight: 140 }}>
           <MaterialCommunityIcons name="test-tube" size={100} color="rgba(139,92,246,0.05)" style={{position: 'absolute', bottom: -20, right: -20, transform: [{rotate: '-15deg'}]}} />
           <View className="flex-row justify-between items-start">
             <View className="flex-1 mr-2">
-              <Text className="text-slate-400 font-bold text-[13px] uppercase tracking-wider leading-tight">Lab Tests</Text>
+              <Text className="text-slate-400 font-bold text-[13px] uppercase tracking-wider leading-tight">{t('reportsLabTests')}</Text>
             </View>
             <View className="w-10 h-10 rounded-full bg-purple-50 items-center justify-center">
               <MaterialCommunityIcons name="test-tube" size={20} color="#8B5CF6" />
@@ -502,7 +513,7 @@ export default function ReportsScreen() {
           </View>
           <View>
             <Text className="text-brand-navy font-black text-3xl tracking-tight">432</Text>
-            <Text className="text-slate-400 text-[14px] font-bold mt-1 uppercase tracking-wider">Conducted Today</Text>
+            <Text className="text-slate-400 text-[14px] font-bold mt-1 uppercase tracking-wider">{t('reportsConductedToday')}</Text>
           </View>
         </View>
 
@@ -511,7 +522,7 @@ export default function ReportsScreen() {
           <MaterialCommunityIcons name="needle" size={100} color="rgba(20,184,166,0.05)" style={{position: 'absolute', bottom: -20, right: -20, transform: [{rotate: '-15deg'}]}} />
           <View className="flex-row justify-between items-start">
             <View className="flex-1 mr-2">
-              <Text className="text-slate-400 font-bold text-[13px] uppercase tracking-wider leading-tight">Vaccinations</Text>
+              <Text className="text-slate-400 font-bold text-[13px] uppercase tracking-wider leading-tight">{t('reportsVaccinations')}</Text>
             </View>
             <View className="w-10 h-10 rounded-full bg-teal-50 items-center justify-center">
               <MaterialCommunityIcons name="needle" size={20} color="#0D9488" />
@@ -519,7 +530,7 @@ export default function ReportsScreen() {
           </View>
           <View>
             <Text className="text-brand-navy font-black text-3xl tracking-tight">185</Text>
-            <Text className="text-slate-400 text-[14px] font-bold mt-1 uppercase tracking-wider">Doses Administered</Text>
+            <Text className="text-slate-400 text-[14px] font-bold mt-1 uppercase tracking-wider">{t('reportsDosesAdministered')}</Text>
           </View>
         </View>
 
@@ -528,7 +539,7 @@ export default function ReportsScreen() {
           <MaterialCommunityIcons name="baby-carriage" size={100} color="rgba(236,72,153,0.05)" style={{position: 'absolute', bottom: -20, right: -20, transform: [{rotate: '-15deg'}]}} />
           <View className="flex-row justify-between items-start">
             <View className="flex-1 mr-2">
-              <Text className="text-slate-400 font-bold text-[13px] uppercase tracking-wider leading-tight">Deliveries</Text>
+              <Text className="text-slate-400 font-bold text-[13px] uppercase tracking-wider leading-tight">{t('reportsDeliveries')}</Text>
             </View>
             <View className="w-10 h-10 rounded-full bg-pink-50 items-center justify-center">
               <MaterialCommunityIcons name="baby-carriage" size={20} color="#EC4899" />
@@ -536,7 +547,7 @@ export default function ReportsScreen() {
           </View>
           <View>
             <Text className="text-brand-navy font-black text-3xl tracking-tight">14</Text>
-            <Text className="text-slate-400 text-[14px] font-bold mt-1 uppercase tracking-wider">Maternal Deliveries</Text>
+            <Text className="text-slate-400 text-[14px] font-bold mt-1 uppercase tracking-wider">{t('reportsMaternalDeliveries')}</Text>
           </View>
         </View>
 
@@ -545,7 +556,7 @@ export default function ReportsScreen() {
           <MaterialCommunityIcons name="hospital-marker" size={100} color="rgba(225,29,72,0.05)" style={{position: 'absolute', bottom: -20, right: -20, transform: [{rotate: '-15deg'}]}} />
           <View className="flex-row justify-between items-start">
             <View className="flex-1 mr-2">
-              <Text className="text-slate-400 font-bold text-[13px] uppercase tracking-wider leading-tight">Emergencies</Text>
+              <Text className="text-slate-400 font-bold text-[13px] uppercase tracking-wider leading-tight">{t('reportsEmergencies')}</Text>
             </View>
             <View className="w-10 h-10 rounded-full bg-rose-50 items-center justify-center">
               <MaterialCommunityIcons name="hospital-marker" size={20} color="#E11D48" />
@@ -553,7 +564,7 @@ export default function ReportsScreen() {
           </View>
           <View>
             <Text className="text-brand-navy font-black text-3xl tracking-tight">27</Text>
-            <Text className="text-slate-400 text-[14px] font-bold mt-1 uppercase tracking-wider">Admissions Today</Text>
+            <Text className="text-slate-400 text-[14px] font-bold mt-1 uppercase tracking-wider">{t('reportsAdmissionsToday')}</Text>
           </View>
         </View>
       </View>

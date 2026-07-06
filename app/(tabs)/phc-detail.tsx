@@ -98,6 +98,10 @@ export default function PHCDetailScreen() {
       'IV Fluids (RL 500ml)': 'आईवी फ्लूइड्स (आरएल 500ml)',
       'Vitamin C + Zinc': 'विटामिन सी + जिंक',
       'Azithromycin 500mg': 'एज़िथ्रोमाइसिन 500mg',
+      'Viral Fever': 'वायरल बुखार',
+      'Dengue': 'डेंगू',
+      'Typhoid': 'टाइफाइड',
+      'Malaria': 'मलेरिया',
       'Oxygen Cylinder (B Type)': 'ऑक्सीजन सिलेंडर (बी टाइप)',
       'Transfer 50 Dengue Kits': '50 डेंगू किट्स ट्रांसफर करें',
       'Move 20 Malaria RDTs': '20 मलेरिया RDTs ट्रांसफर करें',
@@ -536,8 +540,8 @@ export default function PHCDetailScreen() {
                     />
                   </View>
                   <View className="flex-1 pr-2">
-                    <Text className={`${alert.type === 'OUTBREAK' ? 'text-[#DC2626]' : alert.type === 'SHORTAGE' ? 'text-[#D97706]' : 'text-[#2563EB]'} font-extrabold text-[14px] mb-1`}>{alert.title}</Text>
-                    <Text className="text-slate-600 text-[11px] font-semibold">{alert.description}</Text>
+                    <Text className={`${alert.type === 'OUTBREAK' ? 'text-[#DC2626]' : alert.type === 'SHORTAGE' ? 'text-[#D97706]' : 'text-[#2563EB]'} font-extrabold text-[14px] mb-1`}>{language === 'hi' && alert.titleHi ? alert.titleHi : alert.title}</Text>
+                    <Text className="text-slate-600 text-[11px] font-semibold">{language === 'hi' && alert.descriptionHi ? alert.descriptionHi : alert.description}</Text>
                   </View>
                 </View>
               )) : (

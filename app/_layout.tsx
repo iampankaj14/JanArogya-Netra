@@ -10,10 +10,28 @@ import { useEffect } from 'react';
 import { LogBox, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { configureReanimatedLogger, ReanimatedLogLevel } from 'react-native-reanimated';
+import { GlobalAlertModal } from '@/components/features/alerts/GlobalAlertModal';
 import '../global.css';
 
 // Ignore all log notifications on the device screen (warnings will still appear in the terminal)
 LogBox.ignoreAllLogs();
+
+// Suppress specific React Native Web/Expo warnings from cluttering the terminal
+const originalWarn = console.warn;
+console.warn = (...args) => {
+  const msg = typeof args[0] === 'string' ? args[0] : '';
+  if (
+    msg.includes('expo-notifications') ||
+    msg.includes('"shadow*" style props are deprecated') ||
+    msg.includes('props.pointerEvents is deprecated') ||
+    msg.includes('useNativeDriver') ||
+    msg.includes('setLayoutAnimationEnabledExperimental') ||
+    msg.includes('Notifications unavailable in this runtime')
+  ) {
+    return;
+  }
+  originalWarn(...args);
+};
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -64,6 +82,7 @@ export default function RootLayout() {
               <Stack.Screen name="notifications" />
               <Stack.Screen name="settings" />
             </Stack>
+            <GlobalAlertModal />
           </View>
         </SafeAreaProvider>
       </QueryClientProvider>

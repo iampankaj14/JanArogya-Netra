@@ -68,13 +68,21 @@ const getCardConfig = (category?: string) => {
   }
 };
 
-const formatDateObj = (dateStr: string) => {
+const getRelativeTime = (dateStr: string, lang: string) => {
   const d = new Date(dateStr);
-  const day = d.getDate().toString().padStart(2, '0');
-  const month = d.toLocaleString('en-US', { month: 'short' });
-  const year = d.getFullYear();
-  const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase();
-  return `${day}-${month}-${year}, ${time}`;
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffSecs = Math.floor(diffMs / 1000);
+  const diffMins = Math.floor(diffSecs / 60);
+  const diffHrs = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHrs / 24);
+
+  if (diffMins < 1) return lang === 'hi' ? 'अभी-अभी' : 'Just now';
+  if (diffMins < 60) return lang === 'hi' ? `${diffMins} मिनट पहले` : `${diffMins} mins ago`;
+  if (diffHrs < 24) return lang === 'hi' ? `${diffHrs} घंटे पहले` : `${diffHrs} ${diffHrs === 1 ? 'hr' : 'hrs'} ago`;
+  if (diffDays === 1) return lang === 'hi' ? 'कल' : 'Yesterday';
+  
+  return lang === 'hi' ? `${diffDays} दिन पहले` : `${diffDays} days ago`;
 };
 
 export function NotificationCard({
@@ -96,8 +104,8 @@ export function NotificationCard({
   }
 
   const config = getCardConfig(category);
-  const formattedTime = formatDateObj(timestamp);
   const { language } = useTranslation();
+  const formattedTime = getRelativeTime(timestamp, language);
 
   const translateCategory = (cat: string) => {
     if (language !== 'hi') return cat;
@@ -122,7 +130,7 @@ export function NotificationCard({
         { overflow: 'hidden' },
         pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] }
       ]}
-      className="bg-white rounded-[20px] shadow-sm shadow-black/5 flex-row border border-slate-100 mb-4 h-[130px]"
+      className="bg-white rounded-[20px] shadow-sm shadow-black/5 flex-row border border-slate-100 mb-4 h-[85px]"
     >
       {/* Left Colored Strip with Custom Icon Component */}
       <View className={`w-[110px] h-full ${config.bgClass} items-center justify-center rounded-l-[20px] border-r border-slate-50 overflow-hidden`}>
@@ -139,10 +147,10 @@ export function NotificationCard({
       </View>
 
       {/* Right Content */}
-      <View className="flex-1 py-3 px-4 justify-between">
+      <View className="flex-1 py-2 px-4 justify-between">
         
         {/* Top Row: Icon, Title, Date, Dot */}
-        <View className="flex-row items-start justify-between mb-1">
+        <View className="flex-row items-start justify-between mb-0">
           <View className="flex-row items-center flex-1 pr-2">
             <View className={`w-6 h-6 rounded-full items-center justify-center mr-2`} style={{ backgroundColor: `${config.iconColor}15` }}>
               <Feather name={iconFallback as any} size={12} color={config.iconColor} />
@@ -161,7 +169,7 @@ export function NotificationCard({
         </View>
 
         {/* Middle Description */}
-        <Text className="text-slate-500 text-[12px] leading-4 font-medium mb-2 pr-4" numberOfLines={2}>
+        <Text className="text-slate-500 text-[12px] leading-4 font-medium mb-1 pr-4" numberOfLines={2}>
           {message}
         </Text>
 

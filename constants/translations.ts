@@ -280,6 +280,39 @@ export const translations = {
     phcDetailDayFri: 'Fri',
     phcDetailDaySat: 'Sat',
     phcDetailDaySun: 'Sun',
+
+    // Missing Translations (Reports, Maps, Diseases)
+    reportsAdditionalMetrics: 'Additional Metrics',
+    reportsLabTests: 'Lab Tests',
+    reportsConductedToday: 'Conducted Today',
+    reportsVaccinations: 'Vaccinations',
+    reportsDosesAdministered: 'Doses Administered',
+    reportsDeliveries: 'Deliveries',
+    reportsMaternalDeliveries: 'Maternal Deliveries',
+    reportsEmergencies: 'Emergencies',
+    reportsAdmissionsToday: 'Admissions Today',
+
+    diseaseViralFever: 'Viral Fever',
+    diseaseDengue: 'Dengue',
+    diseaseTyphoid: 'Typhoid',
+    diseaseMalaria: 'Malaria',
+    
+    mapKmAway: 'km away',
+    mapStatusOperational: 'OPERATIONAL',
+    mapStatusLimited: 'LIMITED SERVICES',
+    mapStatusSubCenter: 'SUB CENTER',
+    mapStatusClosed: 'CLOSED',
+    mapBlockSuffix: 'Block',
+
+    aiRecEmergencyDoctor: 'Emergency Doctor Deployment',
+    aiRecKitTransfer: 'Dengue NS1 Kit Transfer',
+    aiRecRedistributeDengue: 'Redistribute Dengue Kits',
+    aiRecEmergencyPara: 'Emergency Paracetamol Dispatch',
+    aiRecIVFluids: 'IV Fluids Reallocation',
+    aiRecAmoxTransfer: 'Amoxicillin Transfer',
+    aiRecAzithro: 'Azithromycin Re-stocking',
+
+    // Scenario Simulator
     phcDetailInStock: 'In Stock',
     phcDetailCriticalBadge: 'Critical',
 
@@ -519,7 +552,8 @@ export const translations = {
     situationRoomRealtimeUpdates: 'Real-time Updates',
     situationRoomSmartRouting: 'Smart Routing',
     situationRoomActive: 'Active',
-
+    situationRoomReasonTargetLow: 'Target is critically low.',
+    situationRoomReasonSourceSurplus: 'Source has surplus stock.',
     // Scenario Simulator
     scenarioSimulatorHeaderTitle: 'Scenario Simulator',
     scenarioSimulatorHeaderSubtitle: 'AI-powered health risk simulation & recommendations',
@@ -891,6 +925,39 @@ export const translations = {
     phcDetailDayFri: 'शुक्र',
     phcDetailDaySat: 'शनि',
     phcDetailDaySun: 'रवि',
+
+    // Missing Translations (Reports, Maps, Diseases)
+    reportsAdditionalMetrics: 'अतिरिक्त मेट्रिक्स',
+    reportsLabTests: 'लैब टेस्ट',
+    reportsConductedToday: 'आज किए गए',
+    reportsVaccinations: 'टीकाकरण',
+    reportsDosesAdministered: 'खुराक दी गई',
+    reportsDeliveries: 'प्रसव',
+    reportsMaternalDeliveries: 'मातृत्व प्रसव',
+    reportsEmergencies: 'आपात स्थिति',
+    reportsAdmissionsToday: 'आज भर्ती',
+
+    diseaseViralFever: 'वायरल बुखार',
+    diseaseDengue: 'डेंगू',
+    diseaseTyphoid: 'टाइफाइड',
+    diseaseMalaria: 'मलेरिया',
+    
+    mapKmAway: 'किमी दूर',
+    mapStatusOperational: 'सक्रिय',
+    mapStatusLimited: 'सीमित सेवाएं',
+    mapStatusSubCenter: 'उप केंद्र',
+    mapStatusClosed: 'बंद',
+    mapBlockSuffix: 'ब्लॉक',
+
+    aiRecEmergencyDoctor: 'आपातकालीन डॉक्टर की तैनाती',
+    aiRecKitTransfer: 'डेंगू NS1 किट ट्रांसफर',
+    aiRecRedistributeDengue: 'डेंगू किट पुनर्वितरित करें',
+    aiRecEmergencyPara: 'आपातकालीन पैरासिटामोल प्रेषण',
+    aiRecIVFluids: 'IV तरल पदार्थ पुनर्वितरण',
+    aiRecAmoxTransfer: 'अमोक्सिसिलिन ट्रांसफर',
+    aiRecAzithro: 'एज़िथ्रोमाइसिन री-स्टॉकिंग',
+
+    // Scenario Simulator
     phcDetailInStock: 'स्टॉक में',
     phcDetailCriticalBadge: 'गंभीर',
 
@@ -1130,6 +1197,8 @@ export const translations = {
     situationRoomRealtimeUpdates: 'रीयल-टाइम अपडेट',
     situationRoomSmartRouting: 'स्मार्ट रूटिंग',
     situationRoomActive: 'सक्रिय',
+    situationRoomReasonTargetLow: 'गंतव्य पर भारी कमी है।',
+    situationRoomReasonSourceSurplus: 'स्रोत के पास अतिरिक्त स्टॉक है।',
 
     // Scenario Simulator
     scenarioSimulatorHeaderTitle: 'परिदृश्य सिम्युलेटर',

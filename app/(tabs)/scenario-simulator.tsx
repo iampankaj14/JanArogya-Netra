@@ -12,7 +12,18 @@ import geminiService from '@/services/ai/geminiService';
 
 export default function ScenarioSimulatorScreen() {
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
+
+  const translateDynamic = (text: string) => {
+    if (language !== 'hi' || !text) return text;
+    const map: Record<string, string> = {
+      'Heatwave Support Transfer': 'हीटवेव सपोर्ट ट्रांसफर',
+      'Dengue Outbreak Supply': 'डेंगू प्रकोप आपूर्ति',
+      'Emergency Doctor Deployment': 'आपातकालीन डॉक्टर की तैनाती',
+      'Dengue NS1 Kit Transfer': 'डेंगू NS1 किट ट्रांसफर'
+    };
+    return map[text] || text;
+  };
 
   const [scenario, setScenario] = useState('Dengue Outbreak Surge');
   const [severity, setSeverity] = useState('High');
@@ -300,7 +311,7 @@ export default function ScenarioSimulatorScreen() {
                       <View key={rec.id || i} className="flex-row items-start justify-between mb-2">
                         <View className="flex-row items-start flex-1 pr-2">
                           <Feather name="check-circle" size={10} color="#3B82F6" className="mt-0.5 mr-2" />
-                          <Text className="text-brand-navy font-semibold text-[9px] leading-3 flex-1">{rec.title || t('scenarioSimulatorTransferFallback').replace('{quantity}', String(rec.quantity)).replace('{item}', rec.item)}</Text>
+                          <Text className="text-brand-navy font-semibold text-[9px] leading-3 flex-1">{translateDynamic(rec.title) || t('scenarioSimulatorTransferFallback').replace('{quantity}', String(rec.quantity)).replace('{item}', rec.item)}</Text>
                         </View>
                         <Pressable
                           onPress={() => {

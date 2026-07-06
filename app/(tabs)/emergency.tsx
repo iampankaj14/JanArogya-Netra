@@ -9,13 +9,14 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { notificationsRepository } from '@/services/repositories/notificationsRepository';
 import { phcRepository } from '@/services/repositories/phcRepository';
 import { AlertItem } from '@/shared/types/alert';
+import { alertEventBus } from '@/utils/eventBus';
 import { Toggle } from '../../components/ui/inputs/Toggle';
 
 export default function EmergencyScreen() {
   const router = useRouter();
   const { authState } = useAuth();
   const { alerts } = useDashboard();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
 
   const [escalated, setEscalated] = useState(false);
 
@@ -36,9 +37,18 @@ export default function EmergencyScreen() {
           type: 'alert',
           category: t('emergencyEscalationNotifCategory'),
           isNew: true,
-          targetRole: 'DHO',
+          targetRole: 'BMO',
           targetFacilityId: phc?.block,
         });
+
+        // Emit real-time pop-up event across tabs
+        alertEventBus.emit({
+          type: 'CRITICAL_ALERT',
+          facilityId: authState?.facilityId || 'phc_barola',
+          title: language === 'hi' ? 'पीएचसी द्वारा आपातकालीन एस्केलेशन' : 'Emergency Escalation by PHC',
+          message: `${authState?.name || 'Staff'} ${language === 'hi' ? 'ने तत्काल ध्यान देने के लिए एक अलर्ट बढ़ाया है।' : 'has escalated an alert for immediate attention.'}`
+        });
+
       } catch (err) {
         console.error('Failed to dispatch escalation notification', err);
       }
@@ -120,15 +130,15 @@ export default function EmergencyScreen() {
               <View className="flex-row justify-between items-start mb-3">
                 <View className="flex-row items-center bg-red-50 px-2 py-1 rounded-full border border-red-100">
                   <View className="w-1.5 h-1.5 rounded-full bg-red-500 mr-1.5 animate-pulse" />
-                  <Text className="text-red-700 font-extrabold text-[9px] uppercase">{alert.type}</Text>
+                  <Text className="text-red-700 font-extrabold text-[9px] uppercase">{alert.type === 'OUTBREAK' ? t('phcsMetricOutbreakLabel') : alert.type === 'SHORTAGE' ? t('phcsMetricShortageLabel') : alert.type}</Text>
                 </View>
                 <Text className="text-slate-400 font-bold text-[10px]">
                   {new Date(alert.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </Text>
               </View>
               
-              <Text className="text-brand-navy font-black text-sm mb-1.5 pr-6">{alert.title}</Text>
-              <Text className="text-slate-600 font-medium text-[11px] leading-4">{alert.description}</Text>
+                <Text className="text-brand-navy font-black text-sm mb-1.5 pr-6">{language === 'hi' && alert.titleHi ? alert.titleHi : alert.title}</Text>
+              <Text className="text-slate-600 font-medium text-[11px] leading-4">{language === 'hi' && alert.descriptionHi ? alert.descriptionHi : alert.description}</Text>
             </View>
           ))
         ) : (

@@ -9,6 +9,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from '@/hooks/useTranslation';
 import { alertsRepository } from '@/services/repositories/alertsRepository';
 import { phcRepository } from '@/services/repositories/phcRepository';
+import { notificationsRepository } from '@/services/repositories/notificationsRepository';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -148,18 +149,19 @@ export default function TabLayout() {
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    if (!authState) return;
+    if (!authState?.uid && !authState?.role) return;
     
-    const fetchUnreadCount = async () => {
-      try {
-        const { localNotifications } = require('@/services/repositories/localDb');
-        setUnreadCount(localNotifications.length);
-      } catch (e) {
-        console.error('Failed to fetch unread alerts', e);
+    const unsubscribe = notificationsRepository.subscribeNotifications(
+      { role: authState.role, uid: authState.uid },
+      (notifications) => {
+        const unread = notifications.filter(n => !n.read).length;
+        setUnreadCount(unread);
       }
-    };
+    );
     
-    fetchUnreadCount();
+    return () => {
+      unsubscribe();
+    };
   }, [authState]);
 
   // Strict Route Guarding
