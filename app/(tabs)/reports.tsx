@@ -147,7 +147,10 @@ export default function ReportsScreen() {
   const activeShipments = fetchedTransfers.filter(t => t.status === 'EN_ROUTE');
 
   // Critical Watchlist
-  const criticalPhcs = [...reportPhcs].sort((a, b) => a.healthScore - b.healthScore).slice(0, 3);
+  const criticalPhcs = [...reportPhcs]
+    .filter(p => p.healthScore < 80 || p.activeAlertsCount > 0 || p.stockStatus === 'critical' || p.stockStatus === 'warning')
+    .sort((a, b) => a.healthScore - b.healthScore)
+    .slice(0, 3);
 
   const getPhcName = (phc: any) => {
     if (!phc) return t('reportsHeaderDefaultFacility');

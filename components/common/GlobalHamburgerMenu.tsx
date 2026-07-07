@@ -11,11 +11,13 @@ interface GlobalHamburgerMenuProps {
   onClose: () => void;
 }
 
-const { width } = Dimensions.get('window');
+const { width: rawWidth } = Dimensions.get('window');
+const width = Math.min(rawWidth, 453);
 const DRAWER_WIDTH = width * 0.85;
 
 export function GlobalHamburgerMenu({ visible, onClose }: GlobalHamburgerMenuProps) {
   const router = useRouter();
+  
   const slideAnim = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
   const { authState, logout } = useAuth();

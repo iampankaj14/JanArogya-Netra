@@ -34,7 +34,7 @@ export default function ProfileScreen() {
         <View className="flex-row justify-between items-center mb-6 pl-1">
           <View className="flex-1 pr-4">
             <Text className="text-brand-navy font-black text-2xl mb-1 tracking-tight">{t('profileTitle')}</Text>
-            <Text className="text-slate-500 text-[16px] font-semibold leading-4 pr-4">{t('profileSubtitle')}</Text>
+            <Text className="text-slate-500 text-[16px] font-semibold leading-5 pr-4">{t('profileSubtitle')}</Text>
           </View>
           <Image
             source={require('../../data/profile/profile_page.png')}
@@ -83,45 +83,45 @@ export default function ProfileScreen() {
           </View>
 
           {/* Overlapping Stats Card */}
-          <View className="bg-white rounded-[24px] mx-4 -mt-10 p-3 shadow-sm shadow-black/10 border-2 border-blue-200 flex-row justify-between items-center">
+          <View className="bg-white rounded-[24px] mx-4 -mt-10 p-2 shadow-sm shadow-black/10 border-2 border-blue-200 flex-row flex-wrap">
             {/* Stat 1 */}
-            <View className="flex-1 flex-row items-center justify-center border-r border-slate-50">
-              <View className="w-8 h-8 rounded-full bg-purple-50 items-center justify-center mr-1">
+            <View className="w-1/2 flex-row items-center justify-start p-3 border-b border-r border-slate-100">
+              <View className="w-8 h-8 rounded-full bg-purple-50 items-center justify-center mr-2">
                 <Feather name="shield" size={14} color="#8B5CF6" />
               </View>
-              <View>
-                <Text className="text-slate-400 text-[12px] font-bold">{t('profileStatRoleLabel')}</Text>
-                <Text className="text-brand-navy font-black text-[16px]">{role}</Text>
+              <View className="flex-1">
+                <Text className="text-slate-400 text-[11px] font-bold" numberOfLines={1}>{t('profileStatRoleLabel')}</Text>
+                <Text className="text-brand-navy font-black text-[15px]" numberOfLines={1}>{role}</Text>
               </View>
             </View>
             {/* Stat 2 */}
-            <View className="flex-1 flex-row items-center justify-center border-r border-slate-50">
-              <View className="w-8 h-8 rounded-full bg-emerald-50 items-center justify-center mr-1">
+            <View className="w-1/2 flex-row items-center justify-start p-3 border-b border-slate-100">
+              <View className="w-8 h-8 rounded-full bg-emerald-50 items-center justify-center mr-2">
                 <Feather name="home" size={14} color="#10B981" />
               </View>
-              <View>
-                <Text className="text-slate-400 text-[12px] font-bold">{role === 'PHC' ? t('profileStatBedsManaged') : t('profileStatPhcsManaged')}</Text>
-                <Text className="text-brand-navy font-black text-[16px]">{role === 'PHC' ? '18' : (role === 'BMO' ? '8' : '24')}</Text>
+              <View className="flex-1">
+                <Text className="text-slate-400 text-[11px] font-bold" numberOfLines={1}>{role === 'PHC' ? t('profileStatBedsManaged') : t('profileStatPhcsManaged')}</Text>
+                <Text className="text-brand-navy font-black text-[15px]" numberOfLines={1}>{role === 'PHC' ? '18' : (role === 'BMO' ? '8' : '24')}</Text>
               </View>
             </View>
             {/* Stat 3 */}
-            <View className="flex-1 flex-row items-center justify-center border-r border-slate-50">
-              <View className="w-8 h-8 rounded-full bg-orange-50 items-center justify-center mr-1">
+            <View className="w-1/2 flex-row items-center justify-start p-3 border-r border-slate-100">
+              <View className="w-8 h-8 rounded-full bg-orange-50 items-center justify-center mr-2">
                 <Feather name="users" size={14} color="#F59E0B" />
               </View>
-              <View>
-                <Text className="text-slate-400 text-[12px] font-bold">{t('profileStatTeamMembers')}</Text>
-                <Text className="text-brand-navy font-black text-[16px]">{role === 'PHC' ? '14' : (role === 'BMO' ? '45' : '128')}</Text>
+              <View className="flex-1">
+                <Text className="text-slate-400 text-[11px] font-bold" numberOfLines={1}>{t('profileStatTeamMembers')}</Text>
+                <Text className="text-brand-navy font-black text-[15px]" numberOfLines={1}>{role === 'PHC' ? '14' : (role === 'BMO' ? '45' : '128')}</Text>
               </View>
             </View>
             {/* Stat 4 */}
-            <View className="flex-1 flex-row items-center justify-center">
-              <View className="w-8 h-8 rounded-full bg-blue-50 items-center justify-center mr-1">
+            <View className="w-1/2 flex-row items-center justify-start p-3">
+              <View className="w-8 h-8 rounded-full bg-blue-50 items-center justify-center mr-2">
                 <Feather name="calendar" size={14} color="#3B82F6" />
               </View>
-              <View>
-                <Text className="text-slate-400 text-[12px] font-bold">{t('profileStatMemberSince')}</Text>
-                <Text className="text-brand-navy font-black text-[16px]">{t('profileStatMemberSinceValue')}</Text>
+              <View className="flex-1">
+                <Text className="text-slate-400 text-[11px] font-bold" numberOfLines={1}>{t('profileStatMemberSince')}</Text>
+                <Text className="text-brand-navy font-black text-[15px]" numberOfLines={1}>{t('profileStatMemberSinceValue')}</Text>
               </View>
             </View>
           </View>

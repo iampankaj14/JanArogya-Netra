@@ -11,7 +11,8 @@ import { PHC } from '@/shared/types/phc';
 import { AlertItem } from '@/shared/types/alert';
 import { useTranslation } from '@/hooks/useTranslation';
 
-const { width } = Dimensions.get('window');
+const { width: rawWidth } = Dimensions.get('window');
+const width = Math.min(rawWidth, 453);
 const isTablet = width >= 768;
 
 export default function PHCHomeDashboard() {

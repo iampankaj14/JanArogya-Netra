@@ -11,6 +11,9 @@ import { LogBox, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { configureReanimatedLogger, ReanimatedLogLevel } from 'react-native-reanimated';
 import { GlobalAlertModal } from '@/components/features/alerts/GlobalAlertModal';
+import Feather from '@expo/vector-icons/Feather';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import '../global.css';
 
 // Ignore all log notifications on the device screen (warnings will still appear in the terminal)
@@ -53,6 +56,9 @@ export default function RootLayout() {
     'Geist-Medium': require('../assets/fonts/Geist-Medium.ttf'),
     'Geist-SemiBold': require('../assets/fonts/Geist-SemiBold.ttf'),
     'Geist-Bold': require('../assets/fonts/Geist-Bold.ttf'),
+    ...Feather.font,
+    ...MaterialCommunityIcons.font,
+    ...MaterialIcons.font,
   });
 
   useEffect(() => {

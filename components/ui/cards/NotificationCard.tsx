@@ -152,9 +152,6 @@ export function NotificationCard({
         {/* Top Row: Icon, Title, Date, Dot */}
         <View className="flex-row items-start justify-between mb-0">
           <View className="flex-row items-center flex-1 pr-2">
-            <View className={`w-6 h-6 rounded-full items-center justify-center mr-2`} style={{ backgroundColor: `${config.iconColor}15` }}>
-              <Feather name={iconFallback as any} size={12} color={config.iconColor} />
-            </View>
             <Text className="text-black font-bold text-[14px]" numberOfLines={1}>{title}</Text>
           </View>
           <View className="flex-row items-center mt-0.5">

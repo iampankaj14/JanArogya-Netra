@@ -13,6 +13,7 @@ export default function InventoryScreen() {
   const { authState } = useAuth();
   const { t } = useTranslation();
   const [activeCategory, setActiveCategory] = useState(t('inventoryCategoryAllItems'));
+  const [stockFilter, setStockFilter] = useState('ALL'); // 'ALL' | 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK'
   const [refreshKey, setRefreshKey] = useState(0);
 
   // Modal State
@@ -61,6 +62,12 @@ export default function InventoryScreen() {
 
   // Filter for rendering items
   const filteredMedicines = facilityMedicines.filter(m => {
+    // 1. Stock filter
+    if (stockFilter === 'OUT_OF_STOCK' && m.currentStock !== 0) return false;
+    if (stockFilter === 'LOW_STOCK' && (m.currentStock > m.minRequiredStock || m.currentStock === 0)) return false;
+    if (stockFilter === 'IN_STOCK' && (m.currentStock === 0 || m.currentStock <= m.minRequiredStock)) return false; // In Stock means sufficient
+
+    // 2. Category filter
     if (activeCategory === t('inventoryCategoryAllItems')) return true;
     if (activeCategory === t('inventoryCategoryMedicines')) return ['ANTIBIOTICS', 'ANALGESICS', 'ANTIVIRALS', 'CHRONIC_CARE', 'EMERGENCY'].includes(m.type);
     if (activeCategory === t('inventoryCategoryConsumables')) return m.type === 'CONSUMABLES' || m.type === 'IV_FLUIDS';
@@ -160,7 +167,7 @@ export default function InventoryScreen() {
         <View className="mt-4 px-4 flex-row flex-wrap justify-between">
           
           {/* Total Items */}
-          <TouchableOpacity className="w-[48%] bg-[#DBEAFE] rounded-[16px] p-4 border border-[#3B82F6]/60 shadow-sm shadow-blue-500/10 mb-4 justify-between overflow-hidden" style={{ minHeight: 140 }} activeOpacity={0.7}>
+          <TouchableOpacity onPress={() => setStockFilter('ALL')} className={`w-[48%] bg-[#DBEAFE] rounded-[16px] p-4 shadow-sm shadow-blue-500/10 mb-4 justify-between overflow-hidden ${stockFilter === 'ALL' ? 'border-[3px] border-[#3B82F6]' : 'border border-[#3B82F6]/60'}`} style={{ minHeight: 140 }} activeOpacity={0.7}>
             <Feather name="box" size={100} color="rgba(59,130,246,0.05)" style={{position: 'absolute', bottom: -20, right: -20, transform: [{rotate: '-15deg'}]}} />
             <View className="flex-row justify-between items-start">
               <View className="flex-1 mr-2">
@@ -180,7 +187,7 @@ export default function InventoryScreen() {
           </TouchableOpacity>
 
           {/* In Stock */}
-          <TouchableOpacity className="w-[48%] bg-[#D1FAE5] rounded-[16px] p-4 border border-[#10B981]/60 shadow-sm shadow-emerald-500/10 mb-4 justify-between overflow-hidden" style={{ minHeight: 140 }} activeOpacity={0.7}>
+          <TouchableOpacity onPress={() => setStockFilter('IN_STOCK')} className={`w-[48%] bg-[#D1FAE5] rounded-[16px] p-4 shadow-sm shadow-emerald-500/10 mb-4 justify-between overflow-hidden ${stockFilter === 'IN_STOCK' ? 'border-[3px] border-[#10B981]' : 'border border-[#10B981]/60'}`} style={{ minHeight: 140 }} activeOpacity={0.7}>
             <Feather name="check-circle" size={100} color="rgba(16,185,129,0.05)" style={{position: 'absolute', bottom: -20, right: -20, transform: [{rotate: '-15deg'}]}} />
             <View className="flex-row justify-between items-start">
               <View className="flex-1 mr-2">
@@ -197,7 +204,7 @@ export default function InventoryScreen() {
           </TouchableOpacity>
 
           {/* Low Stock */}
-          <TouchableOpacity className="w-[48%] bg-[#FEF3C7] rounded-[16px] p-4 border border-[#F59E0B]/60 shadow-sm shadow-amber-500/10 mb-4 justify-between overflow-hidden" style={{ minHeight: 140 }} activeOpacity={0.7}>
+          <TouchableOpacity onPress={() => setStockFilter('LOW_STOCK')} className={`w-[48%] bg-[#FEF3C7] rounded-[16px] p-4 shadow-sm shadow-amber-500/10 mb-4 justify-between overflow-hidden ${stockFilter === 'LOW_STOCK' ? 'border-[3px] border-[#F59E0B]' : 'border border-[#F59E0B]/60'}`} style={{ minHeight: 140 }} activeOpacity={0.7}>
             <Feather name="alert-triangle" size={100} color="rgba(245,158,11,0.05)" style={{position: 'absolute', bottom: -20, right: -20, transform: [{rotate: '-15deg'}]}} />
             <View className="flex-row justify-between items-start">
               <View className="flex-1 mr-2">
@@ -214,7 +221,7 @@ export default function InventoryScreen() {
           </TouchableOpacity>
 
           {/* Out of Stock */}
-          <TouchableOpacity className="w-[48%] bg-[#FEE2E2] rounded-[16px] p-4 border border-[#EF4444]/60 shadow-sm shadow-red-500/10 mb-4 justify-between overflow-hidden" style={{ minHeight: 140 }} activeOpacity={0.7}>
+          <TouchableOpacity onPress={() => setStockFilter('OUT_OF_STOCK')} className={`w-[48%] bg-[#FEE2E2] rounded-[16px] p-4 shadow-sm shadow-red-500/10 mb-4 justify-between overflow-hidden ${stockFilter === 'OUT_OF_STOCK' ? 'border-[3px] border-[#EF4444]' : 'border border-[#EF4444]/60'}`} style={{ minHeight: 140 }} activeOpacity={0.7}>
             <Feather name="x-octagon" size={100} color="rgba(239,68,68,0.05)" style={{position: 'absolute', bottom: -20, right: -20, transform: [{rotate: '-15deg'}]}} />
             <View className="flex-row justify-between items-start">
               <View className="flex-1 mr-2">

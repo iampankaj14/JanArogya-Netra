@@ -197,7 +197,8 @@ export default function TabLayout() {
     ).start();
   }, []);
 
-  const { width: SCREEN_WIDTH } = Dimensions.get('window');
+  const { width: rawScreenWidth } = Dimensions.get('window');
+  const SCREEN_WIDTH = Math.min(rawScreenWidth, 453);
   // Initial position is at right: 16, width is 52.
   const MAX_LEFT = -(SCREEN_WIDTH - 16 - 52 - 16);
 

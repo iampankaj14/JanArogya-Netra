@@ -118,7 +118,8 @@ const generateSparkline = (data: number[], width: number, height: number) => {
 
 export default function SituationRoomScreen() {
   const router = useRouter();
-  const { width } = useWindowDimensions();
+  const { width: rawWidth } = useWindowDimensions();
+  const width = Math.min(rawWidth, 453);
   const carouselWidth = width - 44;
 
   const { authState } = useAuth();
@@ -812,7 +813,7 @@ export default function SituationRoomScreen() {
                     <Text className="text-[#3B82F6] font-bold text-[10px] mb-0.5">{t('situationRoomNetraAiRecommendation') || 'Netra AI Recommendation'}</Text>
                     <Text className="text-brand-navy font-black text-[15px] leading-tight" numberOfLines={2}>
                       {language === 'hi' 
-                        ? (request.type === 'Redistribute Stock' ? 'स्टॉक\nपुनर्वितरित करें' : request.type) 
+                        ? (request.type === 'Redistribute Stock' ? 'स्टॉक\nपुनर्वितरित करें' : translateDynamic(request.type, language)) 
                         : request.type.replace('Redistribute ', 'Redistribute\n')}
                     </Text>
                   </View>
@@ -876,7 +877,7 @@ export default function SituationRoomScreen() {
                         <Text className="text-slate-600 font-medium text-[10px]">• {t('situationRoomReasonSourceSurplus') || 'Source has surplus stock.'}</Text>
                       </View>
                     ) : (
-                      <Text className="text-slate-600 font-medium text-[10.5px] leading-tight pr-2" numberOfLines={4}>• {request.reason}</Text>
+                      <Text className="text-slate-600 font-medium text-[10.5px] leading-tight pr-2" numberOfLines={4}>• {translateDynamic(request.reason, language)}</Text>
                     )}
                   </View>
                   <View className="w-[150px] items-end justify-center -my-2 -mr-10">
@@ -1094,7 +1095,7 @@ export default function SituationRoomScreen() {
 
                     {/* Stats Area */}
                     <View 
-                      className={`items-center justify-center w-[40px] border rounded-[10px] py-1 shadow-sm ${
+                      className={`items-center justify-center min-w-[52px] px-1 border rounded-[10px] py-1 shadow-sm ${
                         audit.color === 'red' 
                           ? 'bg-red-500 border-red-400 shadow-red-500/30' 
                           : 'bg-emerald-500 border-emerald-400 shadow-emerald-500/30'

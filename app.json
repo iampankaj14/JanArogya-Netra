@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "janarogya-netra",
+    "name": "JanArogya Netra",
     "slug": "janarogya-netra",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -11,6 +11,7 @@
       "icon": "./assets/expo.icon"
     },
     "android": {
+      "package": "com.pankajiam14.janarogyanetra",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -26,7 +27,9 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "name": "JanArogya Netra",
+      "shortName": "Netra",
+      "favicon": "./data/netra.png"
     },
     "plugins": [
       "expo-router",
@@ -49,12 +52,20 @@
         {
           "microphonePermission": "Allow JanArogya Netra to use the microphone for voice input.",
           "speechRecognitionPermission": "Allow JanArogya Netra to use speech recognition.",
-          "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox"]
+          "androidSpeechServicePackages": [
+            "com.google.android.googlequicksearchbox"
+          ]
         }
       ]
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "bccec8ba-ed25-4133-ac6c-2e3718b63d27"
+      }
     }
   }
 }

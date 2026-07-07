@@ -23,8 +23,8 @@ export function TopAppBar({
   const roleDisplay = authState?.role === 'DHO' ? 'Chief Medical Officer' : authState?.role === 'BMO' ? 'Block Medical Officer' : 'PHC Officer';
 
   return (
-    <View className="pt-4 pb-2 z-50">
-      <View className="flex-row bg-white border border-slate-100/50 py-1.5 px-2 justify-between items-center rounded-[32px] mx-6 shadow-xl">
+    <View className="pt-8 pb-2 z-50">
+      <View className="flex-row bg-white border border-slate-200 py-1.5 px-2 justify-between items-center rounded-full mx-6 shadow-sm shadow-slate-300/50">
         {/* Left: Hamburger menu */}
         <Pressable
           onPress={onHamburgerPress}

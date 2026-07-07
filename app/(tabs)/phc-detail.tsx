@@ -12,12 +12,12 @@ import { AIRecommendation } from '@/shared/types/ai';
 import { useAuth } from '@/context/AuthContext';
 import { useTranslation } from '@/hooks/useTranslation';
 import { localDiseaseTrends } from '@/services/repositories/localDb';
-import { Dimensions, Image, Pressable, ScrollView, Text, TouchableOpacity, View, LogBox, Platform } from 'react-native';
+import { Dimensions, Image, Pressable, ScrollView, Text, TouchableOpacity, View, LogBox, Platform, useWindowDimensions } from 'react-native';
 import Svg, { Circle, Defs, Path, Stop, LinearGradient as SvgLinearGradient, Text as SvgText, G } from 'react-native-svg';
 
 LogBox.ignoreLogs(['Unknown event handler property `onResponderTerminate`']);
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
 
 const generateSparkline = (data: number[], width: number, height: number) => {
   if (!data || data.length === 0) return { path: '', areaPath: '', lastPoint: { x: 0, y: 0 } };
@@ -76,8 +76,10 @@ const MetricCard = ({ title, value, icon, iconBg, trend, trendVal, subtitle, bor
 );
 
 export default function PHCDetailScreen() {
+  const { width: rawScreenWidth } = useWindowDimensions();
+  const SCREEN_WIDTH = Math.min(rawScreenWidth, 453);
   const router = useRouter();
-  const { id } = useLocalSearchParams();
+  const { id } = useLocalSearchParams<{ id: string }>();
   const { t, language } = useTranslation();
   const { authState } = useAuth();
   const [showAllMedicines, setShowAllMedicines] = useState(false);
